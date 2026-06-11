@@ -21,6 +21,8 @@ async function forward(
   const headers: Record<string, string> = { "X-API-Key": BACKEND_API_KEY };
   const contentType = req.headers.get("content-type");
   if (contentType) headers["content-type"] = contentType;
+  const authHeader = req.headers.get("authorization");
+  if (authHeader) headers["authorization"] = authHeader;
 
   try {
     const body = req.method === "GET" || req.method === "HEAD" ? undefined : await req.arrayBuffer();

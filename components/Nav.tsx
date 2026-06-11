@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -6,10 +6,10 @@ import { useAuth } from "./AuthProvider";
 import { useState } from "react";
 
 const APP_LINKS = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/evaluate", label: "Evaluate" },
-  { href: "/scan", label: "Find jobs" },
-  { href: "/compare", label: "Compare" },
+  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/evaluate', label: 'Evaluate' },
+  { href: '/scan', label: 'Find jobs' },
+  { href: '/compare', label: 'Compare' },
 ];
 
 export default function Nav() {
@@ -32,9 +32,15 @@ export default function Nav() {
             </defs>
             <rect width="32" height="32" rx="8" fill="#1a1d29" />
             <circle
-              cx="16" cy="16" r="9" fill="none" stroke="url(#nav-aura)"
-              strokeWidth="3.5" strokeLinecap="round"
-              strokeDasharray="47.1" strokeDashoffset="7.5"
+              cx="16"
+              cy="16"
+              r="9"
+              fill="none"
+              stroke="url(#nav-aura)"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+              strokeDasharray="47.1"
+              strokeDashoffset="7.5"
               transform="rotate(-90 16 16)"
             />
           </svg>
@@ -150,7 +156,7 @@ export default function Nav() {
                   <Link href="/login" style={{ marginRight: "0.5rem" }}>
                     Sign in
                   </Link>
-                  <Link href="/onboarding" className="btn btn-primary">
+                  <Link href="/onboarding" className="btn btn-primary !text-white">
                     Get started
                   </Link>
                 </>
@@ -162,7 +168,7 @@ export default function Nav() {
                 <Link
                   key={href}
                   href={href}
-                  aria-current={pathname.startsWith(href) ? "page" : undefined}
+                  aria-current={pathname.startsWith(href) ? 'page' : undefined}
                 >
                   {label}
                 </Link>

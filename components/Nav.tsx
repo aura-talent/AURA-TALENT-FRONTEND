@@ -8,6 +8,7 @@ const APP_LINKS = [
   { href: "/evaluate", label: "Evaluate" },
   { href: "/scan", label: "Find jobs" },
   { href: "/compare", label: "Compare" },
+  { href: "/mock-interview", label: "Mock Interview" },
 ];
 
 export default function Nav() {

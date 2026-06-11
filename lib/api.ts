@@ -29,7 +29,14 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const resp = await fetch(`/api/backend/${path}`, init);
+  const headers = {
+    "Accept": "application/json",
+    ...init?.headers,
+  };
+  const resp = await fetch(`/api/backend/${path}`, {
+    ...init,
+    headers,
+  });
   if (!resp.ok) {
     let detail = `Request failed (${resp.status})`;
     try {
@@ -134,8 +141,9 @@ export const api = {
       ...input,
     }),
 
-  scan: (input: { companies?: string[]; title_keywords?: string[] } = {}) =>
+  scan: (input: { companies?: string[]; title_keywords?: string[]; location_keywords?: string[] } = {}) =>
     postJson<{ total: number; jobs: JobPosting[]; errors: string[] }>("scan", input),
+
 
   listApplications: () => request<Application[]>(`applications/${getUserId()}`),
 

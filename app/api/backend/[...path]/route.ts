@@ -34,6 +34,15 @@ async function forward(
 
     console.log(`[Proxy] ⬅️  Response from backend: ${resp.status} for ${req.method} /${pathStr}`);
 
+    if (!resp.ok) {
+      try {
+        const errorText = await resp.clone().text();
+        console.error(`[Proxy] ❌ Backend error details:`, errorText);
+      } catch (err) {
+        console.error(`[Proxy] ❌ Failed to read backend error text:`, err);
+      }
+    }
+
     const responseHeaders: Record<string, string> = {};
     const respContentType = resp.headers.get("content-type");
     if (respContentType) responseHeaders["content-type"] = respContentType;

@@ -48,6 +48,19 @@ function EvaluateInner() {
     "jobs/evaluate/stream"
   );
 
+  const [windowWidth, setWindowWidth] = useState(1200);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setWindowWidth(window.innerWidth);
+      const handleResize = () => setWindowWidth(window.innerWidth);
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
+    }
+  }, []);
+
+  const isDesktop = windowWidth > 960;
+
   useEffect(() => {
     api.getResume().then(() => setHasResume(true)).catch(() => setHasResume(false));
   }, []);
@@ -75,65 +88,71 @@ function EvaluateInner() {
 
   if (result) {
     return (
-      <div className="container" style={{ maxWidth: 820, paddingBottom: "4rem" }}>
+      <div className="container" style={{ maxWidth: "var(--maxw)", paddingBottom: "4rem" }}>
         <div className="page-head">
           <h1>{result.company} — {result.role}</h1>
           <p>{result.archetype}</p>
         </div>
 
-        <div className="panel" style={{ marginBottom: "1.25rem", position: "relative", overflow: "hidden" }}>
-          <div className="aura-glow" style={{ opacity: 0.35 }} />
-          <div style={{ position: "relative", display: "flex", gap: "2.5rem", alignItems: "center", flexWrap: "wrap" }}>
-            <ScoreDial score={result.score} />
-            <div style={{ flex: 1, minWidth: 260 }}>
-              <div className="bars">
-                {Object.entries(BAR_LABELS).map(([key, label]) => {
-                  const v = result.scores[key as keyof typeof result.scores];
-                  return (
-                    <div className="bar-row" key={key}>
-                      <span className="bar-label">{label}</span>
-                      <div className="bar-track">
-                        <div className="bar-fill" style={{ width: `${(v / 5) * 100}%`, background: scoreColor(v) }} />
-                      </div>
-                      <span className="bar-num">{v.toFixed(1)}</span>
-                    </div>
-                  );
-                })}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: isDesktop ? "3fr 7fr" : "1fr",
+            gap: "2rem",
+            alignItems: "start",
+          }}
+        >
+          {/* Left Column: Metrics & Recommendations */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", position: isDesktop ? "sticky" : "static", top: "6.5rem" }}>
+            <div className="panel" style={{ position: "relative", overflow: "hidden" }}>
+              <div className="aura-glow" style={{ opacity: 0.35 }} />
+              <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: "1.5rem", alignItems: "center" }}>
+                <ScoreDial score={result.score} />
+                <div style={{ width: "100%" }}>
+                  <div className="bars">
+                    {Object.entries(BAR_LABELS).map(([key, label]) => {
+                      const v = result.scores[key as keyof typeof result.scores];
+                      return (
+                        <div className="bar-row" key={key}>
+                          <span className="bar-label">{label}</span>
+                          <div className="bar-track">
+                            <div className="bar-fill" style={{ width: `${(v / 5) * 100}%`, background: scoreColor(v) }} />
+                          </div>
+                          <span className="bar-num">{v.toFixed(1)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
+              <div style={{ position: "relative", marginTop: "1.5rem", borderTop: "1px solid var(--ink-06)", paddingTop: "1.25rem" }}>
+                <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+                  <span className={tierChip(result.legitimacy.tier)}>
+                    {result.legitimacy.tier}
+                  </span>
+                </div>
+                <p style={{ fontWeight: 600, fontSize: "0.95rem", lineHeight: "1.5" }}>{result.recommendation}</p>
+              </div>
+              {result.score < 3.5 && (
+                <div className="notice notice-warn" style={{ marginTop: "1.25rem", marginBottom: 0 }}>
+                  This score is below 3.5 — Aura recommends skipping this one
+                  unless you have a specific reason. Your time is worth more.
+                </div>
+              )}
+            </div>
+
+            <div className="hero-ctas" style={{ gap: "0.75rem" }}>
+              <button className="btn btn-primary text-white" onClick={resetEvaluation}>
+                Evaluate another job
+              </button>
+              <Link href="/dashboard" className="btn btn-ghost">View tracker</Link>
             </div>
           </div>
-          <div style={{ position: "relative", marginTop: "1.5rem", display: "flex", gap: "0.6rem", alignItems: "center", flexWrap: "wrap" }}>
-            <span className={tierChip(result.legitimacy.tier)}>
-              {result.legitimacy.tier}
-            </span>
-            <p style={{ fontWeight: 600 }}>{result.recommendation}</p>
+
+          {/* Right Column: Detailed Markdown Report */}
+          <div className="panel" style={{ minWidth: 0, maxHeight: isDesktop ? "calc(100vh - 12rem)" : "none", overflowY: isDesktop ? "auto" : "visible" }}>
+            <ReportView markdown={result.report_markdown} />
           </div>
-          {result.score < 3.5 && (
-            <div className="notice notice-warn" style={{ marginTop: "1rem", marginBottom: 0 }}>
-              This score is below 3.5 — Aura recommends skipping this one
-              unless you have a specific reason. Your time is worth more.
-            </div>
-          )}
-        </div>
-
-        <div className="panel" style={{ marginBottom: "1.25rem" }}>
-          <ReportView markdown={result.report_markdown} />
-        </div>
-
-        {result.keywords.length > 0 && (
-          <div className="panel" style={{ marginBottom: "1.5rem" }}>
-            <h3 style={{ marginBottom: "0.8rem" }}>ATS keywords</h3>
-            <div style={{ display: "flex", gap: "0.45rem", flexWrap: "wrap" }}>
-              {result.keywords.map((k) => <span className="chip" key={k}>{k}</span>)}
-            </div>
-          </div>
-        )}
-
-        <div className="hero-ctas">
-          <button className="btn btn-primary" onClick={resetEvaluation}>
-            Evaluate another job
-          </button>
-          <Link href="/dashboard" className="btn btn-ghost">View tracker</Link>
         </div>
       </div>
     );

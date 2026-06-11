@@ -6,6 +6,8 @@ import { api, ApiError, type ResumeData } from "@/lib/api";
 import Thinking from "@/components/Thinking";
 import ReportView from "@/components/ReportView";
 
+import { useAuth } from "@/components/AuthProvider";
+
 type Mode = "upload" | "paste";
 
 export default function Onboarding() {
@@ -20,12 +22,20 @@ export default function Onboarding() {
   const [error, setError] = useState("");
   const [done, setDone] = useState<ResumeData | null>(null);
 
+  const { user, loading: authLoading } = useAuth();
+
   useEffect(() => {
-    api.getResume()
-      .then(setExisting)
-      .catch(() => {})
-      .finally(() => setChecked(true));
-  }, []);
+    if (!authLoading) {
+      if (!user) {
+        router.push("/login?redirect=/onboarding");
+      } else {
+        api.getResume()
+          .then(setExisting)
+          .catch(() => {})
+          .finally(() => setChecked(true));
+      }
+    }
+  }, [user, authLoading, router]);
 
   async function handleFile(file: File) {
     setError("");
@@ -49,6 +59,17 @@ export default function Onboarding() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (authLoading || !user || !checked) {
+    return (
+      <div className="container" style={{ minHeight: "80vh", display: "grid", placeItems: "center" }}>
+        <div className="thinking">
+          <div className="thinking-orb" />
+          <p className="thinking-status">Loading onboarding session…</p>
+        </div>
+      </div>
+    );
   }
 
   if (busy) {

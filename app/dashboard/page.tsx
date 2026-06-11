@@ -8,7 +8,40 @@ import { supabase } from "@/lib/supabaseClient";
 import { scoreColor } from "@/components/ScoreDial";
 import { useAuth } from "@/components/AuthProvider";
 
+function guessCountry(): string {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (!tz) return "";
+    
+    if (tz.includes("Kuala_Lumpur")) return "Malaysia";
+    if (tz.includes("Singapore")) return "Singapore";
+    if (tz.includes("London") || tz.includes("Europe/London") || tz.includes("GB")) return "United Kingdom";
+    if (tz.includes("America/") || tz.includes("US/")) return "United States";
+    if (tz.includes("Europe/Berlin")) return "Germany";
+    if (tz.includes("Europe/Paris")) return "France";
+    if (tz.includes("Asia/Tokyo")) return "Japan";
+    if (tz.includes("Australia/")) return "Australia";
+    if (tz.includes("Asia/Seoul")) return "South Korea";
+    if (tz.includes("Asia/Hong_Kong")) return "Hong Kong";
+    if (tz.includes("Asia/Shanghai") || tz.includes("Asia/Taipei")) return "Taiwan";
+    if (tz.includes("Asia/Jakarta")) return "Indonesia";
+    if (tz.includes("Asia/Manila")) return "Philippines";
+    if (tz.includes("Asia/Bangkok")) return "Thailand";
+    if (tz.includes("Asia/Ho_Chi_Minh")) return "Vietnam";
+    if (tz.includes("Asia/Kolkata")) return "India";
+    
+    const parts = tz.split("/");
+    if (parts.length > 1) {
+      return parts[1].replace(/_/g, " ");
+    }
+  } catch (e) {
+    // Ignore error
+  }
+  return "";
+}
+
 const STALE_DAYS = 3;
+
 
 function daysSince(iso: string): number {
   return (Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24);
@@ -37,8 +70,55 @@ export default function Dashboard() {
   const [cacheLoading, setCacheLoading] = useState(false);
   const [scanLoading, setScanLoading] = useState(false);
   const [scanError, setScanError] = useState("");
+  const [locationInput, setLocationInput] = useState("");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("aura_location_filter");
+    if (saved !== null) {
+      setLocationInput(saved);
+    } else {
+      if (typeof navigator !== "undefined" && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            try {
+              const { latitude, longitude } = position.coords;
+              const res = await fetch(
+                `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+              );
+              if (res.ok) {
+                const data = await res.json();
+                const city = data.city || data.locality || data.principalSubdivision || "";
+                if (city) {
+                  const val = `${city}, Remote`;
+                  setLocationInput(val);
+                  localStorage.setItem("aura_location_filter", val);
+                  return;
+                }
+              }
+            } catch (e) {
+              console.error("Geocoding lookup failed:", e);
+            }
+            const guessed = guessCountry();
+            const fallback = guessed ? `${guessed}, Remote` : "Remote";
+            setLocationInput(fallback);
+          },
+          (err) => {
+            console.warn("Geolocation permission denied or failed:", err);
+            const guessed = guessCountry();
+            const fallback = guessed ? `${guessed}, Remote` : "Remote";
+            setLocationInput(fallback);
+          }
+        );
+      } else {
+        const guessed = guessCountry();
+        const fallback = guessed ? `${guessed}, Remote` : "Remote";
+        setLocationInput(fallback);
+      }
+    }
+  }, []);
 
   const [windowWidth, setWindowWidth] = useState(1200);
+
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -108,7 +188,9 @@ export default function Dashboard() {
           setScannedAt(data.scanned_at as string);
           // Auto-refresh silently if cache is stale
           if (daysSince(data.scanned_at as string) >= STALE_DAYS) {
-            runScan(searchTerms, userId, true);
+            const saved = localStorage.getItem("aura_location_filter");
+            const locStr = saved !== null ? saved : (guessCountry() ? `${guessCountry()}, Remote` : "Remote");
+            runScan(searchTerms, userId, locStr, true);
           }
         }
       } catch {
@@ -123,12 +205,16 @@ export default function Dashboard() {
   }, [user?.id, hasResume]);
 
   const runScan = useCallback(
-    async (terms: string[], userId: string, silent = false) => {
+    async (terms: string[], userId: string, locsStr: string, silent = false) => {
       if (terms.length === 0) return;
       if (!silent) setScanError("");
       setScanLoading(true);
       try {
-        const res = await api.scan({ title_keywords: terms });
+        const locs = locsStr.split(",").map((s) => s.trim()).filter(Boolean);
+        const res = await api.scan({
+          title_keywords: terms,
+          ...(locs.length ? { location_keywords: locs } : {}),
+        });
         const now = new Date().toISOString();
         await supabase.from("job_scans").upsert({
           user_id: userId,
@@ -148,7 +234,7 @@ export default function Dashboard() {
 
   function handleStartScan() {
     if (!user) return;
-    runScan(searchTerms, user.id);
+    runScan(searchTerms, user.id, locationInput);
   }
 
   const hasNoCache = !cacheLoading && !jobs && !scanLoading;
@@ -314,10 +400,37 @@ export default function Dashboard() {
             {!authLoading && user && hasResume === true && (
               <div style={{ position: "relative", zIndex: 1 }}>
                 {resume && (
-                  <div style={{ marginBottom: "1rem", fontSize: "0.8125rem", color: "var(--ink-55)" }}>
+                  <div style={{ marginBottom: "0.75rem", fontSize: "0.8125rem", color: "var(--ink-55)" }}>
                     Profile: <strong>{resume.profile?.headline || "Your Resume"}</strong>
                   </div>
                 )}
+
+                <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.25rem", alignItems: "flex-end" }}>
+                  <div className="field" style={{ margin: 0, flex: 1 }}>
+                    <label htmlFor="dashboard-loc" style={{ fontSize: "0.75rem", fontWeight: 500, color: "var(--ink-55)", marginBottom: "0.25rem" }}>
+                      Target Locations
+                    </label>
+                    <input
+                      id="dashboard-loc"
+                      className="input"
+                      style={{ padding: "0.35rem 0.6rem", fontSize: "0.8125rem", height: "32px" }}
+                      placeholder="Malaysia, Remote, Singapore"
+                      value={locationInput}
+                      onChange={(e) => {
+                        setLocationInput(e.target.value);
+                        localStorage.setItem("aura_location_filter", e.target.value);
+                      }}
+                    />
+                  </div>
+                  <button
+                    className="btn btn-primary"
+                    style={{ height: "32px", padding: "0 0.75rem", fontSize: "0.8125rem" }}
+                    onClick={handleStartScan}
+                    disabled={scanLoading}
+                  >
+                    {scanLoading ? "Scanning…" : "Scan"}
+                  </button>
+                </div>
 
                 {/* Cache loading */}
                 {cacheLoading && (

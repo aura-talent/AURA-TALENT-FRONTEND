@@ -42,6 +42,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
+  headers.set("Accept", "application/json");
 
   const resp = await fetch(`/api/backend/${path}`, {
     ...init,
@@ -151,8 +152,9 @@ export const api = {
       ...input,
     }),
 
-  scan: (input: { companies?: string[]; title_keywords?: string[] } = {}) =>
+  scan: (input: { companies?: string[]; title_keywords?: string[]; location_keywords?: string[] } = {}) =>
     postJson<{ total: number; jobs: JobPosting[]; errors: string[] }>("scan", input),
+
 
   listApplications: () => request<Application[]>(`applications/${getUserId()}`),
 

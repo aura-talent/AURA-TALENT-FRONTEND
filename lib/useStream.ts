@@ -44,7 +44,10 @@ export function useStream<T, B extends Record<string, unknown>>(path: string) {
       try {
         const res = await fetch(`/api/backend/${path}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
           body: JSON.stringify({ user_id: getUserId(), ...body }),
         });
 

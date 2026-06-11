@@ -6,10 +6,11 @@ import { useAuth } from "./AuthProvider";
 import { useState } from "react";
 
 const APP_LINKS = [
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/evaluate', label: 'Evaluate' },
-  { href: '/scan', label: 'Find jobs' },
-  { href: '/compare', label: 'Compare' },
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/evaluate", label: "Evaluate" },
+  { href: "/scan", label: "Find jobs" },
+  { href: "/compare", label: "Compare" },
+  { href: "/mock-interview", label: "Mock Interview" },
 ];
 
 const EMPLOYER_LINKS = [

@@ -94,6 +94,7 @@ export interface Evaluation {
   legitimacy: Legitimacy;
   report_markdown: string;
   keywords: string[];
+  jd_url?: string;
 }
 
 export interface Application {

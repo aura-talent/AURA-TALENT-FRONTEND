@@ -13,27 +13,56 @@ async function forward(
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   const { path } = await params;
-  const url = `${BACKEND_URL}/api/v1/${path.join("/")}${req.nextUrl.search}`;
+  const pathStr = path.join("/");
+  const url = `${BACKEND_URL}/api/v1/${pathStr}${req.nextUrl.search}`;
+
+  console.log(`[Proxy] ➡️  Forwarding ${req.method} /api/backend/${pathStr} to ${url}`);
 
   const headers: Record<string, string> = { "X-API-Key": BACKEND_API_KEY };
   const contentType = req.headers.get("content-type");
   if (contentType) headers["content-type"] = contentType;
 
-  const body = req.method === "GET" ? undefined : await req.arrayBuffer();
+  try {
+    const body = req.method === "GET" || req.method === "HEAD" ? undefined : await req.arrayBuffer();
 
-  const resp = await fetch(url, {
-    method: req.method,
-    headers,
-    body,
-    cache: "no-store",
-  });
+    const resp = await fetch(url, {
+      method: req.method,
+      headers,
+      body,
+      cache: "no-store",
+    });
 
-  return new Response(resp.body, {
-    status: resp.status,
-    headers: {
-      "content-type": resp.headers.get("content-type") ?? "application/json",
-    },
-  });
+    console.log(`[Proxy] ⬅️  Response from backend: ${resp.status} for ${req.method} /${pathStr}`);
+
+    const responseHeaders: Record<string, string> = {};
+    const respContentType = resp.headers.get("content-type");
+    if (respContentType) responseHeaders["content-type"] = respContentType;
+    
+    // Copy cache-control and connection headers to support SSE streaming properly
+    const cacheControl = resp.headers.get("cache-control");
+    if (cacheControl) responseHeaders["cache-control"] = cacheControl;
+    const connection = resp.headers.get("connection");
+    if (connection) responseHeaders["connection"] = connection;
+
+    // Prevent buffer holding in intermediate proxies (like Next.js dev server/Nginx)
+    if (respContentType?.includes("text/event-stream")) {
+      responseHeaders["x-accel-buffering"] = "no";
+    }
+
+    return new Response(resp.body, {
+      status: resp.status,
+      headers: responseHeaders,
+    });
+  } catch (error) {
+    console.error(`[Proxy] ❌ Error forwarding request to backend:`, error);
+    return new Response(
+      JSON.stringify({ detail: `Failed to connect to backend: ${error instanceof Error ? error.message : String(error)}` }),
+      { 
+        status: 502,
+        headers: { "content-type": "application/json" }
+      }
+    );
+  }
 }
 
-export { forward as GET, forward as POST, forward as PATCH };
+export { forward as GET, forward as POST, forward as PATCH, forward as PUT, forward as DELETE };

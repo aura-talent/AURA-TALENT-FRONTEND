@@ -3,7 +3,14 @@
  * so the backend API key never reaches the browser.
  */
 
+let activeUserId: string | null = null;
+
+export function setUserId(id: string | null) {
+  activeUserId = id;
+}
+
 export function getUserId(): string {
+  if (activeUserId) return activeUserId;
   if (typeof window === "undefined") return "anonymous";
   let id = localStorage.getItem("aura_uid");
   if (!id) {
@@ -70,6 +77,7 @@ export interface Evaluation {
   legitimacy: Legitimacy;
   report_markdown: string;
   keywords: string[];
+  jd_url?: string;
 }
 
 export interface Application {
@@ -142,6 +150,12 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, notes }),
     }),
+
+  saveUser: (input: { id: string; email: string | null; full_name: string | null; avatar_url: string | null }) =>
+    postJson<{ ok: boolean }>("users", input),
+
+  migrateUser: (input: { anon_id: string; auth_id: string }) =>
+    postJson<{ ok: boolean }>("users/migrate", input),
 };
 
 export const STATUSES = [

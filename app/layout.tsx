@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Hanken_Grotesk, Spline_Sans_Mono } from "next/font/google";
 import Nav from "@/components/Nav";
+import { AuthProvider } from "@/components/AuthProvider";
 import "./globals.css";
 
 const display = Bricolage_Grotesque({
@@ -37,24 +38,26 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${display.variable} ${body.variable} ${mono.variable}`}>
-        <Nav />
-        <main>{children}</main>
-        <footer className="footer">
-          <div className="footer-inner">
-            <span>© {new Date().getFullYear()} Aura Talent</span>
-            <span>
-              Powered by{" "}
-              <a
-                href="https://github.com/santifer/career-ops"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                career-ops
-              </a>
-              , open source
-            </span>
-          </div>
-        </footer>
+        <AuthProvider>
+          <Nav />
+          <main>{children}</main>
+          <footer className="footer">
+            <div className="footer-inner">
+              <span>© {new Date().getFullYear()} Aura Talent</span>
+              <span>
+                Powered by{" "}
+                <a
+                  href="https://github.com/santifer/career-ops"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  career-ops
+                </a>
+                , open source
+              </span>
+            </div>
+          </footer>
+        </AuthProvider>
       </body>
     </html>
   );

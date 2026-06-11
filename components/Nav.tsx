@@ -6,17 +6,29 @@ import { useAuth } from "./AuthProvider";
 import { useState } from "react";
 
 const APP_LINKS = [
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/evaluate', label: 'Evaluate' },
-  { href: '/scan', label: 'Find jobs' },
-  { href: '/compare', label: 'Compare' },
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/evaluate", label: "Evaluate" },
+  { href: "/scan", label: "Find jobs" },
+  { href: "/compare", label: "Compare" },
+  { href: "/mock-interview", label: "Mock Interview" },
+];
+
+const EMPLOYER_LINKS = [
+  { href: '/employer', label: 'Overview' },
+  { href: '/employer/candidates', label: 'Candidates' },
+  { href: '/employer/jobs', label: 'Jobs' },
+  { href: '/employer/interviews', label: 'Interviews' },
 ];
 
 export default function Nav() {
   const pathname = usePathname();
   const onLanding = pathname === "/";
-  const { user, loading, signOut } = useAuth();
+  const onEmployer = pathname.startsWith("/employer");
+  const { user, loading, role, signOut } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const isEmployerMode = role === "employer";
+  const links = isEmployerMode ? EMPLOYER_LINKS : APP_LINKS;
 
   return (
     <header className="nav">
@@ -47,11 +59,15 @@ export default function Nav() {
           Aura Talent
         </Link>
         <nav className="nav-links">
-          {onLanding ? (
+          {onEmployer ? (
+            <>
+              <span className="nav-workspace mono">Employer workspace</span>
+            </>
+          ) : onLanding ? (
             <>
               <a href="#how">How it works</a>
               <a href="#report">The report</a>
-              <Link href="/dashboard">Dashboard</Link>
+              <Link href={role === "employer" ? "/employer" : "/dashboard"}>{role === "employer" ? "Employer workspace" : "Dashboard"}</Link>
               {loading ? (
                 <span className="mono" style={{ fontSize: "0.85rem", opacity: 0.5 }}>Loading...</span>
               ) : user ? (
@@ -117,18 +133,37 @@ export default function Nav() {
                     >
                       <div style={{ padding: "0.5rem", borderBottom: "1px solid var(--ink-06)", marginBottom: "0.25rem" }}>
                         <div style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--ink-55)" }}>Logged in as</div>
-                        <div style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <div style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: "0.5rem" }}>
                           {user.email}
                         </div>
+                        {role === "employer" && (
+                          <div style={{ marginTop: "0.25rem", color: "var(--iris)", fontSize: "0.8125rem", fontWeight: 600 }}>
+                            Employer account
+                          </div>
+                        )}
                       </div>
-                      <Link
-                        href="/onboarding"
-                        onClick={() => setDropdownOpen(false)}
-                        style={{ padding: "0.5rem", borderRadius: "var(--r-s)", fontSize: "0.875rem", color: "var(--ink-72)" }}
-                        className="dropdown-item"
-                      >
-                        My resume
-                      </Link>
+                      {role === "employer" && (
+                        <>
+                          <Link
+                            href="/employer"
+                            onClick={() => setDropdownOpen(false)}
+                            style={{ padding: "0.5rem", borderRadius: "var(--r-s)", fontSize: "0.875rem", color: "var(--ink-72)" }}
+                            className="dropdown-item"
+                          >
+                            Employer workspace
+                          </Link>
+                        </>
+                      )}
+                      {role === "candidate" && (
+                        <Link
+                          href="/onboarding"
+                          onClick={() => setDropdownOpen(false)}
+                          style={{ padding: "0.5rem", borderRadius: "var(--r-s)", fontSize: "0.875rem", color: "var(--ink-72)" }}
+                          className="dropdown-item"
+                        >
+                          My resume
+                        </Link>
+                      )}
                       <button
                         onClick={() => {
                           setDropdownOpen(false);
@@ -164,7 +199,7 @@ export default function Nav() {
             </>
           ) : (
             <>
-              {APP_LINKS.map(({ href, label }) => (
+              {links.map(({ href, label }) => (
                 <Link
                   key={href}
                   href={href}
@@ -238,18 +273,37 @@ export default function Nav() {
                     >
                       <div style={{ padding: "0.5rem", borderBottom: "1px solid var(--ink-06)", marginBottom: "0.25rem" }}>
                         <div style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--ink-55)" }}>Logged in as</div>
-                        <div style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <div style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: "0.5rem" }}>
                           {user.email}
                         </div>
+                        {role === "employer" && (
+                          <div style={{ marginTop: "0.25rem", color: "var(--iris)", fontSize: "0.8125rem", fontWeight: 600 }}>
+                            Employer account
+                          </div>
+                        )}
                       </div>
-                      <Link
-                        href="/onboarding"
-                        onClick={() => setDropdownOpen(false)}
-                        style={{ padding: "0.5rem", borderRadius: "var(--r-s)", fontSize: "0.875rem", color: "var(--ink-72)" }}
-                        className="dropdown-item"
-                      >
-                        My resume
-                      </Link>
+                      {role === "employer" && (
+                        <>
+                          <Link
+                            href="/employer"
+                            onClick={() => setDropdownOpen(false)}
+                            style={{ padding: "0.5rem", borderRadius: "var(--r-s)", fontSize: "0.875rem", color: "var(--ink-72)" }}
+                            className="dropdown-item"
+                          >
+                            Employer workspace
+                          </Link>
+                        </>
+                      )}
+                      {role === "candidate" && (
+                        <Link
+                          href="/onboarding"
+                          onClick={() => setDropdownOpen(false)}
+                          style={{ padding: "0.5rem", borderRadius: "var(--r-s)", fontSize: "0.875rem", color: "var(--ink-72)" }}
+                          className="dropdown-item"
+                        >
+                          My resume
+                        </Link>
+                      )}
                       <button
                         onClick={() => {
                           setDropdownOpen(false);

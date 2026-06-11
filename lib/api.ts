@@ -2,6 +2,7 @@
  * Client-side API helpers. Everything goes through the /api/backend proxy
  * so the backend API key never reaches the browser.
  */
+import { supabase } from "./supabaseClient";
 
 let activeUserId: string | null = null;
 
@@ -29,10 +30,20 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const headers = {
-    "Accept": "application/json",
-    ...init?.headers,
-  };
+  let token: string | null = null;
+  try {
+    const sessionRes = await supabase.auth.getSession();
+    token = sessionRes.data.session?.access_token ?? null;
+  } catch (err) {
+    console.error("Failed to get session token:", err);
+  }
+
+  const headers = new Headers(init?.headers);
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  headers.set("Accept", "application/json");
+
   const resp = await fetch(`/api/backend/${path}`, {
     ...init,
     headers,
@@ -159,8 +170,11 @@ export const api = {
       body: JSON.stringify({ status, notes }),
     }),
 
-  saveUser: (input: { id: string; email: string | null; full_name: string | null; avatar_url: string | null }) =>
+  saveUser: (input: { id: string; email: string | null; full_name: string | null; avatar_url: string | null; role?: string | null }) =>
     postJson<{ ok: boolean }>("users", input),
+
+  getUserProfile: (userId: string) =>
+    request<{ id: string; email: string | null; full_name: string | null; avatar_url: string | null; role: string }>(`users/${userId}`),
 
   migrateUser: (input: { anon_id: string; auth_id: string }) =>
     postJson<{ ok: boolean }>("users/migrate", input),

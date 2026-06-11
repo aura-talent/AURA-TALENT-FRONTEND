@@ -4,14 +4,17 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { api, setUserId } from "@/lib/api";
 import { User, Session } from "@supabase/supabase-js";
+import { useRouter } from "next/navigation";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
+  role: string | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithLinkedIn: () => Promise<void>;
   signOut: () => Promise<void>;
+  updateRole: (newRole: string, redirectTo?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,7 +22,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     // 1. Check active session on mount
@@ -50,6 +55,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Save/sync user info to backend
       const userMeta = currentSession.user.user_metadata;
       try {
+        let activeRole = "candidate";
+        try {
+          // Query the custom users table directly via Supabase client
+          // (avoids backend routing issues and uses the user's own JWT for RLS)
+          const { data: userRow } = await supabase
+            .from("users")
+            .select("role")
+            .eq("id", authId)
+            .single();
+          if (userRow?.role) {
+            activeRole = userRow.role;
+          } else {
+            // User not in custom table yet — check pending role from onboarding
+            const pendingRole = localStorage.getItem("aura_pending_role");
+            activeRole = pendingRole ?? userMeta?.role ?? "candidate";
+            if (pendingRole) localStorage.removeItem("aura_pending_role");
+          }
+        } catch {
+          const pendingRole = localStorage.getItem("aura_pending_role");
+          activeRole = pendingRole ?? userMeta?.role ?? "candidate";
+          if (pendingRole) localStorage.removeItem("aura_pending_role");
+        }
+        setRole(activeRole);
+
         await api.saveUser({
           id: authId,
           email: currentSession.user.email ?? null,
@@ -72,9 +101,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } else {
       setUserId(null); // Fallback to localStorage uuid
+      setRole(null);
     }
     setLoading(false);
   }
+
+  const updateRole = async (newRole: string, redirectTo?: string) => {
+    if (!user) return;
+    try {
+      // Write role directly to the custom users table via Supabase
+      await supabase.from("users").upsert({
+        id: user.id,
+        email: user.email ?? null,
+        full_name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? null,
+        avatar_url: user.user_metadata?.avatar_url ?? user.user_metadata?.picture ?? null,
+        role: newRole,
+      });
+      setRole(newRole);
+      if (redirectTo) router.push(redirectTo);
+    } catch (err) {
+      console.error("Failed to update user role:", err);
+    }
+  };
 
   const signInWithGoogle = async () => {
     const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
@@ -106,10 +154,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         session,
+        role,
         loading,
         signInWithGoogle,
         signInWithLinkedIn,
         signOut,
+        updateRole,
       }}
     >
       {children}

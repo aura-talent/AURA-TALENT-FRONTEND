@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/components/AuthProvider";
 
 const links = [
   { href: "/employer", label: "Overview", icon: "grid" },
-  { href: "/employer/candidates", label: "Candidates", icon: "people", count: 18 },
+  { href: "/employer/candidates", label: "Candidates", icon: "people" },
   { href: "/employer/interviews", label: "Interviews", icon: "spark" },
   { href: "/employer/jobs", label: "Job listings", icon: "briefcase" },
   { href: "/employer/workforce", label: "Workforce plan", icon: "chart" },
@@ -24,16 +25,62 @@ function Icon({ name }: { name: string }) {
   return <svg className="employer-icon" viewBox="0 0 24 24" aria-hidden="true">{paths[name]}</svg>;
 }
 
+function getInitials(name: string | null | undefined, email: string | null | undefined): string {
+  if (name) {
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return parts[0][0]?.toUpperCase() ?? "?";
+  }
+  return email?.[0]?.toUpperCase() ?? "?";
+}
+
 export default function EmployerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { user, loading, role, signOut } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="container" style={{ minHeight: "80vh", display: "grid", placeItems: "center" }}>
+        <div className="thinking">
+          <div className="thinking-orb" />
+          <p className="thinking-status">Checking workspace access…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="container" style={{ minHeight: "80vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
+        <div className="panel" style={{ maxWidth: "480px", textAlign: "center", padding: "3rem 2rem", background: "var(--surface)", border: "1px solid var(--ink-06)", boxShadow: "var(--shadow-lift)" }}>
+          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🔒</div>
+          <h2 style={{ marginBottom: "0.75rem" }}>Sign in required</h2>
+          <p style={{ color: "var(--ink-72)", marginBottom: "2rem", fontSize: "0.9375rem" }}>
+            You need to be signed in to access the Employer Workspace.
+          </p>
+          <Link href="/login?redirect=/employer" className="btn btn-primary">Sign in</Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (role !== "employer") {
+    return null; // Handled by RouteGuard
+  }
+
+  const displayName = user.user_metadata?.full_name ?? user.user_metadata?.name ?? user.email ?? "User";
+  const avatarUrl = user.user_metadata?.avatar_url ?? user.user_metadata?.picture ?? null;
+  const initials = getInitials(user.user_metadata?.full_name ?? user.user_metadata?.name, user.email);
 
   return (
     <div className="employer-shell">
       <aside className="employer-sidebar">
         <div className="employer-company">
-          <div className="employer-company-mark">N</div>
+          <div className="employer-company-mark" style={{ background: "linear-gradient(135deg, var(--iris), var(--peach))", color: "#fff", display: "grid", placeItems: "center", fontWeight: 700 }}>
+            {initials[0]}
+          </div>
           <div>
-            <strong>Northstar Labs</strong>
+            <strong>Employer Workspace</strong>
             <span>Talent team</span>
           </div>
         </div>
@@ -44,14 +91,46 @@ export default function EmployerShell({ children }: { children: React.ReactNode 
               <Link key={link.href} href={link.href} aria-current={active ? "page" : undefined}>
                 <Icon name={link.icon} />
                 <span>{link.label}</span>
-                {link.count && <span className="employer-menu-count">{link.count}</span>}
               </Link>
             );
           })}
         </nav>
         <div className="employer-sidebar-foot">
-          <div className="employer-avatar">AM</div>
-          <div><strong>Aisha Malik</strong><span>Hiring manager</span></div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", flex: 1, minWidth: 0 }}>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={displayName} style={{ width: 32, height: 32, borderRadius: "50%", border: "2px solid var(--ink-06)", flexShrink: 0 }} />
+            ) : (
+              <div className="employer-avatar" style={{ flexShrink: 0 }}>{initials}</div>
+            )}
+            <div style={{ overflow: "hidden", flex: 1 }}>
+              <strong style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</strong>
+              <span>Employer</span>
+            </div>
+          </div>
+          <button
+            onClick={() => signOut()}
+            title="Sign out"
+            style={{
+              flexShrink: 0,
+              background: "transparent",
+              border: "1px solid var(--ink-12)",
+              borderRadius: "var(--r-s)",
+              padding: "0.35rem 0.5rem",
+              cursor: "pointer",
+              color: "var(--ink-55)",
+              display: "flex",
+              alignItems: "center",
+              transition: "color 0.15s, border-color 0.15s",
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "#bc4a2a"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#bc4a2a"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "var(--ink-55)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--ink-12)"; }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
         </div>
       </aside>
       <section className="employer-content">{children}</section>

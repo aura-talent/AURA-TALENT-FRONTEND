@@ -15,6 +15,7 @@ const APP_LINKS = [
 export default function Nav() {
   const pathname = usePathname();
   const onLanding = pathname === "/";
+  const onEmployer = pathname.startsWith("/employer");
   const { user, loading, signOut } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -47,7 +48,14 @@ export default function Nav() {
           Aura Talent
         </Link>
         <nav className="nav-links">
-          {onLanding ? (
+          {onEmployer ? (
+            <>
+              <span className="nav-workspace mono">Employer workspace</span>
+              <Link href="/dashboard" className="btn btn-ghost">
+                Candidate view
+              </Link>
+            </>
+          ) : onLanding ? (
             <>
               <a href="#how">How it works</a>
               <a href="#report">The report</a>

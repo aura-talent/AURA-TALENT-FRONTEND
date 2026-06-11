@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, Suspense } from "react";
+import { useEffect, Suspense, useState } from "react";
 import Link from "next/link";
 
 function LoginInner() {
@@ -16,6 +16,11 @@ function LoginInner() {
       router.push(redirect);
     }
   }, [user, loading, router, redirect]);
+
+  const handleSignIn = async (provider: "google" | "linkedin") => {
+    if (provider === "google") await signInWithGoogle();
+    if (provider === "linkedin") await signInWithLinkedIn();
+  };
 
   if (loading) {
     return (
@@ -88,15 +93,15 @@ function LoginInner() {
               transform="rotate(-90 16 16)"
             />
           </svg>
-          <h1 style={{ fontSize: "1.75rem", marginBottom: "0.5rem" }}>Welcome back</h1>
+          <h1 style={{ fontSize: "1.75rem", marginBottom: "0.5rem" }}>Welcome to Aura</h1>
           <p style={{ color: "var(--ink-72)", fontSize: "0.9375rem" }}>
-            Sign in to sync your evaluations, history, and resume across devices.
+            Sign in to access your workspace.
           </p>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem", marginBottom: "2rem" }}>
+        <div style={{ marginBottom: "2rem" }}>
           <button
-            onClick={signInWithGoogle}
+            onClick={() => handleSignIn("google")}
             className="btn btn-ghost"
             style={{
               justifyContent: "center",
@@ -129,7 +134,7 @@ function LoginInner() {
           </button>
 
           <button
-            onClick={signInWithLinkedIn}
+            onClick={() => handleSignIn("linkedin")}
             className="btn btn-primary"
             style={{
               justifyContent: "center",

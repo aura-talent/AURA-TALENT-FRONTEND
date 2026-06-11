@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { useAuth } from "@/components/AuthProvider";
+import { useRouter } from "next/navigation";
 import { candidates, jobs } from "./data";
 
 const metrics = [
@@ -23,13 +27,35 @@ const metrics = [
   },
 ];
 
+function getTodayLabel(): string {
+  return new Date().toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
 export default function EmployerOverview() {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const firstName =
+    (user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email ?? "there")
+      .split(" ")[0];
+
   return (
     <div className="employer-page">
       <div className="employer-page-head">
         <div>
-          <p className="eyebrow">Thursday, 11 June</p>
-          <h1>Good morning, Aisha.</h1>
+          <p className="eyebrow">{getTodayLabel()}</p>
+          <h1>{getGreeting()}, {firstName}.</h1>
           <p>Here is what needs your attention across the hiring pipeline.</p>
         </div>
         <Link href="/employer/jobs" className="btn btn-primary">

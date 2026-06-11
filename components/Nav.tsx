@@ -10,14 +10,26 @@ const APP_LINKS = [
   { href: "/evaluate", label: "Evaluate" },
   { href: "/jobs", label: "Find jobs" },
   { href: "/compare", label: "Compare" },
+  { href: "/scan", label: "Find jobs" },
+  { href: "/mock-interview", label: "Mock Interview" },
+];
+
+const EMPLOYER_LINKS = [
+  { href: '/employer', label: 'Overview' },
+  { href: '/employer/candidates', label: 'Candidates' },
+  { href: '/employer/jobs', label: 'Jobs' },
+  { href: '/employer/interviews', label: 'Interviews' },
 ];
 
 export default function Nav() {
   const pathname = usePathname();
   const onLanding = pathname === "/";
   const onEmployer = pathname.startsWith("/employer");
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, role, signOut } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const isEmployerMode = role === "employer";
+  const links = isEmployerMode ? EMPLOYER_LINKS : APP_LINKS;
 
   return (
     <header className="nav">
@@ -59,7 +71,7 @@ export default function Nav() {
             <>
               <a href="#how">How it works</a>
               <a href="#report">The report</a>
-              <Link href="/dashboard">Dashboard</Link>
+              <Link href={role === "employer" ? "/employer" : "/dashboard"}>{role === "employer" ? "Employer workspace" : "Dashboard"}</Link>
               {loading ? (
                 <span
                   className="mono"
@@ -170,20 +182,34 @@ export default function Nav() {
                         >
                           {user.email}
                         </div>
+                        {role === "employer" && (
+                          <div style={{ marginTop: "0.25rem", color: "var(--iris)", fontSize: "0.8125rem", fontWeight: 600 }}>
+                            Employer account
+                          </div>
+                        )}
                       </div>
-                      <Link
-                        href="/onboarding"
-                        onClick={() => setDropdownOpen(false)}
-                        style={{
-                          padding: "0.5rem",
-                          borderRadius: "var(--r-s)",
-                          fontSize: "0.875rem",
-                          color: "var(--ink-72)",
-                        }}
-                        className="dropdown-item"
-                      >
-                        My resume
-                      </Link>
+                      {role === "employer" && (
+                        <>
+                          <Link
+                            href="/employer"
+                            onClick={() => setDropdownOpen(false)}
+                            style={{ padding: "0.5rem", borderRadius: "var(--r-s)", fontSize: "0.875rem", color: "var(--ink-72)" }}
+                            className="dropdown-item"
+                          >
+                            Employer workspace
+                          </Link>
+                        </>
+                      )}
+                      {role === "candidate" && (
+                        <Link
+                          href="/onboarding"
+                          onClick={() => setDropdownOpen(false)}
+                          style={{ padding: "0.5rem", borderRadius: "var(--r-s)", fontSize: "0.875rem", color: "var(--ink-72)" }}
+                          className="dropdown-item"
+                        >
+                          My resume
+                        </Link>
+                      )}
                       <button
                         onClick={() => {
                           setDropdownOpen(false);
@@ -222,7 +248,7 @@ export default function Nav() {
             </>
           ) : (
             <>
-              {APP_LINKS.map(({ href, label }) => (
+              {links.map(({ href, label }) => (
                 <Link
                   key={href}
                   href={href}
@@ -341,20 +367,34 @@ export default function Nav() {
                         >
                           {user.email}
                         </div>
+                        {role === "employer" && (
+                          <div style={{ marginTop: "0.25rem", color: "var(--iris)", fontSize: "0.8125rem", fontWeight: 600 }}>
+                            Employer account
+                          </div>
+                        )}
                       </div>
-                      <Link
-                        href="/onboarding"
-                        onClick={() => setDropdownOpen(false)}
-                        style={{
-                          padding: "0.5rem",
-                          borderRadius: "var(--r-s)",
-                          fontSize: "0.875rem",
-                          color: "var(--ink-72)",
-                        }}
-                        className="dropdown-item"
-                      >
-                        My resume
-                      </Link>
+                      {role === "employer" && (
+                        <>
+                          <Link
+                            href="/employer"
+                            onClick={() => setDropdownOpen(false)}
+                            style={{ padding: "0.5rem", borderRadius: "var(--r-s)", fontSize: "0.875rem", color: "var(--ink-72)" }}
+                            className="dropdown-item"
+                          >
+                            Employer workspace
+                          </Link>
+                        </>
+                      )}
+                      {role === "candidate" && (
+                        <Link
+                          href="/onboarding"
+                          onClick={() => setDropdownOpen(false)}
+                          style={{ padding: "0.5rem", borderRadius: "var(--r-s)", fontSize: "0.875rem", color: "var(--ink-72)" }}
+                          className="dropdown-item"
+                        >
+                          My resume
+                        </Link>
+                      )}
                       <button
                         onClick={() => {
                           setDropdownOpen(false);

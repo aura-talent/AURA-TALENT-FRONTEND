@@ -45,6 +45,7 @@ export async function POST(req: Request) {
     // Whisper pricing: $0.006 per minute
     const durationSec: number = transcription.duration ?? 0;
     const whisperCost = (durationSec / 60) * 0.006;
+    console.log("testing 123123123123");
     console.log(
       `[OpenAI] whisper-1 — duration: ${durationSec.toFixed(1)}s, cost: $${whisperCost.toFixed(6)}`,
     );

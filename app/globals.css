@@ -172,6 +172,10 @@ button { font: inherit; cursor: pointer; }
   transition: color 0.15s;
 }
 .nav-links a:hover, .nav-links a[aria-current="page"] { color: var(--ink); }
+.nav-links a.btn-primary,
+.nav-links a.btn-primary:hover {
+  color: #fff;
+}
 .nav .btn { padding: 0.55rem 1.2rem; }
 
 @media (max-width: 720px) {

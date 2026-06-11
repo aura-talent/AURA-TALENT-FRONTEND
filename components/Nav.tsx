@@ -36,15 +36,15 @@ export default function Nav() {
             />
           </svg>
           Aura Talent
+          {onEmployer && (
+            <>
+              <span className="nav-workspace mono">Employer workspace</span>
+            </>
+          )}
         </Link>
         <nav className="nav-links">
           {onEmployer ? (
-            <>
-              <span className="nav-workspace mono">Employer workspace</span>
-              <Link href="/dashboard" className="btn btn-ghost">
-                Candidate view
-              </Link>
-            </>
+            <></>
           ) : onLanding ? (
             <>
               <a href="#how">How it works</a>

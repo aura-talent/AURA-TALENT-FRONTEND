@@ -58,7 +58,7 @@ export default function EmployerOverview() {
           <h1>{getGreeting()}, {firstName}.</h1>
           <p>Here is what needs your attention across the hiring pipeline.</p>
         </div>
-        <Link href="/employer/jobs" className="btn btn-primary">
+        <Link href="/employer/jobs/new" className="btn btn-primary">
           <span aria-hidden="true">＋</span> Create job
         </Link>
       </div>

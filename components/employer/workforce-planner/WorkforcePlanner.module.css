@@ -1,0 +1,516 @@
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.importNotice {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(95, 92, 228, 0.18);
+  border-radius: var(--r-m);
+  background: var(--iris-08);
+  color: var(--ink-72);
+  font-size: 0.75rem;
+}
+
+.importNotice svg {
+  flex: 0 0 auto;
+  color: var(--iris);
+}
+
+.importNotice span {
+  flex: 1;
+}
+
+.importNotice button {
+  border: 0;
+  background: transparent;
+  color: var(--iris-deep);
+  font-size: 0.7rem;
+  font-weight: 650;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.summaryCard {
+  display: block;
+  cursor: text;
+}
+
+.summaryCard > span {
+  display: block;
+  color: var(--ink-55);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.summaryCard > input,
+.currencyInput input {
+  width: 100%;
+  min-width: 0;
+  margin: 0.3rem 0 0.45rem;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font:
+    700 1.8rem var(--font-display),
+    sans-serif;
+}
+
+.summaryCard > input:focus,
+.currencyInput:focus-within {
+  color: var(--iris-deep);
+}
+
+.summaryCard small {
+  color: var(--ink-30);
+  font-size: 0.65rem;
+}
+
+.currencyInput {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+}
+
+.currencyInput b {
+  color: var(--ink-55);
+  font:
+    650 0.72rem var(--font-mono),
+    monospace;
+}
+
+.currencyInput input {
+  margin-bottom: 0.45rem;
+}
+
+.intelligenceGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.8fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.liveBadge,
+.auraBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: var(--r-pill);
+  font:
+    650 0.6rem var(--font-mono),
+    monospace;
+  white-space: nowrap;
+}
+
+.liveBadge {
+  background: var(--ink-06);
+  color: var(--ink-55);
+}
+
+.auraBadge {
+  background: var(--iris-08);
+  color: var(--iris-deep);
+}
+
+.forecastChart {
+  height: 220px;
+  border-bottom: 1px solid var(--ink-12);
+}
+
+.chartArea {
+  display: flex;
+  height: 100%;
+  align-items: flex-end;
+  justify-content: space-around;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--ink-06) 0 1px,
+    transparent 1px 54px
+  );
+}
+
+.chartColumn {
+  position: relative;
+  display: flex;
+  flex: 1;
+  height: 100%;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 1.7rem;
+}
+
+.barGroup {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.barGroup span {
+  width: 18px;
+  max-height: 175px;
+  border-radius: 4px 4px 0 0;
+  transition: height 180ms ease;
+}
+
+.actualBar {
+  background: var(--iris);
+}
+
+.plannedBar {
+  background: var(--aura-a);
+  opacity: 0.62;
+}
+
+.chartColumn small {
+  position: absolute;
+  bottom: 0.2rem;
+  color: var(--ink-55);
+  font:
+    0.62rem var(--font-mono),
+    monospace;
+}
+
+.chartLegend {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.8rem;
+  color: var(--ink-55);
+  font-size: 0.7rem;
+}
+
+.chartLegend i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 0.35rem;
+  border-radius: 2px;
+}
+
+.actualLegend {
+  background: var(--iris);
+}
+
+.plannedLegend {
+  background: var(--aura-a);
+}
+
+.demandList > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--ink-06);
+}
+
+.demandList strong,
+.demandList small {
+  display: block;
+}
+
+.demandList strong {
+  font-size: 0.83rem;
+}
+
+.demandList small {
+  margin-top: 0.12rem;
+  color: var(--ink-55);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.demandList b {
+  flex: 0 0 auto;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--r-pill);
+  font:
+    600 0.62rem var(--font-mono),
+    monospace;
+}
+
+.riskHigh {
+  background: rgba(188, 74, 42, 0.1);
+  color: var(--score-weak);
+}
+
+.riskMedium {
+  background: rgba(185, 125, 20, 0.1);
+  color: var(--score-fair);
+}
+
+.riskLow {
+  background: rgba(23, 133, 92, 0.1);
+  color: var(--score-strong);
+}
+
+.predictionNote {
+  margin-top: 0.85rem;
+  color: var(--ink-30);
+  font-size: 0.62rem;
+  line-height: 1.5;
+}
+
+.departmentHeader,
+.departmentRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) 90px minmax(140px, 0.8fr) minmax(180px, 1fr) 34px;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.departmentHeader {
+  padding: 0 0 0.55rem;
+  color: var(--ink-30);
+  font:
+    600 0.58rem var(--font-mono),
+    monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.departmentRow {
+  padding: 0.8rem 0;
+  border-top: 1px solid var(--ink-06);
+}
+
+.departmentRow :global(.input) {
+  min-width: 0;
+}
+
+.staffedField {
+  display: grid;
+  grid-template-columns: 1fr 42px;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.staffedField input {
+  width: 100%;
+  accent-color: var(--iris);
+}
+
+.staffedField b {
+  color: var(--iris-deep);
+  font:
+    650 0.68rem var(--font-mono),
+    monospace;
+  text-align: right;
+}
+
+.removeButton {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 0;
+  border-radius: var(--r-s);
+  background: transparent;
+  color: var(--ink-30);
+}
+
+.removeButton:hover:not(:disabled) {
+  background: rgba(188, 74, 42, 0.08);
+  color: var(--score-weak);
+}
+
+.removeButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(26, 29, 41, 0.45);
+  backdrop-filter: blur(12px);
+}
+
+.auraModal {
+  width: min(100%, 620px);
+  max-height: min(86vh, 700px);
+  overflow-y: auto;
+  border: 1px solid var(--ink-12);
+  border-radius: var(--r-l);
+  background: var(--surface);
+  box-shadow: var(--shadow-lift);
+}
+
+.auraModal > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem 1.6rem 1.1rem;
+  border-bottom: 1px solid var(--ink-06);
+}
+
+.auraModal header :global(.eyebrow) {
+  margin-bottom: 0.35rem;
+}
+
+.auraModal h2 {
+  font-size: 1.4rem;
+}
+
+.modalClose {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--ink-12);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-55);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.modalClose:hover {
+  background: var(--ink-06);
+  color: var(--ink);
+}
+
+.modalBody {
+  padding: 1.4rem 1.6rem;
+}
+
+.modalBody :global(.field > small) {
+  color: var(--ink-55);
+  font-size: 0.68rem;
+}
+
+.prompt {
+  min-height: 170px !important;
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin-top: 1rem;
+  padding: 0.9rem;
+  border: 1px solid var(--ink-12);
+  border-radius: var(--r-m);
+  background: rgba(26, 29, 41, 0.03);
+}
+
+.checkboxRow input {
+  margin-top: 0.15rem;
+  accent-color: var(--iris);
+}
+
+.checkboxRow strong,
+.checkboxRow small {
+  display: block;
+}
+
+.checkboxRow strong {
+  font-size: 0.78rem;
+}
+
+.checkboxRow small {
+  margin-top: 0.2rem;
+  color: var(--ink-55);
+  font-size: 0.67rem;
+  line-height: 1.4;
+}
+
+.auraModal > footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  padding: 1rem 1.6rem 1.35rem;
+  border-top: 1px solid var(--ink-06);
+}
+
+@media (max-width: 1000px) {
+  .intelligenceGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .departmentHeader {
+    display: none;
+  }
+
+  .departmentRow {
+    grid-template-columns: 1fr 1fr 34px;
+  }
+
+  .departmentRow > :first-child {
+    grid-column: 1 / 3;
+  }
+
+  .staffedField {
+    grid-column: 1 / 3;
+  }
+
+  .removeButton {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+
+@media (max-width: 760px) {
+  .headerActions,
+  .summaryGrid {
+    width: 100%;
+  }
+
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .headerActions :global(.btn) {
+    flex: 1 1 calc(50% - 0.4rem);
+    justify-content: center;
+  }
+}
+
+@media (max-width: 560px) {
+  .departmentRow {
+    grid-template-columns: 1fr 34px;
+  }
+
+  .departmentRow > :first-child,
+  .staffedField {
+    grid-column: 1;
+  }
+
+  .departmentRow > :global(.input) {
+    grid-column: 1;
+  }
+
+  .removeButton {
+    grid-column: 2;
+  }
+
+  .barGroup span {
+    width: 12px;
+  }
+
+  .auraModal > footer :global(.btn) {
+    flex: 1;
+    justify-content: center;
+  }
+}

@@ -61,6 +61,20 @@ export default async function CandidateDetail({
           </div>
         </div>
         <div className="candidate-profile-actions">
+          {candidate.applied ? (
+            <Link
+              className="btn btn-ghost"
+              href={`/employer/candidates/${candidate.id}/resume`}
+            >
+              View resume
+            </Link>
+          ) : (
+            <span className="resume-unavailable">
+              {candidate.interviewAttempted
+                ? "Resume not submitted · interview attempt only"
+                : "Resume not submitted"}
+            </span>
+          )}
           <select className="select" defaultValue={candidate.stage}>
             <option>New</option>
             <option>Screening</option>
@@ -275,7 +289,9 @@ export default async function CandidateDetail({
                     Feeds reputational score and the relevant scoring dimensions
                   </p>
                 </div>
-                <Link href="/employer/interviews">View transcript →</Link>
+                <Link href={`/employer/candidates/${candidate.id}/interview`}>
+                  View interview evaluation →
+                </Link>
               </div>
               <div className="interview-highlights">
                 <blockquote>

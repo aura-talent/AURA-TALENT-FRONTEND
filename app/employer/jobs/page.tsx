@@ -84,7 +84,14 @@ export default function JobsPage() {
                     {job.candidates} view →
                   </Link>
                 </td>
-                <td>{job.interviews}</td>
+                <td>
+                  <Link
+                    className="table-action"
+                    href={`/employer/jobs/${job.id}/applicants?activity=interview`}
+                  >
+                    {job.interviews} view →
+                  </Link>
+                </td>
                 <td>
                   {job.mockInterviewEnabled ? (
                     <span className="chip chip-tier-high">
@@ -103,12 +110,6 @@ export default function JobsPage() {
                 </td>
                 <td>
                   <div className="job-row-actions">
-                    <Link
-                      className="table-action"
-                      href={`/employer/jobs/${job.id}/applicants`}
-                    >
-                      Applicants
-                    </Link>
                     <Link
                       className="table-action"
                       href={`/employer/jobs/${job.id}/edit`}

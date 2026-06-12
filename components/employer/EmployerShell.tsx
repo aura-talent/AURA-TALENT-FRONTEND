@@ -6,10 +6,10 @@ import { useAuth } from "@/components/AuthProvider";
 
 const links = [
   { href: "/employer", label: "Overview", icon: "grid" },
+  { href: "/employer/workforce", label: "Workforce plan", icon: "chart" },
   { href: "/employer/candidates", label: "Candidates", icon: "people" },
   { href: "/employer/interviews", label: "Interviews", icon: "spark" },
   { href: "/employer/jobs", label: "Job listings", icon: "briefcase" },
-  { href: "/employer/workforce", label: "Workforce plan", icon: "chart" },
   { href: "/employer/profile", label: "Company profile", icon: "building" },
 ];
 

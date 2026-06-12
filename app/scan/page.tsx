@@ -115,8 +115,10 @@ export default function ScanPage() {
   }
 
   return (
+    <div className="app-sheet">
     <div className="container" style={{ maxWidth: 820, paddingBottom: "4rem" }}>
       <div className="page-head">
+        <div className="page-kicker">(01) // PORTAL_SCAN</div>
         <h1>Find open roles</h1>
         <p>
           Aura checks the live job boards of tracked companies directly —
@@ -166,11 +168,20 @@ export default function ScanPage() {
 
       {jobs && (
         <>
-          <p style={{ marginBottom: "1rem", color: "var(--ink-72)" }}>
-            {jobs.length === 0
-              ? "No matching roles right now — try broader keywords or check back in a few days."
-              : `${jobs.length} matching roles found.`}
-          </p>
+          <div className="scan-results-head">
+            <span className="page-kicker" style={{ margin: 0 }}>
+              (02) // RESULTS
+            </span>
+            <span className="scan-results-count">
+              {jobs.length === 0 ? "0 ROLES_FOUND" : `${jobs.length} ROLES_FOUND`}
+            </span>
+          </div>
+          {jobs.length === 0 && (
+            <p style={{ marginBottom: "1rem", color: "var(--ink-72)" }}>
+              No matching roles right now — try broader keywords or check back
+              in a few days.
+            </p>
+          )}
           <div>
             {jobs.map((j) => (
               <div className="job-row" key={j.url}>
@@ -197,6 +208,7 @@ export default function ScanPage() {
           </div>
         </>
       )}
+    </div>
     </div>
   );
 }

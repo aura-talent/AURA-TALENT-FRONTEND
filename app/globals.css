@@ -884,9 +884,23 @@ button {
   color: var(--ink-55);
 }
 .nav-blueprint .nav-links a:not(.btn):hover { color: var(--iris); }
+.nav-blueprint .nav-links a:not(.btn)[aria-current="page"] {
+  color: var(--iris);
+  text-decoration: underline dashed;
+  text-underline-offset: 6px;
+  text-decoration-thickness: 1px;
+}
+.nav-blueprint .nav-workspace {
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+}
 
-/* controls go square and mono on the landing only */
+/* controls go square and mono on the blueprint surfaces */
 .landing .btn,
+.app-sheet .btn,
 .nav-blueprint .btn {
   border-radius: 0;
   font-family: var(--font-space), monospace;
@@ -896,10 +910,12 @@ button {
   text-transform: uppercase;
 }
 .landing .btn-ghost,
+.app-sheet .btn-ghost,
 .nav-blueprint .btn-ghost {
   box-shadow: inset 0 0 0 1px var(--ink-30);
 }
 .landing .btn-ghost:hover,
+.app-sheet .btn-ghost:hover,
 .nav-blueprint .btn-ghost:hover {
   box-shadow: inset 0 0 0 1px var(--ink);
 }
@@ -1065,11 +1081,34 @@ button {
 
 /* ── App surface (functional pages) ──────────────────────── */
 
+/* the landing's drafting grid continues behind the app pages */
+.app-sheet {
+  min-height: calc(100svh - 64px);
+  background-image:
+    linear-gradient(rgba(26, 29, 41, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26, 29, 41, 0.03) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
 .page-head {
-  padding: 3.25rem 0 2rem;
+  padding: 3.25rem 0 1.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px dashed var(--ink-30);
+}
+.page-kicker {
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--iris);
+  margin-bottom: 0.85rem;
 }
 .page-head h1 {
-  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  font-family: var(--font-space), monospace;
+  font-weight: 700;
+  font-size: clamp(1.45rem, 2.6vw, 2rem);
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
   margin-bottom: 0.5rem;
 }
 .page-head p {
@@ -1078,34 +1117,32 @@ button {
 }
 
 .panel {
+  position: relative;
   background: var(--surface);
-  border: 1px solid var(--ink-06);
-  border-radius: var(--r-m);
+  border: 1px solid var(--ink-30);
   padding: 1.75rem;
-  box-shadow: var(--shadow-card);
 }
 
 .tabs {
   display: inline-flex;
-  gap: 0.25rem;
-  background: var(--ink-06);
-  border-radius: var(--r-pill);
-  padding: 0.25rem;
+  border: 1px solid var(--ink-30);
   margin-bottom: 1.25rem;
 }
 .tab {
   border: none;
   background: transparent;
-  border-radius: var(--r-pill);
-  padding: 0.45rem 1.1rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--ink-72);
+  padding: 0.5rem 1.1rem;
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-55);
 }
+.tab + .tab { border-left: 1px solid var(--ink-30); }
 .tab[aria-selected="true"] {
-  background: var(--surface);
-  color: var(--ink);
-  box-shadow: 0 1px 4px rgba(26, 29, 41, 0.1);
+  background: var(--iris);
+  color: #fff;
 }
 
 .field {
@@ -1115,13 +1152,17 @@ button {
   margin-bottom: 1.1rem;
 }
 .field label {
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-72);
 }
 .input,
 textarea.input {
-  border: 1.5px solid var(--ink-12);
-  border-radius: var(--r-s);
+  border: 1px solid var(--ink-30);
+  border-radius: 0;
   padding: 0.7rem 0.9rem;
   font: inherit;
   font-size: 0.9375rem;
@@ -1141,8 +1182,8 @@ textarea.input {
 }
 
 .dropzone {
-  border: 2px dashed var(--ink-12);
-  border-radius: var(--r-m);
+  border: 1px dashed var(--ink-30);
+  border-radius: 0;
   padding: 3rem 1.5rem;
   text-align: center;
   color: var(--ink-72);
@@ -1161,7 +1202,8 @@ textarea.input {
 }
 
 .notice {
-  border-radius: var(--r-s);
+  border-radius: 0;
+  border-left: 2px solid currentColor;
   padding: 0.85rem 1.1rem;
   font-size: 0.9rem;
   margin-bottom: 1.25rem;
@@ -1182,11 +1224,14 @@ textarea.input {
 .chip {
   display: inline-flex;
   align-items: center;
-  font-family: var(--font-mono), monospace;
-  font-size: 0.75rem;
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   padding: 0.28rem 0.7rem;
-  border-radius: var(--r-pill);
-  background: var(--ink-06);
+  border-radius: 0;
+  border: 1px solid currentColor;
+  background: transparent;
   color: var(--ink-72);
 }
 .chip-tier-high {
@@ -1216,22 +1261,24 @@ textarea.input {
   font-size: 0.84rem;
 }
 .bar-label {
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--ink-72);
 }
 .bar-track {
   height: 6px;
   background: var(--ink-06);
-  border-radius: var(--r-pill);
   overflow: hidden;
 }
 .bar-fill {
   height: 100%;
-  border-radius: var(--r-pill);
   background: var(--iris);
   transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .bar-num {
-  font-family: var(--font-mono), monospace;
+  font-family: var(--font-space), monospace;
   font-size: 0.78rem;
   text-align: right;
 }
@@ -1379,35 +1426,35 @@ textarea.input {
 }
 .table th {
   text-align: left;
-  font-family: var(--font-mono), monospace;
-  font-size: 0.7rem;
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-55);
-  font-weight: 600;
+  font-weight: 700;
   padding: 0.7rem 0.9rem;
-  border-bottom: 1px solid var(--ink-12);
+  border-bottom: 1px solid var(--ink-30);
 }
 .table td {
   padding: 0.85rem 0.9rem;
-  border-bottom: 1px solid var(--ink-06);
+  border-bottom: 1px dashed var(--ink-12);
   vertical-align: middle;
 }
 .table tr:hover td {
   background: var(--iris-08);
 }
 .score-pill {
-  font-family: var(--font-mono), monospace;
+  font-family: var(--font-space), monospace;
   font-weight: 700;
   font-size: 0.8rem;
   padding: 0.22rem 0.6rem;
-  border-radius: var(--r-pill);
+  border-radius: 0;
   color: #fff;
 }
 
 .select {
-  border: 1.5px solid var(--ink-12);
-  border-radius: var(--r-s);
+  border: 1px solid var(--ink-30);
+  border-radius: 0;
   padding: 0.35rem 0.5rem;
   font: inherit;
   font-size: 0.84rem;
@@ -1476,14 +1523,30 @@ textarea.input {
 }
 
 /* scan results */
+.scan-results-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding-bottom: 0.6rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--ink-30);
+}
+.scan-results-count {
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+}
+
 .job-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
   padding: 0.95rem 1.1rem;
-  border: 1px solid var(--ink-06);
-  border-radius: var(--r-s);
+  border: 1px solid var(--ink-30);
   background: var(--surface);
 }
 .job-row + .job-row {
@@ -1895,8 +1958,8 @@ textarea.input {
   flex: 1;
   min-width: 220px;
   padding: 0 0.75rem;
-  border: 1.5px solid var(--ink-12);
-  border-radius: var(--r-s);
+  border: 1px solid var(--ink-30);
+  border-radius: 0;
   background: var(--surface);
 }
 .search-field span {
@@ -3314,31 +3377,40 @@ textarea.input {
   padding: 4rem 0 2rem;
 }
 .candidate-jobs-hero h1 {
-  max-width: 13ch;
+  max-width: 16ch;
   margin-bottom: 0.8rem;
-  font-size: clamp(2.4rem, 5vw, 4.2rem);
+  font-family: var(--font-space), monospace;
+  font-weight: 700;
+  font-size: clamp(1.7rem, 3.4vw, 2.7rem);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-transform: uppercase;
 }
 .candidate-jobs-hero > div:first-child > p:not(.eyebrow) {
   max-width: 42rem;
   color: var(--ink-72);
 }
 .recommendation-summary {
+  position: relative;
   padding: 1.2rem;
-  border: 1px solid var(--iris-12);
-  border-radius: var(--r-m);
-  background: var(--iris-08);
+  border: 1px solid var(--ink-30);
+  background: rgba(250, 250, 248, 0.78);
 }
-.recommendation-summary > span {
-  color: var(--ink-55);
-  font-size: 0.72rem;
+.recommendation-summary > span:not(.eval-tick) {
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--iris);
 }
 .recommendation-summary > strong {
   display: block;
   margin: 0.15rem 0;
   color: var(--iris-deep);
   font:
-    700 1.8rem var(--font-display),
-    sans-serif;
+    700 1.8rem var(--font-space),
+    monospace;
+  letter-spacing: -0.02em;
 }
 .recommendation-summary p {
   color: var(--ink-55);
@@ -3387,8 +3459,11 @@ textarea.input {
   font-size: 1.35rem;
 }
 .jobs-explore-head p {
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--ink-55);
-  font-size: 0.78rem;
 }
 .candidate-job-grid {
   display: grid;
@@ -3405,7 +3480,7 @@ textarea.input {
 }
 .candidate-job-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-lift);
+  border-color: var(--ink);
 }
 .candidate-job-card header {
   display: flex;
@@ -3417,7 +3492,7 @@ textarea.input {
   height: 38px;
   display: grid;
   place-items: center;
-  border-radius: 10px;
+  border-radius: 0;
   color: #fff;
   background: var(--ink);
   font:
@@ -3451,7 +3526,7 @@ textarea.input {
   display: block;
   color: var(--score-strong);
   font:
-    700 1rem var(--font-mono),
+    700 1rem var(--font-space),
     monospace;
 }
 .job-match-badge span {
@@ -3481,11 +3556,13 @@ textarea.input {
 }
 .job-card-keywords span {
   padding: 0.25rem 0.5rem;
-  border-radius: var(--r-pill);
-  background: var(--ink-06);
+  border: 1px solid var(--ink-12);
+  background: transparent;
   color: var(--ink-55);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   font:
-    0.6rem var(--font-mono),
+    0.6rem var(--font-space),
     monospace;
 }
 .candidate-job-card footer {
@@ -4375,7 +4452,7 @@ textarea.input {
 
 .modal-content {
   background: var(--surface);
-  border-radius: var(--r-l);
+  border-radius: 0;
   width: 100%;
   max-width: 1120px;
   height: 90vh;
@@ -4383,7 +4460,7 @@ textarea.input {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--ink-06);
+  border: 1px solid var(--ink-30);
   position: relative;
 }
 
@@ -4448,10 +4525,12 @@ textarea.input {
   display: inline-flex;
   align-items: center;
   background: var(--iris-08);
-  color: var(--iris);
+  color: var(--iris-deep);
   border: 1px solid var(--iris-12);
-  border-radius: var(--r-pill);
+  border-radius: 0;
   padding: 0.25rem 0.6rem;
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }

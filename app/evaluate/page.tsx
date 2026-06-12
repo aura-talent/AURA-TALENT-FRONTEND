@@ -205,8 +205,12 @@ function EvaluateInner() {
 
   if (loading) {
     return (
+      <div className="app-sheet">
       <div className="container" style={{ maxWidth: 820 }}>
-        <div className="page-head"><h1>Evaluating</h1></div>
+        <div className="page-head">
+          <div className="page-kicker">EVALUATION_AGENT // RUNNING</div>
+          <h1>Evaluating</h1>
+        </div>
         <div className="panel">
           <StreamProgress
             title="Evaluation agent"
@@ -216,13 +220,16 @@ function EvaluateInner() {
         </div>
         {error && <div className="notice notice-error" style={{ marginTop: "1rem" }}>{error}</div>}
       </div>
+      </div>
     );
   }
 
   if (result) {
     return (
+      <div className="app-sheet">
       <div className="container" style={{ maxWidth: "var(--maxw)", paddingBottom: "4rem" }}>
         <div className="page-head">
+          <div className="page-kicker">(02) // EVALUATION_REPORT</div>
           <h1>{result.company} — {result.role}</h1>
           <p>{result.archetype}</p>
         </div>
@@ -237,8 +244,14 @@ function EvaluateInner() {
         >
           {/* Left Column: Metrics & Recommendations */}
           <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", position: isDesktop ? "sticky" : "static", top: "6.5rem" }}>
-            <div className="panel" style={{ position: "relative", overflow: "hidden" }}>
-              <div className="aura-glow" style={{ opacity: 0.35 }} />
+            <div className="panel">
+              <span className="eval-tick eval-tick-tl" />
+              <span className="eval-tick eval-tick-tr" />
+              <span className="eval-tick eval-tick-bl" />
+              <span className="eval-tick eval-tick-br" />
+              <div className="page-kicker" style={{ marginBottom: "1rem" }}>
+                FIT_SCORE // FIVE_AXES
+              </div>
               <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: "1.5rem", alignItems: "center" }}>
                 <ScoreDial score={result.score} />
                 <div style={{ width: "100%" }}>
@@ -441,12 +454,15 @@ function EvaluateInner() {
           </div>
         )}
       </div>
+      </div>
     );
   }
 
   return (
+    <div className="app-sheet">
     <div className="container" style={{ maxWidth: 760, paddingBottom: "4rem" }}>
       <div className="page-head">
+        <div className="page-kicker">(01) // INPUT</div>
         <h1>Evaluate a job</h1>
         <p>Paste a job link or the description itself. Aura scores your fit and writes the full report — about a minute.</p>
       </div>
@@ -501,6 +517,7 @@ function EvaluateInner() {
           Score this job
         </button>
       </div>
+    </div>
     </div>
   );
 }

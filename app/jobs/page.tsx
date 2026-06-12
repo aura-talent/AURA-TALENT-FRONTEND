@@ -21,10 +21,11 @@ export default function ExploreJobsPage() {
   );
 
   return (
+    <div className="app-sheet">
     <div className="container candidate-jobs-page">
       <div className="candidate-jobs-hero">
         <div>
-          <p className="eyebrow">Agent-recommended opportunities</p>
+          <p className="eyebrow">(01) // AGENT_MATCHED</p>
           <h1>Jobs that fit where you&apos;re going.</h1>
           <p>
             Aura uses your skills, experience, career direction, compensation
@@ -32,7 +33,11 @@ export default function ExploreJobsPage() {
           </p>
         </div>
         <div className="recommendation-summary">
-          <span>Profile strength</span>
+          <span className="eval-tick eval-tick-tl" />
+          <span className="eval-tick eval-tick-tr" />
+          <span className="eval-tick eval-tick-bl" />
+          <span className="eval-tick eval-tick-br" />
+          <span>PROFILE_STRENGTH</span>
           <strong>92%</strong>
           <p>Resume and preferences are ready for matching.</p>
           <Link href="/onboarding">Update profile →</Link>
@@ -64,7 +69,7 @@ export default function ExploreJobsPage() {
       <div className="jobs-explore-head">
         <div>
           <h2>Recommended for your profile</h2>
-          <p>{visibleJobs.length} active roles ranked by Aura</p>
+          <p>{visibleJobs.length} ACTIVE_ROLES // RANKED_BY_AURA</p>
         </div>
         <span className="chip chip-tier-high">Agent refreshed today</span>
       </div>
@@ -115,6 +120,7 @@ export default function ExploreJobsPage() {
           <p>Try a broader search or include all recommendations.</p>
         </div>
       )}
+    </div>
     </div>
   );
 }

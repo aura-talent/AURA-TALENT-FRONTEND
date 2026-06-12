@@ -42,8 +42,12 @@ export default function ComparePage() {
 
   if (busy) {
     return (
+      <div className="app-sheet">
       <div className="container" style={{ maxWidth: 820 }}>
-        <div className="page-head"><h1>Comparing</h1></div>
+        <div className="page-head">
+          <div className="page-kicker">COMPARISON_AGENT // RUNNING</div>
+          <h1>Comparing</h1>
+        </div>
         <div className="panel">
           <Thinking lines={[
             "Lining up your offers…",
@@ -52,13 +56,18 @@ export default function ComparePage() {
           ]} />
         </div>
       </div>
+      </div>
     );
   }
 
   if (result) {
     return (
+      <div className="app-sheet">
       <div className="container" style={{ maxWidth: 820, paddingBottom: "4rem" }}>
-        <div className="page-head"><h1>Head to head</h1></div>
+        <div className="page-head">
+          <div className="page-kicker">(02) // HEAD_TO_HEAD</div>
+          <h1>Head to head</h1>
+        </div>
         <div className="panel" style={{ marginBottom: "1.5rem" }}>
           <ReportView markdown={result} />
         </div>
@@ -66,12 +75,15 @@ export default function ComparePage() {
           Compare different jobs
         </button>
       </div>
+      </div>
     );
   }
 
   return (
+    <div className="app-sheet">
     <div className="container" style={{ maxWidth: 760, paddingBottom: "4rem" }}>
       <div className="page-head">
+        <div className="page-kicker">(01) // SELECTION</div>
         <h1>Compare offers</h1>
         <p>Pick two or more evaluated jobs. Aura ranks them and tells you where to focus — and what to drop.</p>
       </div>
@@ -94,7 +106,7 @@ export default function ComparePage() {
                 key={a.evaluation_id}
                 style={{
                   display: "flex", alignItems: "center", gap: "0.9rem",
-                  padding: "0.8rem 0.4rem", borderBottom: "1px solid var(--ink-06)",
+                  padding: "0.8rem 0.4rem", borderBottom: "1px dashed var(--ink-12)",
                   cursor: "pointer",
                 }}
               >
@@ -117,6 +129,7 @@ export default function ComparePage() {
           </button>
         </>
       )}
+    </div>
     </div>
   );
 }

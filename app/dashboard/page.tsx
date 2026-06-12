@@ -241,8 +241,10 @@ export default function Dashboard() {
   const showJobs = jobs && jobs.length > 0;
 
   return (
+    <div className="app-sheet">
     <div className="container" style={{ paddingBottom: "4rem" }}>
       <div className="page-head">
+        <div className="page-kicker">(01) // PIPELINE</div>
         <h1>Your pipeline</h1>
         <p>Every job you&apos;ve evaluated, in one place. Update statuses as you hear back.</p>
       </div>
@@ -313,8 +315,14 @@ export default function Dashboard() {
 
         {/* Right Column: Suited Jobs */}
         <div style={{ minWidth: 0 }}>
-          <div className="panel" style={{ position: "relative", overflow: "hidden" }}>
-            <div className="aura-glow" style={{ opacity: 0.15, transform: "scale(0.8)" }} />
+          <div className="panel">
+            <span className="eval-tick eval-tick-tl" />
+            <span className="eval-tick eval-tick-tr" />
+            <span className="eval-tick eval-tick-bl" />
+            <span className="eval-tick eval-tick-br" />
+            <div className="page-kicker" style={{ marginBottom: "0.6rem" }}>
+              LIVE_SCAN // PORTALS
+            </div>
             <h3
               style={{ fontSize: "1.2rem", marginBottom: "0.5rem", position: "relative", zIndex: 1 }}
             >
@@ -577,6 +585,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

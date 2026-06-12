@@ -69,7 +69,7 @@ export default function FinalReport({ role, answers, onRestart }: Props) {
       <div style={{ minHeight: "calc(100svh - 64px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "3rem 1.5rem" }}>
         <div style={{ maxWidth: 400, textAlign: "center" }}>
           <p style={{ color: "var(--score-weak)", fontSize: "0.9375rem", marginBottom: "1.5rem", lineHeight: 1.6 }}>{error}</p>
-          <button onClick={onRestart} style={{ padding: "0.75rem 1.75rem", background: "var(--iris)", color: "#fff", border: "none", borderRadius: "var(--r-pill)", fontWeight: 600, cursor: "pointer" }}>
+          <button onClick={onRestart} style={{ padding: "0.75rem 1.75rem", background: "var(--iris)", color: "#fff", border: "none", borderRadius: 0, fontWeight: 600, cursor: "pointer" }}>
             Start over
           </button>
         </div>
@@ -82,7 +82,7 @@ export default function FinalReport({ role, answers, onRestart }: Props) {
       <div style={{ minHeight: "calc(100svh - 64px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "3rem 1.5rem" }}>
         <div style={{ textAlign: "center" }}>
           <GeneratingSpinner />
-          <p style={{ marginTop: "1.25rem", color: "var(--ink-55)", fontSize: "0.9rem", fontFamily: "var(--font-mono), monospace", letterSpacing: "0.06em" }}>
+          <p style={{ marginTop: "1.25rem", color: "var(--ink-55)", fontSize: "0.9rem", fontFamily: "var(--font-space), monospace", letterSpacing: "0.06em" }}>
             Generating your report…
           </p>
         </div>
@@ -100,23 +100,24 @@ export default function FinalReport({ role, answers, onRestart }: Props) {
   const maxTrend = Math.max(...report.trend, 1);
 
   return (
-    <div style={{ minHeight: "calc(100svh - 64px)", background: "var(--porcelain)" }}>
+    <div style={{ minHeight: "calc(100svh - 64px)", background: "var(--porcelain)", backgroundImage: `linear-gradient(rgba(26, 29, 41, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(26, 29, 41, 0.035) 1px, transparent 1px)`, backgroundSize: "44px 44px", }}>
       <div style={{ maxWidth: 680, margin: "0 auto", padding: "3rem 1.5rem 6rem", animation: "report-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
 
         {/* Page header */}
         <div style={{ marginBottom: "2.5rem" }}>
           <span style={{
-            fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.68rem", letterSpacing: "0.12em",
-            textTransform: "uppercase", color: "var(--ink-55)", fontWeight: 600,
+            fontFamily: "var(--font-space), monospace",
+            fontSize: "0.6875rem", letterSpacing: "0.08em",
+            textTransform: "uppercase", color: "var(--iris)", fontWeight: 700,
           }}>
-            Interview complete
+            (03) // INTERVIEW_COMPLETE
           </span>
           <h1 style={{
-            fontFamily: "var(--font-display), sans-serif",
-            fontSize: "clamp(1.8rem, 5vw, 2.5rem)",
-            fontWeight: 800, letterSpacing: "-0.03em",
-            color: "var(--ink)", marginTop: "0.3rem", lineHeight: 1.1,
+            fontFamily: "var(--font-space), monospace",
+            fontSize: "clamp(1.5rem, 4vw, 2.1rem)",
+            fontWeight: 700, letterSpacing: "-0.02em",
+            textTransform: "uppercase",
+            color: "var(--ink)", marginTop: "0.4rem", lineHeight: 1.15,
           }}>
             {role} Mock Interview
           </h1>
@@ -125,8 +126,8 @@ export default function FinalReport({ role, answers, onRestart }: Props) {
         {/* Verdict banner */}
         <div style={{
           padding: "1.5rem",
-          border: `1.5px solid ${vc.border}`,
-          borderRadius: "var(--r-l)",
+          border: `1px solid ${vc.border}`,
+          borderRadius: 0,
           background: vc.bg,
           display: "flex", alignItems: "center",
           justifyContent: "space-between", gap: "1.5rem",
@@ -137,7 +138,7 @@ export default function FinalReport({ role, answers, onRestart }: Props) {
             <CircleGauge score={avgScore} size={80} />
             <div>
               <div style={{
-                fontFamily: "var(--font-mono), monospace",
+                fontFamily: "var(--font-space), monospace",
                 fontSize: "0.65rem", letterSpacing: "0.12em",
                 textTransform: "uppercase", color: "var(--ink-55)", fontWeight: 600,
                 marginBottom: "0.2rem",
@@ -145,8 +146,8 @@ export default function FinalReport({ role, answers, onRestart }: Props) {
                 Overall result
               </div>
               <div style={{
-                fontFamily: "var(--font-display), sans-serif",
-                fontSize: "1.4rem", fontWeight: 800,
+                fontFamily: "var(--font-space), monospace",
+                fontSize: "1.05rem", fontWeight: 700, textTransform: "uppercase",
                 letterSpacing: "-0.025em", color: vc.color,
               }}>
                 {vc.label}
@@ -156,9 +157,9 @@ export default function FinalReport({ role, answers, onRestart }: Props) {
           {report.mocked && (
             <span style={{
               padding: "0.2rem 0.6rem",
-              borderRadius: "var(--r-pill)", background: "var(--ink-06)",
+              borderRadius: 0, background: "var(--ink-06)",
               color: "var(--ink-55)", fontSize: "0.7rem",
-              fontFamily: "var(--font-mono), monospace",
+              fontFamily: "var(--font-space), monospace",
               letterSpacing: "0.06em", fontWeight: 600,
             }}>MOCK</span>
           )}
@@ -166,16 +167,15 @@ export default function FinalReport({ role, answers, onRestart }: Props) {
 
         {/* Score breakdown */}
         <div style={{
-          border: "1.5px solid var(--ink-06)",
-          borderRadius: "var(--r-l)",
+          border: "1px solid var(--ink-30)",
+          borderRadius: 0,
           background: "var(--surface)",
           overflow: "hidden",
-          boxShadow: "var(--shadow-card)",
           marginBottom: "1.5rem",
         }}>
-          <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid var(--ink-06)" }}>
+          <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px dashed var(--ink-30)" }}>
             <h3 style={{
-              fontFamily: "var(--font-mono), monospace",
+              fontFamily: "var(--font-space), monospace",
               fontSize: "0.68rem", letterSpacing: "0.12em",
               textTransform: "uppercase", color: "var(--ink-55)", fontWeight: 600,
             }}>
@@ -195,12 +195,12 @@ export default function FinalReport({ role, answers, onRestart }: Props) {
                 <div key={label}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.3rem" }}>
                     <span style={{ fontSize: "0.8125rem", color: "var(--ink-72)", fontWeight: 500 }}>{label}</span>
-                    <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: "0.78rem", fontWeight: 700, color: c }}>{v}</span>
+                    <span style={{ fontFamily: "var(--font-space), monospace", fontSize: "0.78rem", fontWeight: 700, color: c }}>{v}</span>
                   </div>
-                  <div style={{ height: 5, borderRadius: "var(--r-pill)", background: "var(--ink-06)", overflow: "hidden" }}>
+                  <div style={{ height: 5, borderRadius: 0, background: "var(--ink-06)", overflow: "hidden" }}>
                     <div style={{
                       height: "100%", width: `${v}%`, background: c,
-                      borderRadius: "var(--r-pill)",
+                      borderRadius: 0,
                       transition: "width 1s cubic-bezier(0.4, 0, 0.2, 1) 0.3s",
                     }} />
                   </div>
@@ -212,16 +212,15 @@ export default function FinalReport({ role, answers, onRestart }: Props) {
 
         {/* Trend chart */}
         <div style={{
-          border: "1.5px solid var(--ink-06)",
-          borderRadius: "var(--r-l)",
+          border: "1px solid var(--ink-30)",
+          borderRadius: 0,
           background: "var(--surface)",
           overflow: "hidden",
-          boxShadow: "var(--shadow-card)",
           marginBottom: "1.5rem",
         }}>
-          <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid var(--ink-06)" }}>
+          <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px dashed var(--ink-30)" }}>
             <h3 style={{
-              fontFamily: "var(--font-mono), monospace",
+              fontFamily: "var(--font-space), monospace",
               fontSize: "0.68rem", letterSpacing: "0.12em",
               textTransform: "uppercase", color: "var(--ink-55)", fontWeight: 600,
             }}>
@@ -236,7 +235,7 @@ export default function FinalReport({ role, answers, onRestart }: Props) {
                 return (
                   <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "0.4rem" }}>
                     <div style={{
-                      width: "100%", borderRadius: "4px 4px 2px 2px",
+                      width: "100%", borderRadius: 0,
                       background: c, height: h,
                       minHeight: 6,
                       opacity: 0.85,
@@ -246,12 +245,12 @@ export default function FinalReport({ role, answers, onRestart }: Props) {
                       <span style={{
                         position: "absolute", top: -18, left: "50%",
                         transform: "translateX(-50%)",
-                        fontFamily: "var(--font-mono), monospace",
+                        fontFamily: "var(--font-space), monospace",
                         fontSize: "0.65rem", color: c, fontWeight: 700,
                         whiteSpace: "nowrap",
                       }}>{v}</span>
                     </div>
-                    <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: "0.62rem", color: "var(--ink-55)" }}>
+                    <span style={{ fontFamily: "var(--font-space), monospace", fontSize: "0.62rem", color: "var(--ink-55)" }}>
                       Q{i + 1}
                     </span>
                   </div>
@@ -271,15 +270,15 @@ export default function FinalReport({ role, answers, onRestart }: Props) {
             { title: "Focus areas", items: report.topImprovements, color: "var(--score-fair)", icon: "▲" },
           ].map(({ title, items, color, icon }) => (
             <div key={title} style={{
-              border: "1.5px solid var(--ink-06)",
-              borderRadius: "var(--r-l)",
+              border: "1px solid var(--ink-30)",
+              borderRadius: 0,
               background: "var(--surface)",
               boxShadow: "var(--shadow-card)",
               overflow: "hidden",
             }}>
-              <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid var(--ink-06)" }}>
+              <div style={{ padding: "1rem 1.25rem", borderBottom: "1px dashed var(--ink-30)" }}>
                 <h3 style={{
-                  fontFamily: "var(--font-mono), monospace",
+                  fontFamily: "var(--font-space), monospace",
                   fontSize: "0.65rem", letterSpacing: "0.1em",
                   textTransform: "uppercase", color, fontWeight: 700,
                 }}>
@@ -302,8 +301,8 @@ export default function FinalReport({ role, answers, onRestart }: Props) {
         {report.closing && (
           <div style={{
             padding: "1.25rem 1.5rem",
-            border: "1.5px solid var(--ink-06)",
-            borderRadius: "var(--r-l)",
+            border: "1px solid var(--ink-30)",
+            borderRadius: 0,
             background: "var(--surface)",
             boxShadow: "var(--shadow-card)",
             marginBottom: "1.5rem",
@@ -327,8 +326,10 @@ export default function FinalReport({ role, answers, onRestart }: Props) {
             background: "var(--ink)",
             color: "var(--porcelain)",
             border: "none",
-            borderRadius: "var(--r-pill)",
-            fontSize: "0.9375rem", fontWeight: 600,
+            borderRadius: 0,
+            fontFamily: "var(--font-space), monospace",
+            fontSize: "0.75rem", fontWeight: 700,
+            letterSpacing: "0.08em", textTransform: "uppercase",
             cursor: "pointer",
             display: "flex", alignItems: "center",
             justifyContent: "center", gap: "0.5rem",
@@ -375,13 +376,13 @@ function CircleGauge({ score, size }: { score: number; size: number }) {
         alignItems: "center", justifyContent: "center",
       }}>
         <span style={{
-          fontFamily: "var(--font-display), sans-serif",
-          fontSize: size * 0.24, fontWeight: 800,
+          fontFamily: "var(--font-space), monospace",
+          fontSize: size * 0.24, fontWeight: 700,
           color, lineHeight: 1, letterSpacing: "-0.02em",
         }}>
           {score}
         </span>
-        <span style={{ fontSize: size * 0.115, color: "var(--ink-30)", fontFamily: "var(--font-mono), monospace" }}>
+        <span style={{ fontSize: size * 0.115, color: "var(--ink-30)", fontFamily: "var(--font-space), monospace" }}>
           avg
         </span>
       </div>

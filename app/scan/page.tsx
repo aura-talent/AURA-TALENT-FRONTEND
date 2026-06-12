@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import gsap from "gsap";
 import { api, type JobPosting } from "@/lib/api";
 import Thinking from "@/components/Thinking";
 
@@ -38,6 +39,7 @@ function guessCountry(): string {
 }
 
 export default function ScanPage() {
+  const root = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const [keywords, setKeywords] = useState("");
   const [locationInput, setLocationInput] = useState("");
@@ -95,6 +97,37 @@ export default function ScanPage() {
     localStorage.setItem("aura_location_filter", val);
   };
 
+  /* entrance: title block prints, the scan form rises */
+  useEffect(() => {
+    const mm = gsap.matchMedia(root);
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const q = gsap.utils.selector(root);
+      const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.65 } });
+      tl.from(q(".page-head > *"), { y: 22, autoAlpha: 0, stagger: 0.1 }).from(
+        q(".scan-form-panel"),
+        { y: 28, autoAlpha: 0, duration: 0.7 },
+        "-=0.35"
+      );
+    });
+    return () => mm.revert();
+  }, []);
+
+  /* results register: header rules in, rows file in from the left */
+  useEffect(() => {
+    if (!jobs?.length) return;
+    const mm = gsap.matchMedia(root);
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const q = gsap.utils.selector(root);
+      const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
+      tl.from(q(".scan-results-head"), { autoAlpha: 0, duration: 0.4 }).from(
+        q(".job-row"),
+        { x: -18, autoAlpha: 0, duration: 0.5, stagger: 0.05 },
+        "-=0.15"
+      );
+    });
+    return () => mm.revert();
+  }, [jobs]);
+
   async function run() {
     setError("");
     setBusy(true);
@@ -115,8 +148,10 @@ export default function ScanPage() {
   }
 
   return (
+    <div className="app-sheet" ref={root}>
     <div className="container" style={{ maxWidth: 820, paddingBottom: "4rem" }}>
       <div className="page-head">
+        <div className="page-kicker">(01) // PORTAL_SCAN</div>
         <h1>Find open roles</h1>
         <p>
           Aura checks the live job boards of tracked companies directly —
@@ -126,7 +161,7 @@ export default function ScanPage() {
 
       {error && <div className="notice notice-error">{error}</div>}
 
-      <div className="panel" style={{ marginBottom: "1.5rem" }}>
+      <div className="panel scan-form-panel" style={{ marginBottom: "1.5rem" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
           <div className="field">
             <label htmlFor="kw">Role keywords <span style={{ fontWeight: 400, color: "var(--ink-55)", fontSize: "0.8rem" }}>(optional, comma-separated)</span></label>
@@ -166,11 +201,20 @@ export default function ScanPage() {
 
       {jobs && (
         <>
-          <p style={{ marginBottom: "1rem", color: "var(--ink-72)" }}>
-            {jobs.length === 0
-              ? "No matching roles right now — try broader keywords or check back in a few days."
-              : `${jobs.length} matching roles found.`}
-          </p>
+          <div className="scan-results-head">
+            <span className="page-kicker" style={{ margin: 0 }}>
+              (02) // RESULTS
+            </span>
+            <span className="scan-results-count">
+              {jobs.length === 0 ? "0 ROLES_FOUND" : `${jobs.length} ROLES_FOUND`}
+            </span>
+          </div>
+          {jobs.length === 0 && (
+            <p style={{ marginBottom: "1rem", color: "var(--ink-72)" }}>
+              No matching roles right now — try broader keywords or check back
+              in a few days.
+            </p>
+          )}
           <div>
             {jobs.map((j) => (
               <div className="job-row" key={j.url}>
@@ -197,6 +241,7 @@ export default function ScanPage() {
           </div>
         </>
       )}
+    </div>
     </div>
   );
 }

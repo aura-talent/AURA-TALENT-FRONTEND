@@ -38,14 +38,27 @@ export default function Reveal({
     const mm = gsap.matchMedia();
     mm.add("(prefers-reduced-motion: no-preference)", () => {
       const targets = ref.current!.querySelectorAll("[data-reveal]");
-      if (!targets.length) return;
-      gsap.from(targets, {
-        ...VARIANTS[variant],
-        duration: 0.75,
-        ease: "power3.out",
-        stagger: variant === "row" ? 0.06 : 0.09,
-        scrollTrigger: { trigger: ref.current, start: "top 78%" },
-      });
+      if (targets.length) {
+        gsap.from(targets, {
+          ...VARIANTS[variant],
+          duration: 0.75,
+          ease: "power3.out",
+          stagger: variant === "row" ? 0.06 : 0.09,
+          scrollTrigger: { trigger: ref.current, start: "top 78%" },
+        });
+      }
+      /* hairline rules draft themselves in, left to right */
+      const lines = ref.current!.querySelectorAll("[data-reveal-line]");
+      if (lines.length) {
+        gsap.from(lines, {
+          scaleX: 0,
+          transformOrigin: "left center",
+          duration: 1.1,
+          ease: "power3.inOut",
+          stagger: 0.15,
+          scrollTrigger: { trigger: ref.current, start: "top 78%" },
+        });
+      }
     });
     return () => mm.revert();
   }, [variant]);

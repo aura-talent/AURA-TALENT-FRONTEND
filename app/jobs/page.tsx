@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import gsap from "gsap";
 import { jobs } from "../employer/data";
 
 export default function ExploreJobsPage() {
+  const root = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [recommendedOnly, setRecommendedOnly] = useState(false);
   const visibleJobs = useMemo(
@@ -20,11 +22,35 @@ export default function ExploreJobsPage() {
     [query, recommendedOnly],
   );
 
+  /* entrance: hero prints, toolbar lands, cards deal in */
+  useEffect(() => {
+    const mm = gsap.matchMedia(root);
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const q = gsap.utils.selector(root);
+      const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.65 } });
+      tl.from(q(".candidate-jobs-hero > div:first-child > *"), {
+        y: 22,
+        autoAlpha: 0,
+        stagger: 0.1,
+      })
+        .from(q(".recommendation-summary"), { y: 22, autoAlpha: 0 }, "-=0.4")
+        .from(q(".jobs-explore-toolbar"), { y: 20, autoAlpha: 0 }, "-=0.4")
+        .from(q(".jobs-explore-head"), { autoAlpha: 0, duration: 0.5 }, "-=0.35")
+        .from(
+          q(".candidate-job-card"),
+          { y: 26, autoAlpha: 0, duration: 0.55, stagger: { each: 0.07 } },
+          "-=0.25"
+        );
+    });
+    return () => mm.revert();
+  }, []);
+
   return (
+    <div className="app-sheet" ref={root}>
     <div className="container candidate-jobs-page">
       <div className="candidate-jobs-hero">
         <div>
-          <p className="eyebrow">Agent-recommended opportunities</p>
+          <p className="eyebrow">(01) // AGENT_MATCHED</p>
           <h1>Jobs that fit where you&apos;re going.</h1>
           <p>
             Aura uses your skills, experience, career direction, compensation
@@ -32,7 +58,11 @@ export default function ExploreJobsPage() {
           </p>
         </div>
         <div className="recommendation-summary">
-          <span>Profile strength</span>
+          <span className="eval-tick eval-tick-tl" />
+          <span className="eval-tick eval-tick-tr" />
+          <span className="eval-tick eval-tick-bl" />
+          <span className="eval-tick eval-tick-br" />
+          <span>PROFILE_STRENGTH</span>
           <strong>92%</strong>
           <p>Resume and preferences are ready for matching.</p>
           <Link href="/onboarding">Update profile →</Link>
@@ -64,7 +94,7 @@ export default function ExploreJobsPage() {
       <div className="jobs-explore-head">
         <div>
           <h2>Recommended for your profile</h2>
-          <p>{visibleJobs.length} active roles ranked by Aura</p>
+          <p>{visibleJobs.length} ACTIVE_ROLES // RANKED_BY_AURA</p>
         </div>
         <span className="chip chip-tier-high">Agent refreshed today</span>
       </div>
@@ -115,6 +145,7 @@ export default function ExploreJobsPage() {
           <p>Try a broader search or include all recommendations.</p>
         </div>
       )}
+    </div>
     </div>
   );
 }

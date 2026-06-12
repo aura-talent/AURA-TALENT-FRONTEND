@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Hanken_Grotesk, Spline_Sans_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Hanken_Grotesk, Space_Mono, Spline_Sans_Mono } from "next/font/google";
 import Nav from "@/components/Nav";
 import { AuthProvider } from "@/components/AuthProvider";
 import { RouteGuard } from "@/components/RouteGuard";
@@ -23,6 +23,14 @@ const mono = Spline_Sans_Mono({
   display: "swap",
 });
 
+// the blueprint voice of the hero diorama
+const spaceMono = Space_Mono({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-space",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Aura Talent — Know which jobs deserve you",
   description:
@@ -38,7 +46,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${display.variable} ${body.variable} ${mono.variable}`}>
+      <body className={`${display.variable} ${body.variable} ${mono.variable} ${spaceMono.variable}`}>
         <AuthProvider>
           <RouteGuard>
             <Nav />

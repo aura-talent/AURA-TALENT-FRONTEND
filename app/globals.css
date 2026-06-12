@@ -658,6 +658,7 @@ button {
 .step {
   padding: 2.25rem clamp(1.25rem, 2.5vw, 2.25rem) 0.5rem;
   position: relative;
+  min-width: 0;
 }
 .step:first-child { padding-left: 0; }
 .step + .step { border-left: 1px dashed var(--ink-30); }
@@ -667,6 +668,9 @@ button {
   letter-spacing: 0.08em;
   color: var(--iris);
   margin-bottom: 1.3rem;
+}
+.step-prop {
+  margin: 0.25rem 0 0.75rem;
 }
 .step h3 {
   font-size: 1.3rem;
@@ -692,6 +696,20 @@ button {
 }
 .dossier-intro { position: sticky; top: 6rem; }
 .dossier-intro .section-lede { margin-bottom: 1.75rem; }
+.dossier-prop {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px dashed var(--ink-30);
+}
+.dossier-prop-label {
+  display: block;
+  margin-top: 0.75rem;
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+}
 .dossier-row {
   display: grid;
   grid-template-columns: 3.4rem 1fr;
@@ -744,6 +762,19 @@ button {
   padding: clamp(3.5rem, 7vw, 6rem) clamp(1.75rem, 5vw, 4rem);
   position: relative;
   overflow: hidden;
+}
+.ethos-prop {
+  position: absolute;
+  top: 50%;
+  right: clamp(1.5rem, 5vw, 4rem);
+  transform: translateY(-50%);
+  width: min(260px, 26vw);
+  pointer-events: none;
+}
+@media (max-width: 920px) {
+  .ethos-prop {
+    display: none;
+  }
 }
 .ethos-label {
   position: absolute;

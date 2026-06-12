@@ -1,6 +1,10 @@
 import Link from "next/link";
+import Dossier from "@/components/Dossier";
 import Hero from "@/components/Hero";
 import Reveal from "@/components/Reveal";
+import WireProp from "@/components/WireProp";
+
+const STEP_PROPS = ["document", "magnifier", "dial"] as const;
 
 const STEPS = [
   {
@@ -20,15 +24,6 @@ const STEPS = [
   },
 ];
 
-const BLOCKS = [
-  { letter: "A", title: "Role summary", body: "What this job actually is — archetype, seniority, remote policy, one-line truth." },
-  { letter: "B", title: "Resume match", body: "Every requirement mapped to evidence in your resume, gaps named with a fix for each." },
-  { letter: "C", title: "Level strategy", body: "Their level vs. yours, and how to present senior without overstating anything." },
-  { letter: "D", title: "Compensation", body: "What the posting says against what the market pays, stated plainly when data is thin." },
-  { letter: "E", title: "Resume edits", body: "The five changes that most move your match for this specific job." },
-  { letter: "F", title: "Interview plan", body: "Your stories mapped to their requirements, plus the awkward questions and good answers." },
-  { letter: "G", title: "Posting legitimacy", body: "Freshness, specificity, reposting patterns — is this opening real or a pipeline ad?" },
-];
 
 export default function Landing() {
   return (
@@ -48,9 +43,10 @@ export default function Landing() {
             </p>
             <span className="rule" data-reveal-line />
             <div className="steps">
-              {STEPS.map((s) => (
+              {STEPS.map((s, i) => (
                 <div className="step" key={s.num} data-reveal>
                   <div className="step-num">[0{s.num}]</div>
+                  <WireProp kind={STEP_PROPS[i]} height={150} className="step-prop" />
                   <h3>{s.title}</h3>
                   <p>{s.body}</p>
                 </div>
@@ -59,38 +55,15 @@ export default function Landing() {
           </div>
         </Reveal>
 
-        <section className="section" id="report">
-          <div className="container dossier">
-            <div className="dossier-intro">
-              <div className="section-kicker">(03) // THE_REPORT</div>
-              <h2>Seven blocks. The whole picture.</h2>
-              <p className="section-lede">
-                Every evaluation is a full dossier — the same structure a
-                careful career coach would build, in about a minute.
-              </p>
-              <Link href="/evaluate" className="btn btn-ghost">
-                Run one on a real job
-              </Link>
-            </div>
-            <Reveal className="dossier-index" variant="row">
-              <span className="rule" data-reveal-line />
-              {BLOCKS.map((b) => (
-                <div className="dossier-row" key={b.letter} data-reveal>
-                  <span className="dossier-letter" aria-hidden="true">{b.letter}</span>
-                  <div>
-                    <h3>{b.title}</h3>
-                    <p>{b.body}</p>
-                  </div>
-                </div>
-              ))}
-            </Reveal>
-          </div>
-        </section>
+        <Dossier />
 
         <Reveal as="section" className="section-tight">
           <div className="container">
             <div className="ethos" data-reveal>
               <div className="grain" />
+              <div className="ethos-prop" aria-hidden="true">
+                <WireProp kind="scale" height={230} tone="porcelain" />
+              </div>
               <span className="ethos-label ethos-label-tl" aria-hidden="true">
                 (04) // ETHOS
               </span>

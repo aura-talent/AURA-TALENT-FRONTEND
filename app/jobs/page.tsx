@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import gsap from "gsap";
 import { jobs } from "../employer/data";
 
 export default function ExploreJobsPage() {
+  const root = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [recommendedOnly, setRecommendedOnly] = useState(false);
   const visibleJobs = useMemo(
@@ -20,8 +22,31 @@ export default function ExploreJobsPage() {
     [query, recommendedOnly],
   );
 
+  /* entrance: hero prints, toolbar lands, cards deal in */
+  useEffect(() => {
+    const mm = gsap.matchMedia(root);
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const q = gsap.utils.selector(root);
+      const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.65 } });
+      tl.from(q(".candidate-jobs-hero > div:first-child > *"), {
+        y: 22,
+        autoAlpha: 0,
+        stagger: 0.1,
+      })
+        .from(q(".recommendation-summary"), { y: 22, autoAlpha: 0 }, "-=0.4")
+        .from(q(".jobs-explore-toolbar"), { y: 20, autoAlpha: 0 }, "-=0.4")
+        .from(q(".jobs-explore-head"), { autoAlpha: 0, duration: 0.5 }, "-=0.35")
+        .from(
+          q(".candidate-job-card"),
+          { y: 26, autoAlpha: 0, duration: 0.55, stagger: { each: 0.07 } },
+          "-=0.25"
+        );
+    });
+    return () => mm.revert();
+  }, []);
+
   return (
-    <div className="app-sheet">
+    <div className="app-sheet" ref={root}>
     <div className="container candidate-jobs-page">
       <div className="candidate-jobs-hero">
         <div>

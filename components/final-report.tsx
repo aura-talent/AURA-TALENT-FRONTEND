@@ -86,6 +86,10 @@ export default function FinalReport({ role, answers, onRestart }: Props) {
             Generating your report…
           </p>
         </div>
+        {/* the report's style tag isn't mounted yet, so the spinner needs its own keyframes */}
+        <style>{`
+          @keyframes spinner-spin { to { transform: rotate(360deg); } }
+        `}</style>
       </div>
     );
   }

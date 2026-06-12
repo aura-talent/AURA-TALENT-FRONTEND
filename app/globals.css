@@ -332,10 +332,7 @@ button {
   color: var(--ink-55);
   line-height: 1.7;
 }
-.intro-loader-tl {
-  top: 1.75rem;
-  left: clamp(1.5rem, 4vw, 3rem);
-}
+.intro-loader-tl { top: 1.75rem; left: clamp(1.5rem, 4vw, 3rem); }
 .intro-loader-br {
   bottom: 1.75rem;
   right: clamp(1.5rem, 4vw, 3rem);
@@ -370,10 +367,7 @@ button {
   color: var(--ink-55);
   line-height: 1.7;
 }
-.hero-hud-tl {
-  top: 1.75rem;
-  left: clamp(1.5rem, 4vw, 3rem);
-}
+.hero-hud-tl { top: 1.75rem; left: clamp(1.5rem, 4vw, 3rem); }
 .hero-hud-br {
   bottom: 1.75rem;
   right: clamp(1.5rem, 4vw, 3rem);
@@ -453,12 +447,8 @@ button {
     padding: 0 1.5rem;
     order: -1;
   }
-  .hero-copy {
-    padding-top: 2.5rem;
-  }
-  .hero-hud-tl {
-    display: none;
-  }
+  .hero-copy { padding-top: 2.5rem; }
+  .hero-hud-tl { display: none; }
 }
 
 /* the aura — soft, blurred, behind the demo card */
@@ -477,9 +467,7 @@ button {
 
 /* ── Evaluation panel (hero) — blueprint readout ─────────── */
 
-.eval-wrap {
-  position: relative;
-}
+.eval-wrap { position: relative; }
 .eval-panel {
   position: relative;
   z-index: 1;
@@ -508,32 +496,12 @@ button {
   position: absolute;
   background: var(--ink);
 }
-.eval-tick::before {
-  width: 9px;
-  height: 1px;
-  top: 4px;
-}
-.eval-tick::after {
-  width: 1px;
-  height: 9px;
-  left: 4px;
-}
-.eval-tick-tl {
-  top: -5px;
-  left: -5px;
-}
-.eval-tick-tr {
-  top: -5px;
-  right: -5px;
-}
-.eval-tick-bl {
-  bottom: -5px;
-  left: -5px;
-}
-.eval-tick-br {
-  bottom: -5px;
-  right: -5px;
-}
+.eval-tick::before { width: 9px; height: 1px; top: 4px; }
+.eval-tick::after { width: 1px; height: 9px; left: 4px; }
+.eval-tick-tl { top: -5px; left: -5px; }
+.eval-tick-tr { top: -5px; right: -5px; }
+.eval-tick-bl { bottom: -5px; left: -5px; }
+.eval-tick-br { bottom: -5px; right: -5px; }
 
 .eval-head {
   display: flex;
@@ -543,10 +511,7 @@ button {
   padding-bottom: 1rem;
   border-bottom: 1px dashed var(--ink-30);
 }
-.eval-kicker {
-  color: var(--iris);
-  margin-bottom: 0.5rem;
-}
+.eval-kicker { color: var(--iris); margin-bottom: 0.5rem; }
 .eval-role {
   font-family: var(--font-display), sans-serif;
   font-weight: 650;
@@ -555,10 +520,7 @@ button {
   letter-spacing: 0;
   text-transform: none;
 }
-.eval-co {
-  color: var(--ink-55);
-  margin-top: 0.3rem;
-}
+.eval-co { color: var(--ink-55); margin-top: 0.3rem; }
 .eval-status {
   display: flex;
   align-items: center;
@@ -580,34 +542,18 @@ button {
   padding: 1.1rem 0;
   align-items: center;
 }
-.eval-reqs {
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-  min-width: 0;
-}
+.eval-reqs { display: flex; flex-direction: column; gap: 0.7rem; min-width: 0; }
 .eval-req {
   display: flex;
   align-items: baseline;
   gap: 0.6rem;
   color: var(--ink-72);
 }
-.eval-mark {
-  color: var(--score-strong);
-  white-space: nowrap;
-}
-.eval-mark.gap {
-  color: var(--score-fair);
-}
+.eval-mark { color: var(--score-strong); white-space: nowrap; }
+.eval-mark.gap { color: var(--score-fair); }
 
-.eval-chart {
-  display: grid;
-  justify-items: center;
-  gap: 0.5rem;
-}
-.eval-dial-track {
-  stroke: var(--ink-30);
-}
+.eval-chart { display: grid; justify-items: center; gap: 0.5rem; }
+.eval-dial-track { stroke: var(--ink-30); }
 .eval-dial-value {
   position: absolute;
   text-align: center;
@@ -619,14 +565,8 @@ button {
   line-height: 1;
   color: var(--iris);
 }
-.eval-dial-outof {
-  font-size: 0.72em;
-  color: var(--ink-55);
-  margin-top: 0.2em;
-}
-.eval-chart-label {
-  color: var(--ink-55);
-}
+.eval-dial-outof { font-size: 0.72em; color: var(--ink-55); margin-top: 0.2em; }
+.eval-chart-label { color: var(--ink-55); }
 
 .eval-foot {
   display: flex;
@@ -636,11 +576,7 @@ button {
   padding-top: 1rem;
   border-top: 1px dashed var(--ink-30);
 }
-.eval-blocks {
-  display: flex;
-  gap: 0.35rem;
-  flex-wrap: wrap;
-}
+.eval-blocks { display: flex; gap: 0.35rem; flex-wrap: wrap; }
 .eval-block {
   width: 1.6rem;
   height: 1.6rem;
@@ -649,10 +585,7 @@ button {
   border: 1px solid var(--ink-30);
   color: var(--ink-72);
 }
-.eval-verdict {
-  color: var(--iris);
-  white-space: nowrap;
-}
+.eval-verdict { color: var(--iris); white-space: nowrap; }
 
 /* ── Score dial ──────────────────────────────────────────── */
 
@@ -687,11 +620,15 @@ button {
 
 /* ── Sections — blueprint sheets ─────────────────────────── */
 
-.section {
-  padding: clamp(5rem, 9vw, 8rem) 0;
-}
-.section-tight {
-  padding: 4rem 0;
+.section { padding: clamp(5rem, 9vw, 8rem) 0; }
+.section-tight { padding: 4rem 0; }
+.section-kicker {
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--iris);
+  margin-bottom: 1.4rem;
 }
 .section-kicker {
   font-family: var(--font-space), monospace;
@@ -729,19 +666,19 @@ button {
 .step {
   padding: 2.25rem clamp(1.25rem, 2.5vw, 2.25rem) 0.5rem;
   position: relative;
+  min-width: 0;
 }
-.step:first-child {
-  padding-left: 0;
-}
-.step + .step {
-  border-left: 1px dashed var(--ink-30);
-}
+.step:first-child { padding-left: 0; }
+.step + .step { border-left: 1px dashed var(--ink-30); }
 .step-num {
   font-family: var(--font-space), monospace;
   font-size: 0.6875rem;
   letter-spacing: 0.08em;
   color: var(--iris);
   margin-bottom: 1.3rem;
+}
+.step-prop {
+  margin: 0.25rem 0 0.75rem;
 }
 .step h3 {
   font-size: 1.3rem;
@@ -753,16 +690,9 @@ button {
 }
 
 @media (max-width: 860px) {
-  .steps {
-    grid-template-columns: 1fr;
-  }
-  .step {
-    padding: 2rem 0;
-  }
-  .step + .step {
-    border-left: none;
-    border-top: 1px dashed var(--ink-30);
-  }
+  .steps { grid-template-columns: 1fr; }
+  .step { padding: 2rem 0; }
+  .step + .step { border-left: none; border-top: 1px dashed var(--ink-30); }
 }
 
 /* the report — a dossier index, the actual shape of the artifact */
@@ -772,12 +702,21 @@ button {
   gap: clamp(2.5rem, 5vw, 5rem);
   align-items: start;
 }
-.dossier-intro {
-  position: sticky;
-  top: 6rem;
+.dossier-intro { position: sticky; top: 6rem; }
+.dossier-intro .section-lede { margin-bottom: 1.75rem; }
+.dossier-prop {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px dashed var(--ink-30);
 }
-.dossier-intro .section-lede {
-  margin-bottom: 1.75rem;
+.dossier-prop-label {
+  display: block;
+  margin-top: 0.75rem;
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-55);
 }
 .dossier-row {
   display: grid;
@@ -786,9 +725,7 @@ button {
   align-items: start;
   padding: 1.35rem 0.5rem 1.35rem 0;
   border-bottom: 1px dashed var(--ink-30);
-  transition:
-    background 0.2s ease,
-    padding-left 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: background 0.2s ease, padding-left 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .dossier-row:hover {
   background: var(--iris-08);
@@ -803,25 +740,15 @@ button {
   place-items: center;
   border: 1px solid var(--ink-30);
   color: var(--ink-72);
-  transition:
-    color 0.2s ease,
-    border-color 0.2s ease,
-    background 0.2s ease;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 .dossier-row:hover .dossier-letter {
   color: #fff;
   background: var(--iris);
   border-color: var(--iris);
 }
-.dossier-row h3 {
-  font-size: 1.125rem;
-  margin-bottom: 0.25rem;
-}
-.dossier-row p {
-  font-size: 0.9rem;
-  color: var(--ink-72);
-  max-width: 34rem;
-}
+.dossier-row h3 { font-size: 1.125rem; margin-bottom: 0.25rem; }
+.dossier-row p { font-size: 0.9rem; color: var(--ink-72); max-width: 34rem; }
 
 @media (max-width: 860px) {
   .dossier {
@@ -838,14 +765,24 @@ button {
     linear-gradient(rgba(250, 250, 248, 0.05) 1px, transparent 1px),
     linear-gradient(90deg, rgba(250, 250, 248, 0.05) 1px, transparent 1px),
     var(--ink);
-  background-size:
-    44px 44px,
-    44px 44px,
-    auto;
+  background-size: 44px 44px, 44px 44px, auto;
   color: var(--porcelain);
   padding: clamp(3.5rem, 7vw, 6rem) clamp(1.75rem, 5vw, 4rem);
   position: relative;
   overflow: hidden;
+}
+.ethos-prop {
+  position: absolute;
+  top: 50%;
+  right: clamp(1.5rem, 5vw, 4rem);
+  transform: translateY(-50%);
+  width: min(260px, 26vw);
+  pointer-events: none;
+}
+@media (max-width: 920px) {
+  .ethos-prop {
+    display: none;
+  }
 }
 .ethos-label {
   position: absolute;
@@ -856,15 +793,8 @@ button {
   color: rgba(250, 250, 248, 0.55);
   line-height: 1.7;
 }
-.ethos-label-tl {
-  top: 1.5rem;
-  left: 1.75rem;
-}
-.ethos-label-br {
-  bottom: 1.5rem;
-  right: 1.75rem;
-  text-align: right;
-}
+.ethos-label-tl { top: 1.5rem; left: 1.75rem; }
+.ethos-label-br { bottom: 1.5rem; right: 1.75rem; text-align: right; }
 .ethos blockquote {
   font-family: var(--font-space), monospace;
   font-weight: 700;
@@ -895,10 +825,7 @@ button {
     linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
     var(--iris);
-  background-size:
-    44px 44px,
-    44px 44px,
-    auto;
+  background-size: 44px 44px, 44px 44px, auto;
   color: #fff;
   position: relative;
   overflow: hidden;
@@ -915,11 +842,7 @@ button {
   line-height: 1.7;
   z-index: 1;
 }
-.cta-label-tl {
-  top: 1.75rem;
-  left: clamp(1.5rem, 4vw, 3rem);
-  text-align: left;
-}
+.cta-label-tl { top: 1.75rem; left: clamp(1.5rem, 4vw, 3rem); text-align: left; }
 .cta-label-br {
   bottom: 1.75rem;
   right: clamp(1.5rem, 4vw, 3rem);
@@ -939,10 +862,7 @@ button {
   color: rgba(255, 255, 255, 0.82);
   margin: 0 auto 2.6rem;
 }
-.cta-band .hero-ctas {
-  justify-content: center;
-  position: relative;
-}
+.cta-band .hero-ctas { justify-content: center; position: relative; }
 .btn-inverse {
   background: #fff;
   color: var(--iris-deep);
@@ -989,9 +909,7 @@ button {
 /* ── Landing blueprint scoping ───────────────────────────── */
 
 /* header, landing flavor — a drafting title strip */
-.nav-blueprint {
-  border-bottom: 1px solid var(--ink-12);
-}
+.nav-blueprint { border-bottom: 1px solid var(--ink-12); }
 .nav-blueprint .nav-brand {
   font-family: var(--font-space), monospace;
   font-size: 0.8125rem;
@@ -1004,9 +922,7 @@ button {
   letter-spacing: 0.08em;
   color: var(--ink-55);
 }
-.nav-blueprint .nav-links a:not(.btn):hover {
-  color: var(--iris);
-}
+.nav-blueprint .nav-links a:not(.btn):hover { color: var(--iris); }
 .nav-blueprint .nav-links a:not(.btn)[aria-current="page"] {
   color: var(--iris);
   text-decoration: underline dashed;
@@ -1079,20 +995,14 @@ button {
   inset: 0;
   pointer-events: none;
   opacity: 0;
-  transition:
-    --gx 0.22s ease-out,
-    --gy 0.22s ease-out,
-    opacity 0.5s ease;
+  transition: --gx 0.22s ease-out, --gy 0.22s ease-out, opacity 0.5s ease;
   /* three stacked squares: 1×1, 3×3, 5×5 cells — alphas add toward the centre */
   background-image:
     linear-gradient(rgba(78, 63, 216, 0.1), rgba(78, 63, 216, 0.1)),
     linear-gradient(rgba(78, 63, 216, 0.06), rgba(78, 63, 216, 0.06)),
     linear-gradient(rgba(78, 63, 216, 0.04), rgba(78, 63, 216, 0.04));
   background-repeat: no-repeat;
-  background-size:
-    44px 44px,
-    132px 132px,
-    220px 220px;
+  background-size: 44px 44px, 132px 132px, 220px 220px;
   background-position:
     calc(var(--gx) - 22px) calc(var(--gy) - 22px),
     calc(var(--gx) - 66px) calc(var(--gy) - 66px),
@@ -1111,9 +1021,7 @@ button {
 /* ── Landing blueprint scoping ───────────────────────────── */
 
 /* header, landing flavor — a drafting title strip */
-.nav-blueprint {
-  border-bottom: 1px solid var(--ink-12);
-}
+.nav-blueprint { border-bottom: 1px solid var(--ink-12); }
 .nav-blueprint .nav-brand {
   font-family: var(--font-space), monospace;
   font-size: 0.8125rem;
@@ -1126,9 +1034,7 @@ button {
   letter-spacing: 0.08em;
   color: var(--ink-55);
 }
-.nav-blueprint .nav-links a:not(.btn):hover {
-  color: var(--iris);
-}
+.nav-blueprint .nav-links a:not(.btn):hover { color: var(--iris); }
 
 /* controls go square and mono on the landing only */
 .landing .btn,
@@ -1185,10 +1091,7 @@ button {
   inset: 0;
   pointer-events: none;
   opacity: 0;
-  transition:
-    --gx 0.22s ease-out,
-    --gy 0.22s ease-out,
-    opacity 0.5s ease;
+  transition: --gx 0.22s ease-out, --gy 0.22s ease-out, opacity 0.5s ease;
   /* grid lines pick up iris near the cursor… */
   background: radial-gradient(
     150px circle at var(--gx) var(--gy),
@@ -1275,9 +1178,7 @@ button {
   text-transform: uppercase;
   color: var(--ink-55);
 }
-.tab + .tab {
-  border-left: 1px solid var(--ink-30);
-}
+.tab + .tab { border-left: 1px solid var(--ink-30); }
 .tab[aria-selected="true"] {
   background: var(--iris);
   color: #fff;
@@ -1658,6 +1559,39 @@ textarea.input {
   border: none;
   border-top: 1px solid var(--ink-12);
   margin: 1.6rem 0;
+}
+
+/* live-scan panel status: dashed calibration ring + mono readout */
+.scan-status {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+  position: relative;
+  z-index: 1;
+}
+.scan-spinner {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: 1px dashed var(--iris);
+  border-radius: 50%;
+  animation: scan-spin 1.4s linear infinite;
+}
+@keyframes scan-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scan-spinner {
+    animation: none;
+  }
 }
 
 /* scan results */

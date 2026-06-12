@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import gsap from "gsap";
 import { api, ApiError, type ResumeData } from "@/lib/api";
 import Thinking from "@/components/Thinking";
 import ReportView from "@/components/ReportView";
@@ -12,6 +13,7 @@ type Mode = "upload" | "paste";
 
 export default function Onboarding() {
   const router = useRouter();
+  const root = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<Mode>("upload");
   const [existing, setExisting] = useState<ResumeData | null>(null);
@@ -61,6 +63,38 @@ export default function Onboarding() {
     }
   }
 
+  const showIntake = checked && !busy && !done;
+
+  /* intake entrance: head prints, the resume panel rises */
+  useEffect(() => {
+    if (!showIntake) return;
+    const mm = gsap.matchMedia(root);
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const q = gsap.utils.selector(root);
+      const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.6 } });
+      tl.from(q(".page-head > *"), { y: 22, autoAlpha: 0, stagger: 0.1 }).from(
+        q(".resume-panel"),
+        { y: 26, autoAlpha: 0, duration: 0.65 },
+        "-=0.3"
+      );
+    });
+    return () => mm.revert();
+  }, [showIntake]);
+
+  /* saved view: head prints, the parsed profile rises, CTAs land */
+  useEffect(() => {
+    if (!done) return;
+    const mm = gsap.matchMedia(root);
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const q = gsap.utils.selector(root);
+      const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.6 } });
+      tl.from(q(".page-head > *"), { y: 22, autoAlpha: 0, stagger: 0.1 })
+        .from(q(".resume-saved-panel"), { y: 30, autoAlpha: 0, duration: 0.7 }, "-=0.3")
+        .from(q(".hero-ctas .btn"), { y: 14, autoAlpha: 0, duration: 0.45, stagger: 0.08 }, "-=0.3");
+    });
+    return () => mm.revert();
+  }, [done]);
+
   if (authLoading || !user || !checked) {
     return (
       <div className="container" style={{ minHeight: "80vh", display: "grid", placeItems: "center" }}>
@@ -74,8 +108,12 @@ export default function Onboarding() {
 
   if (busy) {
     return (
+      <div className="app-sheet" ref={root}>
       <div className="container" style={{ maxWidth: 760 }}>
-        <div className="page-head"><h1>Reading your resume</h1></div>
+        <div className="page-head">
+          <div className="page-kicker">RESUME_PARSER // RUNNING</div>
+          <h1>Reading your resume</h1>
+        </div>
         <div className="panel">
           <Thinking lines={[
             "Reading your resume…",
@@ -84,17 +122,20 @@ export default function Onboarding() {
           ]} />
         </div>
       </div>
+      </div>
     );
   }
 
   if (done) {
     return (
+      <div className="app-sheet" ref={root}>
       <div className="container" style={{ maxWidth: 760 }}>
         <div className="page-head">
+          <div className="page-kicker">(02) // RESUME_PROFILE</div>
           <h1>Resume saved</h1>
           <p>This is how Aura reads you. Every evaluation starts from here.</p>
         </div>
-        <div className="panel" style={{ marginBottom: "1.5rem" }}>
+        <div className="panel resume-saved-panel" style={{ marginBottom: "1.5rem" }}>
           <ReportView markdown={done.markdown} />
         </div>
         <div className="hero-ctas" style={{ paddingBottom: "3rem" }}>
@@ -106,12 +147,15 @@ export default function Onboarding() {
           </button>
         </div>
       </div>
+      </div>
     );
   }
 
   return (
+    <div className="app-sheet" ref={root}>
     <div className="container" style={{ maxWidth: 760, paddingBottom: "4rem" }}>
       <div className="page-head">
+        <div className="page-kicker">(01) // RESUME_INTAKE</div>
         <h1>{existing ? "Your resume" : "Start with your resume"}</h1>
         <p>
           {existing
@@ -129,7 +173,7 @@ export default function Onboarding() {
       )}
       {error && <div className="notice notice-error">{error}</div>}
 
-      <div className="panel">
+      <div className="panel resume-panel">
         <div className="tabs" role="tablist">
           <button className="tab" role="tab" aria-selected={mode === "upload"} onClick={() => setMode("upload")}>
             Upload a file
@@ -190,6 +234,7 @@ export default function Onboarding() {
           </>
         )}
       </div>
+    </div>
     </div>
   );
 }

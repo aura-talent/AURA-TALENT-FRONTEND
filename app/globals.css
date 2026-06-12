@@ -283,6 +283,48 @@ button { font: inherit; cursor: pointer; }
   height: 100%;
 }
 
+/* boot screen — lives "on the monitor" while the camera is flush to it */
+.intro-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background-color: var(--porcelain);
+  background-image:
+    linear-gradient(rgba(26, 29, 41, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26, 29, 41, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-space), monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+}
+.intro-loader-label {
+  position: absolute;
+  font-size: 0.6875rem;
+  color: var(--ink-55);
+  line-height: 1.7;
+}
+.intro-loader-tl { top: 1.75rem; left: clamp(1.5rem, 4vw, 3rem); }
+.intro-loader-br {
+  bottom: 1.75rem;
+  right: clamp(1.5rem, 4vw, 3rem);
+  text-align: right;
+}
+.intro-loader-center {
+  display: grid;
+  justify-items: center;
+  gap: 1.5rem;
+}
+.intro-pct {
+  font-size: clamp(2.4rem, 5vw, 3.6rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
 /* technical corner labels, à la blueprint margins */
 .hero-hud {
   position: absolute;

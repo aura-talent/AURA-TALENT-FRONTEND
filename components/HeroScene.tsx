@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
+import gsap from "gsap";
 
 /**
  * Wireframe workspace diorama behind the hero: a desk, two floating
@@ -9,7 +10,14 @@ import * as THREE from "three";
  * sweeps the floor — the "Aura reading a workspace" metaphor.
  * Ink lines on porcelain, iris for the scan. Reduced motion gets a
  * single static frame.
+ *
+ * With `intro`, the camera starts flush against the right monitor
+ * (the boot screen) and `zoomOut()` pulls it back to the full diorama.
  */
+
+export interface HeroSceneApi {
+  zoomOut: (onComplete: () => void) => void;
+}
 
 const INK = 0x1a1d29;
 const INK_MUTED = 0x9a9ca6;
@@ -18,7 +26,13 @@ const GRID_MINOR = 0xe6e6e2;
 // iris #4e3fd8
 const SCAN_RGB: [number, number, number] = [78, 63, 216];
 
-export default function HeroScene() {
+export default function HeroScene({
+  intro = false,
+  onApiReady,
+}: {
+  intro?: boolean;
+  onApiReady?: (api: HeroSceneApi) => void;
+}) {
   const container = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,8 +41,10 @@ export default function HeroScene() {
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(25, 1, 0.1, 1000);
-    camera.position.set(16, 12, 20);
-    camera.lookAt(0, 1.5, 0);
+    const FINAL_POS = new THREE.Vector3(16, 12, 20);
+    const FINAL_TARGET = new THREE.Vector3(0, 1.5, 0);
+    camera.position.copy(FINAL_POS);
+    camera.lookAt(FINAL_TARGET);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -220,6 +236,59 @@ export default function HeroScene() {
       "(prefers-reduced-motion: reduce)"
     ).matches;
 
+    /* camera choreography: hold on the right monitor, then pull back */
+    let camMode: "hold" | "zooming" | "free" =
+      intro && !reducedMotion ? "hold" : "free";
+    // offset along the tilted monitor's normal, close enough to fill the frame
+    const MON_OFFSET = new THREE.Vector3(
+      Math.sin(-0.4),
+      0,
+      Math.cos(-0.4)
+    ).multiplyScalar(1.05);
+    const monWorld = new THREE.Vector3();
+    const blendTarget = new THREE.Vector3();
+    const zoomState = {
+      p: 0,
+      startPos: new THREE.Vector3(),
+      startTarget: new THREE.Vector3(),
+    };
+    let zoomTween: gsap.core.Tween | null = null;
+
+    function updateCamera() {
+      if (camMode === "hold") {
+        mon2.getWorldPosition(monWorld);
+        camera.position.copy(monWorld).add(MON_OFFSET);
+        camera.lookAt(monWorld);
+      } else if (camMode === "zooming") {
+        camera.position.lerpVectors(zoomState.startPos, FINAL_POS, zoomState.p);
+        blendTarget.lerpVectors(zoomState.startTarget, FINAL_TARGET, zoomState.p);
+        camera.lookAt(blendTarget);
+      }
+    }
+
+    function zoomOut(onComplete: () => void) {
+      if (camMode !== "hold") {
+        onComplete();
+        return;
+      }
+      mon2.getWorldPosition(monWorld);
+      zoomState.startPos.copy(camera.position);
+      zoomState.startTarget.copy(monWorld);
+      camMode = "zooming";
+      zoomTween = gsap.to(zoomState, {
+        p: 1,
+        duration: 2.4,
+        ease: "power3.inOut",
+        onComplete: () => {
+          camMode = "free";
+          camera.position.copy(FINAL_POS);
+          camera.lookAt(FINAL_TARGET);
+          onComplete();
+        },
+      });
+    }
+    onApiReady?.({ zoomOut });
+
     let raf = 0;
     function animate() {
       raf = requestAnimationFrame(animate);
@@ -236,6 +305,7 @@ export default function HeroScene() {
         scanRow += scanDirection * 0.3;
       }
 
+      updateCamera();
       renderer.render(scene, camera);
     }
 
@@ -249,6 +319,7 @@ export default function HeroScene() {
 
     return () => {
       cancelAnimationFrame(raf);
+      zoomTween?.kill();
       ro.disconnect();
       scene.traverse((obj) => {
         if (obj instanceof THREE.Mesh || obj instanceof THREE.LineSegments || obj instanceof THREE.Line) {
@@ -262,6 +333,8 @@ export default function HeroScene() {
       renderer.dispose();
       el.removeChild(renderer.domElement);
     };
+    // props are stable for the life of the page; the scene builds once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return <div className="hero-scene" ref={container} aria-hidden="true" />;

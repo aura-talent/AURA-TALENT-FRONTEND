@@ -23,23 +23,33 @@ const TARGET = CIRC * (1 - SCORE / 5);
  * Blueprint readout of an evaluation assembling itself — same wireframe
  * language as the diorama behind it. Requirements print line by line,
  * the dial sweeps, the verdict stamps. Reduced motion sees the final frame.
+ * Stays hidden until `active` so the hero intro can cue it.
  */
-export default function HeroDemo() {
+export default function HeroDemo({ active = true }: { active?: boolean }) {
   const root = useRef<HTMLDivElement>(null);
   const ring = useRef<SVGCircleElement>(null);
   const num = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     const mm = gsap.matchMedia(root);
+    if (!active) {
+      // waiting for its cue — invisible to animating visitors,
+      // final frame for reduced motion (the intro is skipped for them)
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        gsap.set(root.current, { autoAlpha: 0 });
+      });
+      return () => mm.revert();
+    }
     mm.add("(prefers-reduced-motion: no-preference)", () => {
       const q = gsap.utils.selector(root);
       const counter = { v: 0 };
       const tl = gsap.timeline({
         defaults: { ease: "power2.out", duration: 0.55 },
-        delay: 0.4,
+        delay: 0.15,
       });
 
-      tl.from(q(".eval-panel"), { y: 24, autoAlpha: 0, duration: 0.7 })
+      tl.set(root.current, { autoAlpha: 1 })
+        .from(q(".eval-panel"), { y: 24, autoAlpha: 0, duration: 0.7 })
         .from(q(".eval-head"), { autoAlpha: 0 }, "-=0.3")
         .from(q(".eval-req"), { x: -14, autoAlpha: 0, stagger: 0.14 }, "-=0.15")
         .from(q(".eval-block"), { autoAlpha: 0, stagger: 0.05 }, "-=0.2")
@@ -68,7 +78,7 @@ export default function HeroDemo() {
         );
     });
     return () => mm.revert();
-  }, []);
+  }, [active]);
 
   return (
     <div className="eval-wrap" ref={root} aria-hidden="true">

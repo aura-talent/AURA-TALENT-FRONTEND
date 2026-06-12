@@ -1,6 +1,5 @@
 import Link from "next/link";
-import HeroDemo from "@/components/HeroDemo";
-import HeroScene from "@/components/HeroScene";
+import Hero from "@/components/Hero";
 import Reveal from "@/components/Reveal";
 
 const STEPS = [
@@ -34,49 +33,7 @@ const BLOCKS = [
 export default function Landing() {
   return (
     <div className="landing">
-      <section className="hero">
-        <HeroScene />
-        <div className="hero-hud" aria-hidden="true">
-          <span className="hero-hud-label hero-hud-tl">
-            AURA_TALENT
-            <br />
-            [FIT_ENGINE_V2]
-          </span>
-          <span className="hero-hud-label hero-hud-br">
-            (DIAGRAM 01)
-            <br />
-            EVALUATION_READY
-          </span>
-        </div>
-        <div className="hero-copy">
-          <h1>Know which jobs deserve you.</h1>
-          <p className="hero-sub">
-            Aura reads a job post the way a sharp recruiter would — scores
-            your real fit, shows what to fix in your resume, and tells you
-            when to walk away.
-          </p>
-          <div className="hero-ctas">
-            <Link href="/onboarding" className="btn btn-primary">
-              Evaluate your first job
-            </Link>
-          </div>
-          <p className="hero-trust text-xs">
-            Built on the open-source{" "}
-            <a
-              href="https://github.com/santifer/career-ops"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              career-ops
-            </a>{" "}
-            engine — 740+ offers evaluated by its author before it landed
-            him the job.
-          </p>
-        </div>
-        <div className="hero-demo-float">
-          <HeroDemo />
-        </div>
-      </section>
+      <Hero />
 
       <div className="landing-sheet">
         <Reveal as="section" className="section" id="how">

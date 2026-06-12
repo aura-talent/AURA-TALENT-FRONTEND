@@ -10,21 +10,25 @@ function LoginInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") ?? "/dashboard";
+  const [signingIn, setSigningIn] = useState<"google" | "linkedin" | null>(null);
 
   useEffect(() => {
-    if (!loading && user) {
-      router.push(redirect);
-    }
+    if (!loading && user) router.push(redirect);
   }, [user, loading, router, redirect]);
 
   const handleSignIn = async (provider: "google" | "linkedin") => {
-    if (provider === "google") await signInWithGoogle();
-    if (provider === "linkedin") await signInWithLinkedIn();
+    setSigningIn(provider);
+    try {
+      if (provider === "google") await signInWithGoogle();
+      if (provider === "linkedin") await signInWithLinkedIn();
+    } catch {
+      setSigningIn(null);
+    }
   };
 
   if (loading) {
     return (
-      <div className="container" style={{ minHeight: "80vh", display: "grid", placeItems: "center" }}>
+      <div className="auth-shell">
         <div className="thinking">
           <div className="thinking-orb" />
           <p className="thinking-status">Loading session…</p>
@@ -34,129 +38,438 @@ function LoginInner() {
   }
 
   return (
-    <div
-      style={{
-        position: "relative",
-        minHeight: "85vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        overflow: "hidden",
-        padding: "2rem 1rem",
-      }}
-    >
-      {/* Background Aura Glow */}
-      <div className="aura-glow" style={{ opacity: 0.5, transform: "scale(0.8)" }} />
+    <div className="auth-shell">
+      {/* Drafting grid background */}
+      <div className="auth-grid" aria-hidden="true" />
 
-      <div
-        className="panel"
-        style={{
-          width: "100%",
-          maxWidth: "420px",
-          position: "relative",
-          zIndex: 1,
-          textAlign: "center",
-          padding: "3rem 2.2rem",
-          borderRadius: "var(--r-l)",
-          background: "rgba(255, 255, 255, 0.85)",
-          backdropFilter: "blur(20px)",
-          border: "1px solid rgba(26, 29, 41, 0.08)",
-          boxShadow: "var(--shadow-lift)",
-        }}
-      >
-        <div style={{ marginBottom: "2rem" }}>
-          <svg
-            width="38"
-            height="38"
-            viewBox="0 0 32 32"
-            aria-hidden="true"
-            style={{ margin: "0 auto 1.25rem", display: "block" }}
-          >
-            <defs>
-              <linearGradient id="login-aura" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#c7b9ff" />
-                <stop offset="50%" stopColor="#ffd9c2" />
-                <stop offset="100%" stopColor="#bfead8" />
-              </linearGradient>
-            </defs>
-            <rect width="32" height="32" rx="8" fill="#1a1d29" />
-            <circle
-              cx="16"
-              cy="16"
-              r="9"
-              fill="none"
-              stroke="url(#login-aura)"
-              strokeWidth="3.5"
-              strokeLinecap="round"
-              strokeDasharray="47.1"
-              strokeDashoffset="7.5"
-              transform="rotate(-90 16 16)"
-            />
-          </svg>
-          <h1 style={{ fontSize: "1.75rem", marginBottom: "0.5rem" }}>Welcome to Aura</h1>
-          <p style={{ color: "var(--ink-72)", fontSize: "0.9375rem" }}>
-            Sign in to access your workspace.
+      {/* Aura ambient glow */}
+      <div className="auth-glow" aria-hidden="true" />
+
+      {/* Corner HUD labels — same as hero and intro-loader */}
+      <span className="auth-hud auth-hud-tl" aria-hidden="true">
+        (AUTH) // GATEWAY<br />
+        AURA_TALENT v1.0
+      </span>
+      <span className="auth-hud auth-hud-br" aria-hidden="true">
+        OAUTH_SECURE<br />
+        SESSION_INIT
+      </span>
+
+      {/* The panel — styled like the hero eval-panel */}
+      <div className="auth-panel">
+        {/* Registration-tick corners */}
+        <span className="auth-tick auth-tick-tl" aria-hidden="true" />
+        <span className="auth-tick auth-tick-tr" aria-hidden="true" />
+        <span className="auth-tick auth-tick-bl" aria-hidden="true" />
+        <span className="auth-tick auth-tick-br" aria-hidden="true" />
+
+        {/* Panel header */}
+        <div className="auth-panel-head">
+          {/* Logo */}
+          <div className="auth-logo">
+            <svg width="32" height="32" viewBox="0 0 32 32" aria-label="Aura Talent">
+              <defs>
+                <linearGradient id="auth-aura" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#c7b9ff" />
+                  <stop offset="50%" stopColor="#ffd9c2" />
+                  <stop offset="100%" stopColor="#bfead8" />
+                </linearGradient>
+              </defs>
+              <rect width="32" height="32" rx="8" fill="#1a1d29" />
+              <circle
+                cx="16" cy="16" r="9"
+                fill="none"
+                stroke="url(#auth-aura)"
+                strokeWidth="3.5"
+                strokeLinecap="round"
+                strokeDasharray="47.1"
+                strokeDashoffset="7.5"
+                transform="rotate(-90 16 16)"
+              />
+            </svg>
+            <div>
+              <div className="auth-logo-name">Aura Talent</div>
+              <div className="auth-logo-sub">WORKSPACE_ACCESS</div>
+            </div>
+          </div>
+
+          {/* Status dot */}
+          <div className="auth-status">
+            <span className="auth-status-dot" />
+            ONLINE
+          </div>
+        </div>
+
+        {/* Dashed rule */}
+        <div className="auth-rule" aria-hidden="true" />
+
+        {/* Main copy */}
+        <div className="auth-copy">
+          <div className="auth-kicker">[AUTH_REQUIRED]</div>
+          <h1 className="auth-heading">Sign in to Aura.</h1>
+          <p className="auth-sub">
+            Know which jobs deserve you.
           </p>
         </div>
 
-        <div style={{ marginBottom: "2rem" }}>
+        {/* Dashed rule */}
+        <div className="auth-rule" aria-hidden="true" />
+
+        {/* Auth actions */}
+        <div className="auth-actions">
           <button
+            id="login-google-btn"
             onClick={() => handleSignIn("google")}
-            className="btn btn-ghost"
-            style={{
-              justifyContent: "center",
-              width: "100%",
-              background: "#fff",
-              border: "1.5px solid var(--ink-12)",
-              color: "var(--ink)",
-              boxShadow: "none",
-            }}
+            disabled={signingIn !== null}
+            className="btn btn-ghost auth-btn"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" style={{ marginRight: "0.25rem" }}>
-              <path
-                fill="#EA4335"
-                d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.37 0 3.39 2.673 1.486 6.573l3.78 3.192Z"
-              />
-              <path
-                fill="#4285F4"
-                d="M23.64 12.273c0-.818-.073-1.609-.208-2.373H12v4.582h6.54c-.282 1.505-1.127 2.782-2.395 3.636l3.736 2.9C22.064 19.064 23.64 15.936 23.64 12.273Z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.266 14.235 1.486 17.427C3.39 21.327 7.37 24 12 24c3.082 0 5.673-1.009 7.564-2.755l-3.736-2.9c-1.027.691-2.345 1.109-3.828 1.109-2.936 0-5.427-1.982-6.31-4.645l-3.78 3.191Z"
-              />
-              <path
-                fill="#34A853"
-                d="M1.486 6.573A12.016 12.016 0 0 0 1 12c0 1.955.473 3.81 1.305 5.46L6.09 14.27A7.03 7.03 0 0 1 5.266 12c0-1.045.232-2.04.646-2.946L2.126 5.864l-.64 1.127l-.001-.418Z"
-              />
-            </svg>
-            Continue with Google
+            {signingIn === "google" ? (
+              <span className="auth-spinner" />
+            ) : (
+              <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0 }}>
+                <path fill="#EA4335" d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.37 0 3.39 2.673 1.486 6.573l3.78 3.192Z" />
+                <path fill="#4285F4" d="M23.64 12.273c0-.818-.073-1.609-.208-2.373H12v4.582h6.54c-.282 1.505-1.127 2.782-2.395 3.636l3.736 2.9C22.064 19.064 23.64 15.936 23.64 12.273Z" />
+                <path fill="#FBBC05" d="M5.266 14.235 1.486 17.427C3.39 21.327 7.37 24 12 24c3.082 0 5.673-1.009 7.564-2.755l-3.736-2.9c-1.027.691-2.345 1.109-3.828 1.109-2.936 0-5.427-1.982-6.31-4.645l-3.78 3.191Z" />
+                <path fill="#34A853" d="M1.486 6.573A12.016 12.016 0 0 0 1 12c0 1.955.473 3.81 1.305 5.46L6.09 14.27A7.03 7.03 0 0 1 5.266 12c0-1.045.232-2.04.646-2.946L2.126 5.864l-.64 1.127-.001-.418Z" />
+              </svg>
+            )}
+            {signingIn === "google" ? "Authenticating…" : "Continue with Google"}
           </button>
 
           <button
+            id="login-linkedin-btn"
             onClick={() => handleSignIn("linkedin")}
-            className="btn btn-primary"
-            style={{
-              justifyContent: "center",
-              width: "100%",
-              background: "#0077b5",
-              color: "#fff",
-              boxShadow: "none",
-            }}
+            disabled={signingIn !== null}
+            className="btn auth-btn auth-btn-linkedin"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" style={{ marginRight: "0.25rem" }} fill="currentColor">
-              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
-            </svg>
-            Continue with LinkedIn
+            {signingIn === "linkedin" ? (
+              <span className="auth-spinner auth-spinner-white" />
+            ) : (
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ flexShrink: 0 }}>
+                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+              </svg>
+            )}
+            {signingIn === "linkedin" ? "Authenticating…" : "Continue with LinkedIn"}
           </button>
         </div>
 
-        <div style={{ borderTop: "1px solid var(--ink-06)", paddingTop: "1.5rem" }}>
-          <Link href="/" className="btn btn-ghost" style={{ fontSize: "0.875rem", padding: "0.45rem 1rem" }}>
-            ← Back to home
+        {/* Footer */}
+        <div className="auth-panel-foot">
+          <Link href="/" className="auth-back">
+            ← HOME
           </Link>
+          <span className="auth-legal">
+            Signing in accepts our{" "}
+            <a href="#" className="auth-legal-link">Terms</a>{" "}
+            &amp;{" "}
+            <a href="#" className="auth-legal-link">Privacy</a>
+          </span>
         </div>
       </div>
+
+      <style>{`
+        /* ── Auth page shell ────────────────────────────────── */
+        .auth-shell {
+          position: relative;
+          min-height: calc(100dvh - 64px);
+          display: grid;
+          place-items: center;
+          padding: 3rem 1.5rem;
+          overflow: hidden;
+        }
+
+        /* Drafting grid — same as intro-loader */
+        .auth-grid {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background-image:
+            linear-gradient(rgba(26, 29, 41, 0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(26, 29, 41, 0.04) 1px, transparent 1px);
+          background-size: 44px 44px;
+        }
+
+        /* Aura glow — same radial gradient as the hero */
+        .auth-glow {
+          position: absolute;
+          inset: -20%;
+          pointer-events: none;
+          background:
+            radial-gradient(38% 42% at 28% 30%, var(--aura-a) 0%, transparent 70%),
+            radial-gradient(36% 40% at 74% 38%, var(--aura-b) 0%, transparent 70%),
+            radial-gradient(40% 44% at 52% 78%, var(--aura-c) 0%, transparent 70%);
+          filter: blur(64px);
+          opacity: 0.5;
+        }
+
+        /* Corner HUD labels — same font & styling as .hero-hud-label */
+        .auth-hud {
+          position: absolute;
+          font-family: var(--font-space), monospace;
+          font-size: 0.6875rem;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--ink-30);
+          line-height: 1.7;
+          pointer-events: none;
+        }
+        .auth-hud-tl { top: 1.75rem; left: clamp(1.5rem, 4vw, 3rem); }
+        .auth-hud-br { bottom: 1.75rem; right: clamp(1.5rem, 4vw, 3rem); text-align: right; }
+
+        @media (max-width: 600px) {
+          .auth-hud { display: none; }
+        }
+
+        /* ── The panel — blueprint eval-panel language ─────── */
+        .auth-panel {
+          position: relative;
+          width: 100%;
+          max-width: 440px;
+          background: rgba(250, 250, 248, 0.82);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid var(--ink-30);
+          padding: 2.25rem 2.25rem 1.75rem;
+          animation: auth-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        @keyframes auth-in {
+          from { opacity: 0; transform: translateY(14px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Registration-tick corners — same as .eval-tick */
+        .auth-tick {
+          position: absolute;
+          width: 10px;
+          height: 10px;
+          pointer-events: none;
+        }
+        .auth-tick::before,
+        .auth-tick::after {
+          content: "";
+          position: absolute;
+          background: var(--ink-55);
+        }
+        .auth-tick::before { width: 10px; height: 1px; top: 4.5px; }
+        .auth-tick::after  { width: 1px; height: 10px; left: 4.5px; }
+        .auth-tick-tl { top: -5px; left: -5px; }
+        .auth-tick-tr { top: -5px; right: -5px; }
+        .auth-tick-bl { bottom: -5px; left: -5px; }
+        .auth-tick-br { bottom: -5px; right: -5px; }
+
+        /* ── Panel header row ─────────────────────────────── */
+        .auth-panel-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 1.4rem;
+        }
+
+        .auth-logo {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .auth-logo-name {
+          font-family: var(--font-display), sans-serif;
+          font-weight: 700;
+          font-size: 1rem;
+          letter-spacing: -0.01em;
+          line-height: 1.2;
+          color: var(--ink);
+        }
+
+        .auth-logo-sub {
+          font-family: var(--font-space), monospace;
+          font-size: 0.6rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: var(--ink-30);
+          margin-top: 0.1rem;
+        }
+
+        .auth-status {
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          font-family: var(--font-space), monospace;
+          font-size: 0.6rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: var(--score-strong);
+        }
+
+        .auth-status-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: var(--score-strong);
+          animation: auth-pulse 2.4s ease-in-out infinite;
+        }
+
+        @keyframes auth-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50%       { opacity: 0.55; transform: scale(0.85); }
+        }
+
+        /* ── Dashed rule ──────────────────────────────────── */
+        .auth-rule {
+          height: 1px;
+          background: repeating-linear-gradient(
+            to right,
+            var(--ink-30) 0px,
+            var(--ink-30) 4px,
+            transparent 4px,
+            transparent 10px
+          );
+          margin: 1.35rem 0;
+        }
+
+        /* ── Main copy ────────────────────────────────────── */
+        .auth-copy {
+          margin: 0;
+        }
+
+        .auth-kicker {
+          font-family: var(--font-space), monospace;
+          font-size: 0.6875rem;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--iris);
+          margin-bottom: 0.75rem;
+        }
+
+        .auth-heading {
+          font-family: var(--font-display), sans-serif;
+          font-size: clamp(2rem, 5vw, 2.6rem);
+          font-weight: 700;
+          letter-spacing: -0.025em;
+          line-height: 1.07;
+          color: var(--ink);
+          margin-bottom: 0.55rem;
+          text-wrap: balance;
+        }
+
+        .auth-sub {
+          font-size: 0.9375rem;
+          color: var(--ink-55);
+          line-height: 1.55;
+        }
+
+        /* ── Auth buttons ─────────────────────────────────── */
+        .auth-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 0.7rem;
+          margin-bottom: 0;
+        }
+
+        /* Override .btn pill radius to match eval-panel square language */
+        .auth-btn {
+          width: 100%;
+          justify-content: center;
+          border-radius: var(--r-s) !important;
+          padding: 0.78rem 1.4rem !important;
+          font-size: 0.9375rem !important;
+          gap: 0.6rem;
+          transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        }
+
+        .auth-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          pointer-events: none;
+        }
+
+        .auth-btn-linkedin {
+          background: #0077b5;
+          color: #fff;
+          box-shadow: 0 2px 12px rgba(0, 119, 181, 0.22);
+          border: none;
+        }
+
+        .auth-btn-linkedin:hover {
+          background: #006399;
+          transform: translateY(-1px);
+          box-shadow: 0 6px 20px rgba(0, 119, 181, 0.32);
+        }
+
+        .auth-btn-linkedin:active {
+          transform: translateY(0);
+        }
+
+        /* ── Spinner ──────────────────────────────────────── */
+        .auth-spinner {
+          display: inline-block;
+          width: 15px;
+          height: 15px;
+          border-radius: 50%;
+          border: 1.5px solid var(--ink-30);
+          border-top-color: var(--iris);
+          animation: auth-spin 0.65s linear infinite;
+          flex-shrink: 0;
+        }
+
+        .auth-spinner-white {
+          border-color: rgba(255,255,255,0.3);
+          border-top-color: #fff;
+        }
+
+        @keyframes auth-spin {
+          to { transform: rotate(360deg); }
+        }
+
+        /* ── Panel footer ─────────────────────────────────── */
+        .auth-panel-foot {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          flex-wrap: wrap;
+          border-top: 1px dashed var(--ink-12);
+          padding-top: 1.25rem;
+          margin-top: 1.35rem;
+        }
+
+        .auth-back {
+          font-family: var(--font-space), monospace;
+          font-size: 0.6875rem;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: var(--ink-55);
+          text-decoration: none;
+          transition: color 0.15s;
+        }
+
+        .auth-back:hover {
+          color: var(--iris);
+        }
+
+        .auth-legal {
+          font-size: 0.775rem;
+          color: var(--ink-30);
+          line-height: 1.5;
+          text-align: right;
+        }
+
+        .auth-legal-link {
+          color: var(--ink-55);
+          text-decoration: underline;
+          text-underline-offset: 2px;
+          transition: color 0.15s;
+        }
+
+        .auth-legal-link:hover { color: var(--iris); }
+
+        /* ── Reduced motion ───────────────────────────────── */
+        @media (prefers-reduced-motion: reduce) {
+          .auth-panel, .auth-status-dot {
+            animation: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

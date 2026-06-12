@@ -61,14 +61,7 @@ export default function Nav() {
         </Link>
         <nav className="nav-links">
           {onEmployer ? (
-            <>
-              <span className="nav-workspace mono">Employer workspace</span>
-            </>
-          )}
-        </Link>
-        <nav className="nav-links">
-          {onEmployer ? (
-            <></>
+            <span className="nav-workspace mono">Employer workspace</span>
           ) : onLanding ? (
             <>
               <a href="#how">HOW_IT_WORKS</a>

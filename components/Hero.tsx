@@ -34,6 +34,7 @@ export default function Hero() {
   /* boot: counter runs under the overlay, then hands off to the zoom */
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPhase("demo");
       return;
     }

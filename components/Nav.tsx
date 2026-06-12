@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,8 +8,9 @@ import { useState } from "react";
 const APP_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/evaluate", label: "Evaluate" },
-  { href: "/scan", label: "Find jobs" },
+  { href: "/jobs", label: "Find jobs" },
   { href: "/compare", label: "Compare" },
+  { href: "/scan", label: "Find jobs" },
   { href: "/mock-interview", label: "Mock Interview" },
 ];
 
@@ -63,13 +64,23 @@ export default function Nav() {
             <>
               <span className="nav-workspace mono">Employer workspace</span>
             </>
+          )}
+        </Link>
+        <nav className="nav-links">
+          {onEmployer ? (
+            <></>
           ) : onLanding ? (
             <>
               <a href="#how">HOW_IT_WORKS</a>
               <a href="#report">THE_REPORT</a>
               <Link href={role === "employer" ? "/employer" : "/dashboard"}>{role === "employer" ? "EMPLOYER_WORKSPACE" : "DASHBOARD"}</Link>
               {loading ? (
-                <span className="mono" style={{ fontSize: "0.85rem", opacity: 0.5 }}>Loading...</span>
+                <span
+                  className="mono"
+                  style={{ fontSize: "0.85rem", opacity: 0.5 }}
+                >
+                  Loading...
+                </span>
               ) : user ? (
                 <div style={{ position: "relative" }}>
                   <button
@@ -84,11 +95,20 @@ export default function Nav() {
                       padding: 0,
                     }}
                   >
-                    {user.user_metadata?.avatar_url || user.user_metadata?.picture ? (
+                    {user.user_metadata?.avatar_url ||
+                    user.user_metadata?.picture ? (
                       <img
-                        src={user.user_metadata.avatar_url || user.user_metadata.picture}
+                        src={
+                          user.user_metadata.avatar_url ||
+                          user.user_metadata.picture
+                        }
                         alt="Profile"
-                        style={{ width: 32, height: 32, borderRadius: "50%", border: "1px solid var(--ink-12)" }}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          border: "1px solid var(--ink-12)",
+                        }}
                       />
                     ) : (
                       <div
@@ -107,8 +127,13 @@ export default function Nav() {
                         {user.email?.[0].toUpperCase() ?? "U"}
                       </div>
                     )}
-                    <span style={{ fontSize: "0.9375rem", fontWeight: 500 }} className="nav-user-name">
-                      {user.user_metadata?.full_name || user.user_metadata?.name || "Account"}
+                    <span
+                      style={{ fontSize: "0.9375rem", fontWeight: 500 }}
+                      className="nav-user-name"
+                    >
+                      {user.user_metadata?.full_name ||
+                        user.user_metadata?.name ||
+                        "Account"}
                     </span>
                   </button>
 
@@ -131,9 +156,32 @@ export default function Nav() {
                         zIndex: 100,
                       }}
                     >
-                      <div style={{ padding: "0.5rem", borderBottom: "1px solid var(--ink-06)", marginBottom: "0.25rem" }}>
-                        <div style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--ink-55)" }}>Logged in as</div>
-                        <div style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: "0.5rem" }}>
+                      <div
+                        style={{
+                          padding: "0.5rem",
+                          borderBottom: "1px solid var(--ink-06)",
+                          marginBottom: "0.25rem",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: "0.8125rem",
+                            fontWeight: 600,
+                            color: "var(--ink-55)",
+                          }}
+                        >
+                          Logged in as
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.875rem",
+                            fontWeight: 500,
+                            color: "var(--ink)",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           {user.email}
                         </div>
                         {role === "employer" && (
@@ -203,13 +251,18 @@ export default function Nav() {
                 <Link
                   key={href}
                   href={href}
-                  aria-current={pathname.startsWith(href) ? 'page' : undefined}
+                  aria-current={pathname.startsWith(href) ? "page" : undefined}
                 >
                   {label}
                 </Link>
               ))}
               {loading ? (
-                <span className="mono" style={{ fontSize: "0.85rem", opacity: 0.5 }}>Loading...</span>
+                <span
+                  className="mono"
+                  style={{ fontSize: "0.85rem", opacity: 0.5 }}
+                >
+                  Loading...
+                </span>
               ) : user ? (
                 <div style={{ position: "relative" }}>
                   <button
@@ -224,11 +277,20 @@ export default function Nav() {
                       padding: 0,
                     }}
                   >
-                    {user.user_metadata?.avatar_url || user.user_metadata?.picture ? (
+                    {user.user_metadata?.avatar_url ||
+                    user.user_metadata?.picture ? (
                       <img
-                        src={user.user_metadata.avatar_url || user.user_metadata.picture}
+                        src={
+                          user.user_metadata.avatar_url ||
+                          user.user_metadata.picture
+                        }
                         alt="Profile"
-                        style={{ width: 32, height: 32, borderRadius: "50%", border: "1px solid var(--ink-12)" }}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          border: "1px solid var(--ink-12)",
+                        }}
                       />
                     ) : (
                       <div
@@ -247,8 +309,13 @@ export default function Nav() {
                         {user.email?.[0].toUpperCase() ?? "U"}
                       </div>
                     )}
-                    <span style={{ fontSize: "0.9375rem", fontWeight: 500 }} className="nav-user-name">
-                      {user.user_metadata?.full_name || user.user_metadata?.name || "Account"}
+                    <span
+                      style={{ fontSize: "0.9375rem", fontWeight: 500 }}
+                      className="nav-user-name"
+                    >
+                      {user.user_metadata?.full_name ||
+                        user.user_metadata?.name ||
+                        "Account"}
                     </span>
                   </button>
 
@@ -271,9 +338,32 @@ export default function Nav() {
                         zIndex: 100,
                       }}
                     >
-                      <div style={{ padding: "0.5rem", borderBottom: "1px solid var(--ink-06)", marginBottom: "0.25rem" }}>
-                        <div style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--ink-55)" }}>Logged in as</div>
-                        <div style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: "0.5rem" }}>
+                      <div
+                        style={{
+                          padding: "0.5rem",
+                          borderBottom: "1px solid var(--ink-06)",
+                          marginBottom: "0.25rem",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: "0.8125rem",
+                            fontWeight: 600,
+                            color: "var(--ink-55)",
+                          }}
+                        >
+                          Logged in as
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.875rem",
+                            fontWeight: 500,
+                            color: "var(--ink)",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           {user.email}
                         </div>
                         {role === "employer" && (

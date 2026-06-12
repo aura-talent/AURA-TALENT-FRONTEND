@@ -1,137 +1,68 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import gsap from "gsap";
-import { api, type Application, type JobPosting } from "@/lib/api";
-import { supabase } from "@/lib/supabaseClient";
-import { scoreColor } from "@/components/ScoreDial";
-import { useAuth } from "@/components/AuthProvider";
+import { api, type Evaluation, getUserId } from "@/lib/api";
+import { useStream } from "@/lib/useStream";
+import ScoreDial, { scoreColor } from "@/components/ScoreDial";
+import StreamProgress from "@/components/StreamProgress";
+import ReportView from "@/components/ReportView";
+import Thinking from "@/components/Thinking";
 
-function guessCountry(): string {
-  try {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (!tz) return "";
-    
-    if (tz.includes("Kuala_Lumpur")) return "Malaysia";
-    if (tz.includes("Singapore")) return "Singapore";
-    if (tz.includes("London") || tz.includes("Europe/London") || tz.includes("GB")) return "United Kingdom";
-    if (tz.includes("America/") || tz.includes("US/")) return "United States";
-    if (tz.includes("Europe/Berlin")) return "Germany";
-    if (tz.includes("Europe/Paris")) return "France";
-    if (tz.includes("Asia/Tokyo")) return "Japan";
-    if (tz.includes("Australia/")) return "Australia";
-    if (tz.includes("Asia/Seoul")) return "South Korea";
-    if (tz.includes("Asia/Hong_Kong")) return "Hong Kong";
-    if (tz.includes("Asia/Shanghai") || tz.includes("Asia/Taipei")) return "Taiwan";
-    if (tz.includes("Asia/Jakarta")) return "Indonesia";
-    if (tz.includes("Asia/Manila")) return "Philippines";
-    if (tz.includes("Asia/Bangkok")) return "Thailand";
-    if (tz.includes("Asia/Ho_Chi_Minh")) return "Vietnam";
-    if (tz.includes("Asia/Kolkata")) return "India";
-    
-    const parts = tz.split("/");
-    if (parts.length > 1) {
-      return parts[1].replace(/_/g, " ");
-    }
-  } catch (e) {
-    // Ignore error
-  }
-  return "";
+const BAR_LABELS: Record<string, string> = {
+  match_cv: "Resume match",
+  alignment: "Career fit",
+  comp: "Compensation",
+  culture: "Culture",
+  red_flags: "Red flags",
+};
+
+const EVALUATION_FALLBACK_LINES = [
+  "Reading the job description...",
+  "Matching requirements against your resume...",
+  "Sizing up level and compensation...",
+  "Checking whether the posting is real...",
+  "Writing your report...",
+];
+
+function tierChip(tier: string) {
+  if (tier.startsWith("High")) return "chip chip-tier-high";
+  if (tier.startsWith("Suspicious")) return "chip chip-tier-sus";
+  return "chip chip-tier-caution";
 }
 
-const STALE_DAYS = 3;
-
-
-function daysSince(iso: string): number {
-  return (Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24);
-}
-
-function formatScannedAt(iso: string): string {
-  const days = daysSince(iso);
-  if (days < 1) return "today";
-  if (days < 2) return "yesterday";
-  return `${Math.floor(days)} days ago`;
-}
-
-/* dashed calibration-ring spinner + mono readout, for the panel's
-   late-arriving states (auth, cached scan, live scan) */
-function ScanStatus({ label }: { label: string }) {
-  return (
-    <div className="scan-status">
-      <span className="scan-spinner" aria-hidden="true" />
-      <span>{label}</span>
-    </div>
-  );
-}
-
-export default function Dashboard() {
-  const router = useRouter();
+function EvaluateInner() {
   const root = useRef<HTMLDivElement>(null);
-  const [apps, setApps] = useState<Application[] | null>(null);
-  const [error, setError] = useState("");
-
-  const { user, loading: authLoading } = useAuth();
-  const [resume, setResume] = useState<any | null>(null);
+  const params = useSearchParams();
+  const [mode, setMode] = useState<"url" | "text">("url");
+  const [url, setUrl] = useState(params.get("url") ?? "");
+  const [text, setText] = useState("");
   const [hasResume, setHasResume] = useState<boolean | null>(null);
-  const [searchTerms, setSearchTerms] = useState<string[]>([]);
+  const {
+    run: streamEvaluate,
+    reset: resetEvaluation,
+    progress,
+    result,
+    error,
+    loading,
+  } = useStream<Evaluation, { jd_text?: string; jd_url?: string }>(
+    "jobs/evaluate/stream"
+  );
 
-  // Scan cache state
-  const [jobs, setJobs] = useState<JobPosting[] | null>(null);
-  const [scannedAt, setScannedAt] = useState<string | null>(null);
-  const [cacheLoading, setCacheLoading] = useState(false);
-  const [scanLoading, setScanLoading] = useState(false);
-  const [scanError, setScanError] = useState("");
-  const [locationInput, setLocationInput] = useState("");
-
-  useEffect(() => {
-    const saved = localStorage.getItem("aura_location_filter");
-    if (saved !== null) {
-      setLocationInput(saved);
-    } else {
-      if (typeof navigator !== "undefined" && navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            try {
-              const { latitude, longitude } = position.coords;
-              const res = await fetch(
-                `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
-              );
-              if (res.ok) {
-                const data = await res.json();
-                const city = data.city || data.locality || data.principalSubdivision || "";
-                if (city) {
-                  const val = `${city}, Remote`;
-                  setLocationInput(val);
-                  localStorage.setItem("aura_location_filter", val);
-                  return;
-                }
-              }
-            } catch (e) {
-              console.error("Geocoding lookup failed:", e);
-            }
-            const guessed = guessCountry();
-            const fallback = guessed ? `${guessed}, Remote` : "Remote";
-            setLocationInput(fallback);
-          },
-          (err) => {
-            console.warn("Geolocation permission denied or failed:", err);
-            const guessed = guessCountry();
-            const fallback = guessed ? `${guessed}, Remote` : "Remote";
-            setLocationInput(fallback);
-          }
-        );
-      } else {
-        const guessed = guessCountry();
-        const fallback = guessed ? `${guessed}, Remote` : "Remote";
-        setLocationInput(fallback);
-      }
-    }
-  }, []);
+  // States for Tailoring Resume
+  const [modalOpen, setModalOpen] = useState(false);
+  const [streamProgress, setStreamProgress] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [streamError, setStreamError] = useState("");
+  const [extraInstructions, setExtraInstructions] = useState("");
+  const [tailoredMarkdown, setTailoredMarkdown] = useState("");
+  const [changeSummary, setChangeSummary] = useState("");
+  const [keywordsCovered, setKeywordsCovered] = useState<string[]>([]);
+  const [pdfDownloading, setPdfDownloading] = useState(false);
 
   const [windowWidth, setWindowWidth] = useState(1200);
-
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -145,505 +76,499 @@ export default function Dashboard() {
   const isDesktop = windowWidth > 960;
 
   useEffect(() => {
-    api
-      .listApplications()
-      .then(setApps)
-      .catch(() => setError("Could not load your tracker — is the backend running?"));
+    api.getResume().then(() => setHasResume(true)).catch(() => setHasResume(false));
   }, []);
 
-  // Load resume and extract search terms
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      setHasResume(false);
-      setResume(null);
-      setJobs(null);
-      setScannedAt(null);
-      return;
-    }
-
-    api
-      .getResume()
-      .then((res) => {
-        setResume(res);
-        setHasResume(true);
-        const profile = res.profile ?? {};
-        const terms = [
-          ...((profile.target_archetypes as string[]) || []),
-          ...((profile.top_skills as string[]) || []),
-        ].slice(0, 5);
-        setSearchTerms(terms);
-      })
-      .catch(() => {
-        setHasResume(false);
-      });
-  }, [user, authLoading]);
-
-  // Load cached scan results from Supabase once resume is ready
-  useEffect(() => {
-    if (!user || hasResume !== true) return;
-
-    setCacheLoading(true);
-    setScanError("");
-
-    const userId = user.id;
-
-    async function loadCachedScan() {
-      try {
-        const { data } = await supabase
-          .from("job_scans")
-          .select("jobs, scanned_at")
-          .eq("user_id", userId)
-          .single();
-
-        if (data) {
-          setJobs(data.jobs as JobPosting[]);
-          setScannedAt(data.scanned_at as string);
-          // Auto-refresh silently if cache is stale
-          if (daysSince(data.scanned_at as string) >= STALE_DAYS) {
-            const saved = localStorage.getItem("aura_location_filter");
-            const locStr = saved !== null ? saved : (guessCountry() ? `${guessCountry()}, Remote` : "Remote");
-            runScan(searchTerms, userId, locStr, true);
-          }
-        }
-      } catch {
-        // No cache found or query error, fallback to initial state
-      } finally {
-        setCacheLoading(false);
-      }
-    }
-
-    loadCachedScan();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, hasResume]);
-
-  const runScan = useCallback(
-    async (terms: string[], userId: string, locsStr: string, silent = false) => {
-      if (terms.length === 0) return;
-      if (!silent) setScanError("");
-      setScanLoading(true);
-      try {
-        const locs = locsStr.split(",").map((s) => s.trim()).filter(Boolean);
-        const res = await api.scan({
-          title_keywords: terms,
-          ...(locs.length ? { location_keywords: locs } : {}),
-        });
-        const now = new Date().toISOString();
-        await supabase.from("job_scans").upsert({
-          user_id: userId,
-          jobs: res.jobs,
-          scanned_at: now,
-        });
-        setJobs(res.jobs);
-        setScannedAt(now);
-      } catch {
-        if (!silent) setScanError("Scan failed — check your connection and try again.");
-      } finally {
-        setScanLoading(false);
-      }
-    },
-    []
-  );
-
-  function handleStartScan() {
-    if (!user) return;
-    runScan(searchTerms, user.id, locationInput);
+  function run() {
+    const input = mode === "url" ? { jd_url: url.trim() } : { jd_text: text };
+    void streamEvaluate(input);
   }
 
-  /* entrance: title block prints, then the two columns rise */
+  async function generateResumeFlow(instructions = "") {
+    if (!result) return;
+    setIsGenerating(true);
+    setStreamError("");
+    setStreamProgress("Starting generation...");
+    setModalOpen(true);
+    try {
+      const userId = getUserId();
+      const res = await fetch(`/api/backend/resume/generate/stream`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          evaluation_id: result.evaluation_id,
+          extra_instructions: instructions,
+        }),
+      });
+      if (!res.ok) {
+        let msg = "Failed to start generation";
+        try {
+          const errData = await res.json();
+          if (errData.detail) msg = typeof errData.detail === "string" ? errData.detail : JSON.stringify(errData.detail);
+        } catch {}
+        throw new Error(msg);
+      }
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop()!; // keep incomplete frame in buffer
+
+        for (const frame of frames) {
+          const trimmed = frame.trim();
+          if (!trimmed) continue;
+          
+          const lines = trimmed.split("\n");
+          let eventType = "";
+          let dataStr = "";
+          for (const line of lines) {
+            const l = line.trim();
+            if (l.startsWith("event:")) {
+              eventType = l.slice(6).trim();
+            } else if (l.startsWith("data:")) {
+              dataStr = l.slice(5).trim();
+            }
+          }
+
+          if (!dataStr) continue;
+          const data = JSON.parse(dataStr);
+
+          if (eventType === "progress") {
+            setStreamProgress(data.message || "Generating...");
+          } else if (eventType === "result") {
+            setTailoredMarkdown(data.tailored_markdown || "");
+            setChangeSummary(data.change_summary || "");
+            setKeywordsCovered(data.keywords_covered || []);
+            setIsGenerating(false);
+            return;
+          } else if (eventType === "error") {
+            throw new Error(data.detail || "Error during generation stream");
+          }
+        }
+      }
+      throw new Error("Stream closed unexpectedly before completion");
+    } catch (err: any) {
+      console.error(err);
+      setStreamError(err.message || "Something went wrong.");
+      setIsGenerating(false);
+    }
+  }
+
+  async function downloadPdf() {
+    if (!tailoredMarkdown || !result) return;
+    setPdfDownloading(true);
+    try {
+      const filename = `${result.company}-${result.role}-tailored-resume`.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const res = await fetch(`/api/backend/resume/pdf`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          markdown: tailoredMarkdown,
+          filename: filename,
+        }),
+      });
+      if (!res.ok) {
+        let msg = "Failed to render PDF";
+        try {
+          const errData = await res.json();
+          if (errData.detail) msg = typeof errData.detail === "string" ? errData.detail : JSON.stringify(errData.detail);
+        } catch {}
+        throw new Error(msg);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement("a"), {
+        href: url,
+        download: `${filename}.pdf`,
+      });
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert(err.message || "Failed to download PDF");
+    } finally {
+      setPdfDownloading(false);
+    }
+  }
+
+  /* input view entrance: title block prints, the form panel rises */
   useEffect(() => {
+    if (loading || result) return;
     const mm = gsap.matchMedia(root);
     mm.add("(prefers-reduced-motion: no-preference)", () => {
       const q = gsap.utils.selector(root);
       const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.65 } });
       tl.from(q(".page-head > *"), { y: 22, autoAlpha: 0, stagger: 0.1 }).from(
-        q(".dash-col"),
-        { y: 28, autoAlpha: 0, stagger: 0.15, duration: 0.7 },
+        q(".panel"),
+        { y: 28, autoAlpha: 0, duration: 0.7 },
         "-=0.35"
       );
     });
     return () => mm.revert();
-  }, []);
+  }, [loading, result]);
 
-  /* pipeline rows file in from the left margin once they load */
+  /* report entrance: head prints, score panel lands, bars sweep, report rises */
   useEffect(() => {
-    if (!apps?.length) return;
+    if (!result) return;
     const mm = gsap.matchMedia(root);
     mm.add("(prefers-reduced-motion: no-preference)", () => {
       const q = gsap.utils.selector(root);
-      gsap.from(q(".table tbody tr"), {
-        x: -18,
-        autoAlpha: 0,
-        duration: 0.5,
-        ease: "power2.out",
-        stagger: 0.05,
-      });
+      const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.6 } });
+      tl.from(q(".page-head > *"), { y: 22, autoAlpha: 0, stagger: 0.1 })
+        .from(q(".eval-result-left"), { y: 28, autoAlpha: 0, duration: 0.7 }, "-=0.3")
+        .from(
+          q(".bar-fill"),
+          {
+            scaleX: 0,
+            transformOrigin: "left center",
+            duration: 0.9,
+            ease: "power3.inOut",
+            stagger: 0.08,
+          },
+          "-=0.3"
+        )
+        .from(q(".eval-report-panel"), { y: 30, autoAlpha: 0, duration: 0.7 }, "<");
     });
     return () => mm.revert();
-  }, [apps]);
+  }, [result]);
 
-  /* scan results stamp in as each batch arrives */
-  useEffect(() => {
-    if (!jobs?.length) return;
-    const mm = gsap.matchMedia(root);
-    mm.add("(prefers-reduced-motion: no-preference)", () => {
-      const q = gsap.utils.selector(root);
-      gsap.from(q(".dash-job"), {
-        y: 14,
-        autoAlpha: 0,
-        duration: 0.45,
-        ease: "power2.out",
-        stagger: 0.07,
-      });
-    });
-    return () => mm.revert();
-  }, [jobs]);
-
-  const hasNoCache = !cacheLoading && !jobs && !scanLoading;
-  const showJobs = jobs && jobs.length > 0;
-
-  return (
-    <div className="app-sheet" ref={root}>
-    <div className="container" style={{ paddingBottom: "4rem" }}>
-      <div className="page-head">
-        <div className="page-kicker">(01) // PIPELINE</div>
-        <h1>Your pipeline</h1>
-        <p>Every job you&apos;ve evaluated, in one place. Update statuses as you hear back.</p>
+  if (loading) {
+    return (
+      <div className="app-sheet">
+      <div className="container" style={{ maxWidth: 820 }}>
+        <div className="page-head">
+          <div className="page-kicker">EVALUATION_AGENT // RUNNING</div>
+          <h1>Evaluating</h1>
+        </div>
+        <div className="panel">
+          <StreamProgress
+            title="Evaluation agent"
+            progress={progress}
+            fallbackLines={EVALUATION_FALLBACK_LINES}
+          />
+        </div>
+        {error && <div className="notice notice-error" style={{ marginTop: "1rem" }}>{error}</div>}
       </div>
+      </div>
+    );
+  }
 
-      {error && <div className="notice notice-error">{error}</div>}
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: isDesktop ? "1.9fr 1.1fr" : "1fr",
-          gap: "2rem",
-          alignItems: "start",
-        }}
-      >
-        {/* Left Column: Pipeline Table */}
-        <div className="dash-col" style={{ minWidth: 0 }}>
-          {apps && apps.length === 0 && (
-            <div className="panel" style={{ textAlign: "center", padding: "3.5rem 1.5rem" }}>
-              <h3 style={{ marginBottom: "0.6rem" }}>No evaluations yet</h3>
-              <p style={{ color: "var(--ink-72)", marginBottom: "1.5rem" }}>
-                Paste your first job link and see where you stand.
-              </p>
-              <Link href="/evaluate" className="btn btn-primary text-white">
-                Evaluate a job
-              </Link>
-            </div>
-          )}
-
-          {apps && apps.length > 0 && (
-            <div className="panel" style={{ padding: "0.5rem", overflowX: "auto" }}>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Company</th>
-                    <th>Role</th>
-                    <th>Score</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {apps.map((a) => (
-                    <tr
-                      key={a.evaluation_id}
-                      onClick={() => router.push(`/report/${a.evaluation_id}`)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <td className="mono">{a.date}</td>
-                      <td style={{ fontWeight: 600 }}>{a.company}</td>
-                      <td>{a.role}</td>
-                      <td>
-                        <span className="score-pill" style={{ background: scoreColor(a.score) }}>
-                          {a.score.toFixed(1)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {!apps && !error && (
-            <div className="panel" style={{ textAlign: "center", padding: "3rem" }}>
-              <p style={{ color: "var(--ink-55)" }}>Loading your pipeline…</p>
-            </div>
-          )}
+  if (result) {
+    return (
+      <div className="app-sheet" ref={root}>
+      <div className="container" style={{ maxWidth: "var(--maxw)", paddingBottom: "4rem" }}>
+        <div className="page-head">
+          <div className="page-kicker">(02) // EVALUATION_REPORT</div>
+          <h1>{result.company} — {result.role}</h1>
+          <p>{result.archetype}</p>
         </div>
 
-        {/* Right Column: Suited Jobs */}
-        <div className="dash-col" style={{ minWidth: 0 }}>
-          <div className="panel">
-            <span className="eval-tick eval-tick-tl" />
-            <span className="eval-tick eval-tick-tr" />
-            <span className="eval-tick eval-tick-bl" />
-            <span className="eval-tick eval-tick-br" />
-            <div className="page-kicker" style={{ marginBottom: "0.6rem" }}>
-              LIVE_SCAN // PORTALS
-            </div>
-            <h3
-              style={{ fontSize: "1.2rem", marginBottom: "0.5rem", position: "relative", zIndex: 1 }}
-            >
-              Suited jobs for you
-            </h3>
-            <p
-              style={{
-                fontSize: "0.85rem",
-                color: "var(--ink-55)",
-                marginBottom: "1.25rem",
-                position: "relative",
-                zIndex: 1,
-              }}
-            >
-              Aura matches open roles on company portals against your resume target roles and skills.
-            </p>
-
-            {authLoading && <ScanStatus label="AUTH_CHECK // RUNNING" />}
-
-            {/* Not logged in */}
-            {!authLoading && !user && (
-              <div
-                style={{
-                  background: "rgba(78, 63, 216, 0.03)",
-                  border: "1.5px dashed var(--iris-12)",
-                  borderRadius: "var(--r-s)",
-                  padding: "1.25rem",
-                  textAlign: "center",
-                  position: "relative",
-                  zIndex: 1,
-                }}
-              >
-                <h4 style={{ fontSize: "0.9375rem", fontWeight: 600, marginBottom: "0.35rem" }}>
-                  Unlock Recommendations
-                </h4>
-                <p style={{ fontSize: "0.8125rem", color: "var(--ink-72)", marginBottom: "1rem" }}>
-                  Sign in and upload your resume to see matching jobs.
-                </p>
-                <Link
-                  href="/login?redirect=/dashboard"
-                  className="btn btn-primary text-white"
-                  style={{ padding: "0.45rem 1rem", fontSize: "0.84rem", width: "100%", justifyContent: "center" }}
-                >
-                  Sign in
-                </Link>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: isDesktop ? "3fr 7fr" : "1fr",
+            gap: "2rem",
+            alignItems: "start",
+          }}
+        >
+          {/* Left Column: Metrics & Recommendations */}
+          <div className="eval-result-left" style={{ display: "flex", flexDirection: "column", gap: "1.5rem", position: isDesktop ? "sticky" : "static", top: "6.5rem" }}>
+            <div className="panel">
+              <span className="eval-tick eval-tick-tl" />
+              <span className="eval-tick eval-tick-tr" />
+              <span className="eval-tick eval-tick-bl" />
+              <span className="eval-tick eval-tick-br" />
+              <div className="page-kicker" style={{ marginBottom: "1rem" }}>
+                FIT_SCORE // FIVE_AXES
               </div>
-            )}
-
-            {/* Logged in but no resume */}
-            {!authLoading && user && hasResume === false && (
-              <div
-                style={{
-                  background: "rgba(185, 125, 20, 0.03)",
-                  border: "1.5px dashed rgba(185, 125, 20, 0.2)",
-                  borderRadius: "var(--r-s)",
-                  padding: "1.25rem",
-                  textAlign: "center",
-                  position: "relative",
-                  zIndex: 1,
-                }}
-              >
-                <h4 style={{ fontSize: "0.9375rem", fontWeight: 600, marginBottom: "0.35rem" }}>
-                  Upload your resume
-                </h4>
-                <p style={{ fontSize: "0.8125rem", color: "var(--ink-72)", marginBottom: "1rem" }}>
-                  Aura needs your resume to extract search keywords.
-                </p>
-                <Link
-                  href="/onboarding"
-                  className="btn btn-primary text-white"
-                  style={{ padding: "0.45rem 1rem", fontSize: "0.84rem", width: "100%", justifyContent: "center" }}
-                >
-                  Get started
-                </Link>
+              <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: "1.5rem", alignItems: "center" }}>
+                <ScoreDial score={result.score} />
+                <div style={{ width: "100%" }}>
+                  <div className="bars">
+                    {Object.entries(BAR_LABELS).map(([key, label]) => {
+                      const v = result.scores[key as keyof typeof result.scores];
+                      return (
+                        <div className="bar-row" key={key}>
+                          <span className="bar-label">{label}</span>
+                          <div className="bar-track">
+                            <div className="bar-fill" style={{ width: `${(v / 5) * 100}%`, background: scoreColor(v) }} />
+                          </div>
+                          <span className="bar-num">{v.toFixed(1)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-            )}
-
-            {/* Logged in with resume */}
-            {!authLoading && user && hasResume === true && (
-              <div style={{ position: "relative", zIndex: 1 }}>
-                {resume && (
-                  <div style={{ marginBottom: "0.75rem", fontSize: "0.8125rem", color: "var(--ink-55)" }}>
-                    Profile: <strong>{resume.profile?.headline || "Your Resume"}</strong>
+              <div style={{ position: "relative", marginTop: "1.5rem", borderTop: "1px solid var(--ink-06)", paddingTop: "1.25rem" }}>
+                <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+                  <span className={tierChip(result.legitimacy.tier)}>
+                    {result.legitimacy.tier}
+                  </span>
+                </div>
+                <p style={{ fontWeight: 600, fontSize: "0.95rem", lineHeight: "1.5" }}>{result.recommendation}</p>
+              </div>
+              {result.score < 3.5 && (
+                <div className="notice notice-warn" style={{ marginTop: "1.25rem", marginBottom: 0 }}>
+                  This score is below 3.5 — Aura recommends skipping this one
+                  unless you have a specific reason. Your time is worth more.
+                </div>
+              )}
+              <div style={{ position: "relative", marginTop: "1.25rem", borderTop: "1px solid var(--ink-06)", paddingTop: "1.25rem" }}>
+                {result.score >= 4.0 ? (
+                  <button
+                    className="btn btn-primary"
+                    style={{ width: "100%", justifyContent: "center" }}
+                    onClick={() => generateResumeFlow(extraInstructions)}
+                  >
+                    Generate Tailored Resume
+                  </button>
+                ) : (
+                  <div>
+                    <button
+                      className="btn btn-primary"
+                      style={{ width: "100%", justifyContent: "center", opacity: 0.5, cursor: "not-allowed" }}
+                      disabled
+                      title="Only available for roles with score >= 4.0"
+                    >
+                      Generate Tailored Resume
+                    </button>
+                    <p style={{ fontSize: "0.75rem", color: "var(--ink-55)", marginTop: "0.5rem", textAlign: "center" }}>
+                      ⚠️ Resume tailoring is disabled. Aura discourages tailoring applications for low-fit roles (score &lt; 4.0).
+                    </p>
                   </div>
                 )}
+              </div>
+            </div>
 
-                <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.25rem", alignItems: "flex-end" }}>
-                  <div className="field" style={{ margin: 0, flex: 1 }}>
-                    <label htmlFor="dashboard-loc" style={{ fontSize: "0.75rem", fontWeight: 500, color: "var(--ink-55)", marginBottom: "0.25rem" }}>
-                      Target Locations
-                    </label>
-                    <input
-                      id="dashboard-loc"
-                      className="input"
-                      style={{ padding: "0.35rem 0.6rem", fontSize: "0.8125rem", height: "32px" }}
-                      placeholder="Malaysia, Remote, Singapore"
-                      value={locationInput}
-                      onChange={(e) => {
-                        setLocationInput(e.target.value);
-                        localStorage.setItem("aura_location_filter", e.target.value);
-                      }}
-                    />
+            <div className="hero-ctas" style={{ gap: "0.75rem" }}>
+              <button className="btn btn-primary text-white" onClick={resetEvaluation}>
+                Evaluate another job
+              </button>
+              <Link href="/dashboard" className="btn btn-ghost">View tracker</Link>
+            </div>
+          </div>
+
+          {/* Right Column: Detailed Markdown Report */}
+          <div className="panel eval-report-panel" style={{ minWidth: 0, maxHeight: isDesktop ? "calc(100vh - 12rem)" : "none", overflowY: isDesktop ? "auto" : "visible" }}>
+            <ReportView markdown={result.report_markdown} />
+          </div>
+        </div>
+        {modalOpen && (
+          <div className="modal-backdrop" onClick={() => !isGenerating && setModalOpen(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2 style={{ fontSize: "1.25rem", margin: 0 }}>
+                  Tailoring Resume for {result.company} — {result.role}
+                </h2>
+                {!isGenerating && (
+                  <button
+                    className="btn btn-ghost"
+                    style={{ padding: "0.35rem 0.75rem", fontSize: "0.85rem" }}
+                    onClick={() => setModalOpen(false)}
+                  >
+                    Close
+                  </button>
+                )}
+              </div>
+
+              {isGenerating ? (
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "3rem", gap: "1.5rem" }}>
+                  <Thinking lines={[
+                    streamProgress,
+                    "Still writing your resume...",
+                    "Polishing your experience alignment...",
+                    "Finalizing changes...",
+                  ]} />
+                  <div style={{ fontSize: "0.85rem", color: "var(--ink-55)", marginTop: "-0.5rem" }}>
+                    This process usually takes between 20 to 60 seconds.
+                  </div>
+                </div>
+              ) : streamError ? (
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "3rem", gap: "1rem" }}>
+                  <div className="notice notice-error" style={{ maxWidth: "500px" }}>
+                    <strong>Generation failed:</strong>
+                    <p style={{ marginTop: "0.5rem" }}>{streamError}</p>
                   </div>
                   <button
                     className="btn btn-primary"
-                    style={{ height: "32px", padding: "0 0.75rem", fontSize: "0.8125rem" }}
-                    onClick={handleStartScan}
-                    disabled={scanLoading}
+                    onClick={() => generateResumeFlow(extraInstructions)}
                   >
-                    {scanLoading ? "Scanning…" : "Scan"}
+                    Try Again
                   </button>
                 </div>
+              ) : (
+                <>
+                  <div className="modal-body">
+                    {/* Left Column: Editable markdown */}
+                    <div className="modal-split-left">
+                      <div style={{ padding: "0.75rem 1.5rem 0 1.5rem", fontSize: "0.75rem", fontWeight: 600, color: "var(--ink-55)", display: "flex", justifyContent: "space-between" }}>
+                        <span>EDIT RESUME (MARKDOWN)</span>
+                        <span>{tailoredMarkdown.length} chars</span>
+                      </div>
+                      <textarea
+                        className="resume-editor"
+                        value={tailoredMarkdown}
+                        onChange={(e) => setTailoredMarkdown(e.target.value)}
+                      />
+                    </div>
 
-                {/* Cache loading */}
-                {cacheLoading && <ScanStatus label="CACHE_FETCH // RUNNING" />}
+                    {/* Right Column: Changes and details */}
+                    <div className="modal-split-right">
+                      <div>
+                        <h3 style={{ fontSize: "1.05rem", fontWeight: 700, marginBottom: "0.6rem" }}>What changed and why</h3>
+                        {changeSummary ? (
+                          <ReportView markdown={changeSummary} />
+                        ) : (
+                          <p style={{ fontSize: "0.875rem", color: "var(--ink-55)" }}>No summary of changes provided.</p>
+                        )}
+                      </div>
 
-                {/* No cache yet — prompt user to start */}
-                {hasNoCache && (
-                  <div style={{ textAlign: "center", padding: "1.5rem 0" }}>
-                    <p style={{ fontSize: "0.8125rem", color: "var(--ink-55)", marginBottom: "1rem" }}>
-                      Find open roles that match your profile across company portals.
-                    </p>
+                      {keywordsCovered && keywordsCovered.length > 0 && (
+                        <div>
+                          <h3 style={{ fontSize: "1.05rem", fontWeight: 700, marginBottom: "0.6rem" }}>Keywords Covered</h3>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                            {keywordsCovered.map((kw, idx) => (
+                              <span key={idx} className="keyword-badge">
+                                {kw}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={{ borderTop: "1px solid var(--ink-06)", paddingTop: "1.25rem", marginTop: "auto" }}>
+                        <div className="field">
+                          <label htmlFor="extra-instr" style={{ fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.4rem" }}>
+                            Custom focus instructions (optional)
+                          </label>
+                          <textarea
+                            id="extra-instr"
+                            className="input"
+                            style={{ height: "70px", resize: "none", fontSize: "0.85rem", padding: "0.5rem" }}
+                            placeholder="e.g. emphasize my Golang experience, make it sound more leadership-oriented..."
+                            value={extraInstructions}
+                            onChange={(e) => setExtraInstructions(e.target.value)}
+                          />
+                        </div>
+                        <button
+                          className="btn btn-ghost"
+                          style={{ width: "100%", justifyContent: "center", marginTop: "0.5rem" }}
+                          onClick={() => generateResumeFlow(extraInstructions)}
+                        >
+                          Regenerate with instructions
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="modal-footer">
+                    <button
+                      className="btn btn-ghost"
+                      onClick={() => setModalOpen(false)}
+                    >
+                      Cancel
+                    </button>
                     <button
                       className="btn btn-primary text-white"
-                      style={{ padding: "0.5rem 1.5rem", fontSize: "0.875rem" }}
-                      onClick={handleStartScan}
+                      disabled={pdfDownloading || tailoredMarkdown.length < 100}
+                      onClick={downloadPdf}
                     >
-                      Start job search
+                      {pdfDownloading ? "Generating PDF..." : "Download PDF"}
                     </button>
                   </div>
-                )}
-
-                {/* Scanning with no previous results */}
-                {scanLoading && !jobs && (
-                  <ScanStatus label="PORTAL_SCAN // RUNNING" />
-                )}
-
-                {scanError && (
-                  <div
-                    className="notice notice-error"
-                    style={{ padding: "0.6rem 0.8rem", fontSize: "0.8rem", marginBottom: "0.75rem" }}
-                  >
-                    {scanError}
-                  </div>
-                )}
-
-                {/* Job results */}
-                {showJobs && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-                    {jobs!.slice(0, 6).map((job) => (
-                      <div
-                        key={job.url}
-                        className="dash-job"
-                        style={{
-                          padding: "0.75rem",
-                          border: "1px solid var(--ink-30)",
-                          background: "var(--surface)",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontWeight: 600,
-                            fontSize: "0.875rem",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                          title={job.title}
-                        >
-                          {job.title}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "0.78rem",
-                            color: "var(--ink-55)",
-                            display: "flex",
-                            justifyContent: "space-between",
-                            margin: "0.2rem 0",
-                          }}
-                        >
-                          <span style={{ fontWeight: 500 }}>{job.company}</span>
-                          <span>{job.location}</span>
-                        </div>
-                        <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.5rem" }}>
-                          <a
-                            href={job.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="btn btn-ghost"
-                            style={{
-                              padding: "0.3rem 0.75rem",
-                              fontSize: "0.75rem",
-                              flex: 1,
-                              display: "flex",
-                              justifyContent: "center",
-                            }}
-                          >
-                            View
-                          </a>
-                          <Link
-                            href={`/evaluate?url=${encodeURIComponent(job.url)}`}
-                            className="btn btn-primary text-white"
-                            style={{
-                              padding: "0.3rem 0.75rem",
-                              fontSize: "0.75rem",
-                              flex: 1,
-                              display: "flex",
-                              justifyContent: "center",
-                            }}
-                          >
-                            Score Fit
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {!scanLoading && jobs && jobs.length === 0 && (
-                  <p style={{ fontSize: "0.875rem", color: "var(--ink-55)" }}>
-                    No matching openings found. Try updating your target archetypes in the resume.
-                  </p>
-                )}
-
-                {/* Footer: last scanned + refresh */}
-                {scannedAt && (
-                  <div
-                    style={{
-                      marginTop: "1rem",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "0.5rem",
-                    }}
-                  >
-                    {scanLoading ? (
-                      <ScanStatus label="REFRESH // RUNNING" />
-                    ) : (
-                      <span style={{ fontSize: "0.75rem", color: "var(--ink-40)" }}>
-                        {`Last scanned ${formatScannedAt(scannedAt)}`}
-                      </span>
-                    )}
-                    {!scanLoading && (
-                      <button
-                        className="btn btn-ghost"
-                        style={{ padding: "0.2rem 0.6rem", fontSize: "0.75rem" }}
-                        onClick={handleStartScan}
-                      >
-                        Refresh
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+                </>
+              )}
+            </div>
           </div>
+        )}
+      </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app-sheet" ref={root}>
+    <div className="container" style={{ maxWidth: 760, paddingBottom: "4rem" }}>
+      <div className="page-head">
+        <div className="page-kicker">(01) // INPUT</div>
+        <h1>Evaluate a job</h1>
+        <p>Paste a job link or the description itself. Aura scores your fit and writes the full report — about a minute.</p>
+      </div>
+
+      {hasResume === false && (
+        <div className="notice notice-warn">
+          No resume on file yet — <Link href="/onboarding" style={{ fontWeight: 600 }}>add yours first</Link> so Aura has something to match against.
         </div>
+      )}
+      {error && <div className="notice notice-error">{error}</div>}
+
+      <div className="panel">
+        <div className="tabs" role="tablist">
+          <button className="tab" role="tab" aria-selected={mode === "url"} onClick={() => setMode("url")}>
+            Job link
+          </button>
+          <button className="tab" role="tab" aria-selected={mode === "text"} onClick={() => setMode("text")}>
+            Paste description
+          </button>
+        </div>
+
+        {mode === "url" ? (
+          <div className="field">
+            <label htmlFor="jd-url">Job posting URL</label>
+            <input
+              id="jd-url"
+              className="input"
+              type="url"
+              placeholder="https://job-boards.greenhouse.io/…"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
+          </div>
+        ) : (
+          <div className="field">
+            <label htmlFor="jd-text">Job description</label>
+            <textarea
+              id="jd-text"
+              className="input"
+              placeholder="Paste the full job description here…"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+            />
+          </div>
+        )}
+
+        <button
+          className="btn btn-primary"
+          disabled={hasResume === false || (mode === "url" ? !url.trim().startsWith("http") : text.trim().length < 200)}
+          onClick={run}
+        >
+          Score this job
+        </button>
       </div>
     </div>
     </div>
+  );
+}
+
+export default function EvaluatePage() {
+  return (
+    <Suspense>
+      <EvaluateInner />
+    </Suspense>
   );
 }

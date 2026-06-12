@@ -1553,6 +1553,39 @@ textarea.input {
   margin: 1.6rem 0;
 }
 
+/* live-scan panel status: dashed calibration ring + mono readout */
+.scan-status {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+  position: relative;
+  z-index: 1;
+}
+.scan-spinner {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: 1px dashed var(--iris);
+  border-radius: 50%;
+  animation: scan-spin 1.4s linear infinite;
+}
+@keyframes scan-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scan-spinner {
+    animation: none;
+  }
+}
+
 /* scan results */
 .scan-results-head {
   display: flex;

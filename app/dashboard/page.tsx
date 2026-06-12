@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import gsap from "gsap";
 import { api, type Application, type JobPosting } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import { scoreColor } from "@/components/ScoreDial";
@@ -54,8 +55,20 @@ function formatScannedAt(iso: string): string {
   return `${Math.floor(days)} days ago`;
 }
 
+/* dashed calibration-ring spinner + mono readout, for the panel's
+   late-arriving states (auth, cached scan, live scan) */
+function ScanStatus({ label }: { label: string }) {
+  return (
+    <div className="scan-status">
+      <span className="scan-spinner" aria-hidden="true" />
+      <span>{label}</span>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const router = useRouter();
+  const root = useRef<HTMLDivElement>(null);
   const [apps, setApps] = useState<Application[] | null>(null);
   const [error, setError] = useState("");
 
@@ -237,11 +250,60 @@ export default function Dashboard() {
     runScan(searchTerms, user.id, locationInput);
   }
 
+  /* entrance: title block prints, then the two columns rise */
+  useEffect(() => {
+    const mm = gsap.matchMedia(root);
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const q = gsap.utils.selector(root);
+      const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.65 } });
+      tl.from(q(".page-head > *"), { y: 22, autoAlpha: 0, stagger: 0.1 }).from(
+        q(".dash-col"),
+        { y: 28, autoAlpha: 0, stagger: 0.15, duration: 0.7 },
+        "-=0.35"
+      );
+    });
+    return () => mm.revert();
+  }, []);
+
+  /* pipeline rows file in from the left margin once they load */
+  useEffect(() => {
+    if (!apps?.length) return;
+    const mm = gsap.matchMedia(root);
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const q = gsap.utils.selector(root);
+      gsap.from(q(".table tbody tr"), {
+        x: -18,
+        autoAlpha: 0,
+        duration: 0.5,
+        ease: "power2.out",
+        stagger: 0.05,
+      });
+    });
+    return () => mm.revert();
+  }, [apps]);
+
+  /* scan results stamp in as each batch arrives */
+  useEffect(() => {
+    if (!jobs?.length) return;
+    const mm = gsap.matchMedia(root);
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const q = gsap.utils.selector(root);
+      gsap.from(q(".dash-job"), {
+        y: 14,
+        autoAlpha: 0,
+        duration: 0.45,
+        ease: "power2.out",
+        stagger: 0.07,
+      });
+    });
+    return () => mm.revert();
+  }, [jobs]);
+
   const hasNoCache = !cacheLoading && !jobs && !scanLoading;
   const showJobs = jobs && jobs.length > 0;
 
   return (
-    <div className="app-sheet">
+    <div className="app-sheet" ref={root}>
     <div className="container" style={{ paddingBottom: "4rem" }}>
       <div className="page-head">
         <div className="page-kicker">(01) // PIPELINE</div>
@@ -260,7 +322,7 @@ export default function Dashboard() {
         }}
       >
         {/* Left Column: Pipeline Table */}
-        <div style={{ minWidth: 0 }}>
+        <div className="dash-col" style={{ minWidth: 0 }}>
           {apps && apps.length === 0 && (
             <div className="panel" style={{ textAlign: "center", padding: "3.5rem 1.5rem" }}>
               <h3 style={{ marginBottom: "0.6rem" }}>No evaluations yet</h3>
@@ -314,7 +376,7 @@ export default function Dashboard() {
         </div>
 
         {/* Right Column: Suited Jobs */}
-        <div style={{ minWidth: 0 }}>
+        <div className="dash-col" style={{ minWidth: 0 }}>
           <div className="panel">
             <span className="eval-tick eval-tick-tl" />
             <span className="eval-tick eval-tick-tr" />
@@ -340,11 +402,7 @@ export default function Dashboard() {
               Aura matches open roles on company portals against your resume target roles and skills.
             </p>
 
-            {authLoading && (
-              <p style={{ fontSize: "0.875rem", color: "var(--ink-55)", position: "relative", zIndex: 1 }}>
-                Checking auth session...
-              </p>
-            )}
+            {authLoading && <ScanStatus label="AUTH_CHECK // RUNNING" />}
 
             {/* Not logged in */}
             {!authLoading && !user && (
@@ -441,9 +499,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Cache loading */}
-                {cacheLoading && (
-                  <p style={{ fontSize: "0.875rem", color: "var(--ink-55)" }}>Loading job matches…</p>
-                )}
+                {cacheLoading && <ScanStatus label="CACHE_FETCH // RUNNING" />}
 
                 {/* No cache yet — prompt user to start */}
                 {hasNoCache && (
@@ -463,9 +519,7 @@ export default function Dashboard() {
 
                 {/* Scanning with no previous results */}
                 {scanLoading && !jobs && (
-                  <p style={{ fontSize: "0.875rem", color: "var(--ink-55)" }}>
-                    Scanning company portals…
-                  </p>
+                  <ScanStatus label="PORTAL_SCAN // RUNNING" />
                 )}
 
                 {scanError && (
@@ -483,10 +537,10 @@ export default function Dashboard() {
                     {jobs!.slice(0, 6).map((job) => (
                       <div
                         key={job.url}
+                        className="dash-job"
                         style={{
                           padding: "0.75rem",
-                          border: "1px solid var(--ink-06)",
-                          borderRadius: "var(--r-s)",
+                          border: "1px solid var(--ink-30)",
                           background: "var(--surface)",
                         }}
                       >
@@ -566,9 +620,13 @@ export default function Dashboard() {
                       gap: "0.5rem",
                     }}
                   >
-                    <span style={{ fontSize: "0.75rem", color: "var(--ink-40)" }}>
-                      {scanLoading ? "Refreshing…" : `Last scanned ${formatScannedAt(scannedAt)}`}
-                    </span>
+                    {scanLoading ? (
+                      <ScanStatus label="REFRESH // RUNNING" />
+                    ) : (
+                      <span style={{ fontSize: "0.75rem", color: "var(--ink-40)" }}>
+                        {`Last scanned ${formatScannedAt(scannedAt)}`}
+                      </span>
+                    )}
                     {!scanLoading && (
                       <button
                         className="btn btn-ghost"

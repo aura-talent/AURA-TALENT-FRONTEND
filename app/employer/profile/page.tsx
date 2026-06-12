@@ -1,9 +1,58 @@
 "use client";
 
 import { useState } from "react";
+import { Plus, X } from "lucide-react";
+
+const suggestedCultureValues = [
+  "High ownership",
+  "Direct feedback",
+  "Flexible hybrid",
+  "Learning budget",
+  "Inclusive teams",
+  "Outcome focused",
+];
 
 export default function ProfilePage() {
   const [saved, setSaved] = useState(false);
+  const [selectedCultureValues, setSelectedCultureValues] = useState(
+    suggestedCultureValues,
+  );
+  const [customCultureValues, setCustomCultureValues] = useState<string[]>([]);
+  const [cultureDraft, setCultureDraft] = useState("");
+
+  function addCultureValue() {
+    const value = cultureDraft.trim();
+    const allValues = [...suggestedCultureValues, ...customCultureValues];
+
+    if (
+      !value ||
+      allValues.some((item) => item.toLowerCase() === value.toLowerCase())
+    ) {
+      return;
+    }
+
+    setCustomCultureValues((current) => [...current, value]);
+    setSelectedCultureValues((current) => [...current, value]);
+    setCultureDraft("");
+  }
+
+  function toggleCultureValue(value: string) {
+    setSelectedCultureValues((current) =>
+      current.includes(value)
+        ? current.filter((item) => item !== value)
+        : [...current, value],
+    );
+  }
+
+  function removeCustomCultureValue(value: string) {
+    setCustomCultureValues((current) =>
+      current.filter((item) => item !== value),
+    );
+    setSelectedCultureValues((current) =>
+      current.filter((item) => item !== value),
+    );
+  }
+
   return (
     <div className="employer-page">
       <div className="employer-page-head">
@@ -77,19 +126,65 @@ export default function ProfilePage() {
               </div>
             </div>
             <div className="culture-values">
-              {[
-                "High ownership",
-                "Direct feedback",
-                "Flexible hybrid",
-                "Learning budget",
-                "Inclusive teams",
-                "Outcome focused",
-              ].map((value) => (
-                <label key={value}>
-                  <input type="checkbox" defaultChecked />
-                  <span>{value}</span>
-                </label>
-              ))}
+              {[...suggestedCultureValues, ...customCultureValues].map(
+                (value) => {
+                  const isCustom = customCultureValues.includes(value);
+
+                  return (
+                    <div className="culture-value-option" key={value}>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={selectedCultureValues.includes(value)}
+                          onChange={() => toggleCultureValue(value)}
+                        />
+                        <span>{value}</span>
+                      </label>
+                      {isCustom && (
+                        <button
+                          type="button"
+                          aria-label={`Remove ${value}`}
+                          onClick={() => removeCustomCultureValue(value)}
+                        >
+                          <X size={13} />
+                        </button>
+                      )}
+                    </div>
+                  );
+                },
+              )}
+            </div>
+            <div className="culture-custom-field">
+              <div>
+                <strong>Add a custom culture or benefit</strong>
+                <p>
+                  Add anything important to candidates that is not listed
+                  above.
+                </p>
+              </div>
+              <div className="culture-custom-input">
+                <input
+                  className="input"
+                  value={cultureDraft}
+                  placeholder="e.g. Four-day work week"
+                  aria-label="Custom culture or benefit"
+                  onChange={(event) => setCultureDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      addCultureValue();
+                    }
+                  }}
+                />
+                <button
+                  className="btn btn-ghost"
+                  type="button"
+                  disabled={!cultureDraft.trim()}
+                  onClick={addCultureValue}
+                >
+                  <Plus size={14} /> Add
+                </button>
+              </div>
             </div>
             <div className="field">
               <label>Career growth</label>

@@ -1,0 +1,303 @@
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(260px, 0.6fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.scoreHero {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  padding: 1.4rem;
+}
+
+.scoreHero h2 {
+  margin-bottom: 0.3rem;
+  font-size: 1.25rem;
+}
+
+.scoreHero p:not(:global(.eyebrow)) {
+  color: var(--ink-55);
+  font-size: 0.8rem;
+}
+
+.scoreHero code {
+  display: inline-block;
+  margin-top: 0.65rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 5px;
+  background: var(--iris-08);
+  color: var(--iris-deep);
+  font:
+    0.6rem var(--font-mono),
+    monospace;
+}
+
+.scoreRing {
+  --ring-color: var(--iris);
+  display: grid;
+  width: 112px;
+  height: 112px;
+  flex: 0 0 auto;
+  place-content: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--surface) 59%, transparent 60%),
+    conic-gradient(
+      var(--ring-color) 0 var(--score),
+      var(--ink-06) var(--score) 100%
+    );
+  text-align: center;
+}
+
+.scoreRing strong {
+  font:
+    700 2rem var(--font-display),
+    sans-serif;
+  line-height: 1;
+}
+
+.scoreRing span {
+  color: var(--ink-55);
+  font:
+    0.56rem var(--font-mono),
+    monospace;
+}
+
+.strong {
+  --ring-color: var(--score-strong);
+  --score-color: var(--score-strong);
+}
+
+.good {
+  --ring-color: var(--score-good);
+  --score-color: var(--score-good);
+}
+
+.fair {
+  --ring-color: var(--score-fair);
+  --score-color: var(--score-fair);
+}
+
+.weak {
+  --ring-color: var(--score-weak);
+  --score-color: var(--score-weak);
+}
+
+.sessionDetails {
+  padding: 1.2rem;
+}
+
+.sessionDetails h2 {
+  margin-bottom: 0.7rem;
+  font-size: 0.95rem;
+}
+
+.sessionDetails dl > div {
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--ink-06);
+}
+
+.sessionDetails dt {
+  color: var(--ink-30);
+  font:
+    0.56rem var(--font-mono),
+    monospace;
+  text-transform: uppercase;
+}
+
+.sessionDetails dd {
+  margin-top: 0.12rem;
+  color: var(--ink-72);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.indexGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.indexGrid article {
+  padding: 1rem;
+  border: 1px solid var(--ink-06);
+  border-radius: var(--r-s);
+  background: var(--porcelain);
+}
+
+.indexGrid header,
+.indexGrid footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.indexGrid header span {
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.indexGrid header strong {
+  color: var(--score-color);
+  font:
+    700 1.25rem var(--font-mono),
+    monospace;
+}
+
+.indexGrid article > p {
+  min-height: 3.9em;
+  margin: 0.4rem 0 0.7rem;
+  color: var(--ink-55);
+  font-size: 0.65rem;
+  line-height: 1.35;
+}
+
+.scoreMeter {
+  height: 5px;
+  overflow: hidden;
+  border-radius: var(--r-pill);
+  background: var(--ink-06);
+}
+
+.scoreMeter i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--score-color);
+}
+
+.indexGrid footer {
+  margin-top: 0.55rem;
+  color: var(--ink-55);
+  font:
+    0.58rem var(--font-mono),
+    monospace;
+}
+
+.indexGrid footer b {
+  color: var(--ink-72);
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(250px, 0.55fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.contentGrid aside {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.responseList > article {
+  padding: 1.2rem 0;
+  border-top: 1px solid var(--ink-06);
+}
+
+.responseList article > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.responseList article > header span {
+  color: var(--iris-deep);
+  font:
+    650 0.58rem var(--font-mono),
+    monospace;
+  text-transform: uppercase;
+}
+
+.responseList article > header b {
+  color: var(--score-color);
+  font:
+    700 0.7rem var(--font-mono),
+    monospace;
+}
+
+.responseList h3 {
+  margin: 0.35rem 0 0.7rem;
+  font-size: 0.88rem;
+}
+
+.responseList blockquote {
+  padding: 0.9rem 1rem;
+  border-left: 3px solid var(--iris);
+  background: var(--iris-08);
+  color: var(--ink-72);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.responseList article > footer {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 0.7rem;
+  margin-top: 0.7rem;
+}
+
+.responseList footer span {
+  color: var(--ink-30);
+  font:
+    0.55rem var(--font-mono),
+    monospace;
+  text-transform: uppercase;
+}
+
+.responseList footer p,
+.asideCopy {
+  color: var(--ink-55);
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.asideCopy {
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 950px) {
+  .heroGrid,
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .indexGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .headerActions,
+  .headerActions :global(.btn) {
+    width: 100%;
+  }
+
+  .headerActions :global(.btn) {
+    justify-content: center;
+  }
+
+  .scoreHero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .indexGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .responseList article > footer {
+    grid-template-columns: 1fr;
+  }
+}

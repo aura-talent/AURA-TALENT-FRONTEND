@@ -4,17 +4,24 @@ import { candidates, jobs } from "../../../data";
 
 export default async function JobApplicantsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ activity?: string | string[] }>;
 }) {
   const { id } = await params;
+  const { activity } = await searchParams;
+  const interviewOnly = activity === "interview";
   const job = jobs.find((item) => item.id === id);
   if (!job) notFound();
-  const people = candidates.filter(
+  const allPeople = candidates.filter(
     (candidate) =>
       candidate.jobId === id &&
       (candidate.applied || candidate.interviewAttempted),
   );
+  const people = interviewOnly
+    ? allPeople.filter((candidate) => candidate.interviewAttempted)
+    : allPeople;
 
   return (
     <div className="employer-page">
@@ -23,32 +30,51 @@ export default async function JobApplicantsPage({
       </Link>
       <div className="employer-page-head">
         <div>
-          <p className="eyebrow">Applicants and interview attempts</p>
+          <p className="eyebrow">
+            {interviewOnly
+              ? "Mock interview attempts"
+              : "Applicants and interview attempts"}
+          </p>
           <h1>{job.title}</h1>
           <p>
-            Review candidates who applied, attempted the mock interview, or
-            completed both paths.
+            {interviewOnly
+              ? "Review candidates who attempted this role's mock interview and open their interview evaluation."
+              : "Review candidates who applied, attempted the mock interview, or completed both paths."}
           </p>
         </div>
         <Link className="btn btn-ghost" href={`/employer/jobs/${job.id}/edit`}>
           Edit job setup
         </Link>
       </div>
+      <div className="candidate-view-tabs" aria-label="Candidate activity view">
+        <Link
+          className={!interviewOnly ? "active" : ""}
+          href={`/employer/jobs/${job.id}/applicants`}
+        >
+          All activity
+        </Link>
+        <Link
+          className={interviewOnly ? "active" : ""}
+          href={`/employer/jobs/${job.id}/applicants?activity=interview`}
+        >
+          Interview attempts
+        </Link>
+      </div>
       <div className="applicant-summary">
         <span>
-          <strong>{people.filter((person) => person.applied).length}</strong>
+          <strong>{allPeople.filter((person) => person.applied).length}</strong>
           Applied
         </span>
         <span>
           <strong>
-            {people.filter((person) => person.interviewAttempted).length}
+            {allPeople.filter((person) => person.interviewAttempted).length}
           </strong>
           Interview attempted
         </span>
         <span>
           <strong>
             {
-              people.filter(
+              allPeople.filter(
                 (person) => person.applied && person.interviewAttempted,
               ).length
             }
@@ -103,9 +129,12 @@ export default async function JobApplicantsPage({
                 </td>
                 <td>
                   {candidate.interviewAttempted ? (
-                    <span className="completion-check">
+                    <Link
+                      className="completion-check"
+                      href={`/employer/candidates/${candidate.id}/interview`}
+                    >
                       {candidate.interview}/100
-                    </span>
+                    </Link>
                   ) : (
                     <span className="signal-missing">Optional · pending</span>
                   )}
@@ -120,10 +149,14 @@ export default async function JobApplicantsPage({
                 </td>
                 <td>
                   <Link
-                    href={`/employer/candidates/${candidate.id}`}
+                    href={
+                      interviewOnly
+                        ? `/employer/candidates/${candidate.id}/interview`
+                        : `/employer/candidates/${candidate.id}`
+                    }
                     className="table-action"
                   >
-                    Evaluate →
+                    {interviewOnly ? "View interview →" : "Evaluate →"}
                   </Link>
                 </td>
               </tr>
@@ -133,7 +166,11 @@ export default async function JobApplicantsPage({
         {people.length === 0 && (
           <div className="empty-state">
             <h3>No activity yet</h3>
-            <p>Applicants and mock interview attempts will appear here.</p>
+            <p>
+              {interviewOnly
+                ? "Completed mock interview attempts will appear here."
+                : "Applicants and mock interview attempts will appear here."}
+            </p>
           </div>
         )}
       </div>

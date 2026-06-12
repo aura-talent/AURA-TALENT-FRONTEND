@@ -18,7 +18,7 @@ export const evaluationMetrics: Array<{
   },
   {
     key: "match",
-    label: "ATS & keyword match",
+    label: "Keyword match",
     description: "Resume evidence against prioritized role keywords",
   },
   {
@@ -104,6 +104,138 @@ export function weightedScore(
   );
   return Math.round(weightedTotal / totalWeight);
 }
+
+export const interviewEvaluationPriorities = [
+  {
+    key: "content",
+    label: "Content",
+    priority: 10,
+    description: "Relevance, depth, examples, and role-specific knowledge",
+  },
+  {
+    key: "clarity",
+    label: "Clarity",
+    priority: 8,
+    description: "Structure, precision, and ease of understanding",
+  },
+  {
+    key: "confidence",
+    label: "Confidence",
+    priority: 7,
+    description: "Conviction, composure, and ownership of responses",
+  },
+  {
+    key: "bodyLanguage",
+    label: "Body language",
+    priority: 5,
+    description: "Eye contact, posture, expression, and visual presence",
+  },
+] as const;
+
+export type InterviewEvaluationKey =
+  (typeof interviewEvaluationPriorities)[number]["key"];
+
+export type InterviewEvaluation = {
+  completedAt: string;
+  duration: string;
+  mode: string;
+  scores: Record<InterviewEvaluationKey, number>;
+  summary: string;
+  responses: Array<{
+    question: string;
+    response: string;
+    score: number;
+    evidence: string;
+  }>;
+};
+
+export const interviewEvaluations: Record<string, InterviewEvaluation> = {
+  "maya-chen": {
+    completedAt: "Today, 10:39 AM",
+    duration: "32 minutes",
+    mode: "Video and voice",
+    scores: { content: 98, clarity: 96, confidence: 95, bodyLanguage: 93 },
+    summary:
+      "Maya gave specific, measurable examples with strong product judgment and consistent ownership across discovery, alignment, and delivery.",
+    responses: [
+      {
+        question:
+          "Walk me through a product decision where user needs and business goals were in tension.",
+        response:
+          "I reframed the conflict around the decision we needed to make, then paired customer interviews with conversion data. We reduced the first release to the two workflows that solved the highest-cost user problem and set a measurable adoption threshold for the next phase.",
+        score: 97,
+        evidence: "Clear trade-off, measurable outcome, and direct ownership",
+      },
+      {
+        question: "Tell me about a time research changed your direction.",
+        response:
+          "Research showed that our assumed power-user workflow was creating anxiety for new admins. I brought the recordings into a product review, changed the information architecture, and validated the revised flow before engineering committed to it.",
+        score: 96,
+        evidence: "Uses research as decision evidence and aligns the team",
+      },
+      {
+        question:
+          "Describe a project that did not land as expected. What did you learn?",
+        response:
+          "I launched a dashboard that tested well but had weak repeat usage. I had optimized for comprehension rather than the recurring decision users needed to make. We rebuilt the experience around alerts and actions, and I changed how I define success in discovery.",
+        score: 94,
+        evidence: "Specific reflection without deflection or vague claims",
+      },
+    ],
+  },
+  "daniel-kim": {
+    completedAt: "Yesterday, 3:14 PM",
+    duration: "28 minutes",
+    mode: "Video and voice",
+    scores: { content: 89, clarity: 88, confidence: 84, bodyLanguage: 83 },
+    summary:
+      "Daniel demonstrated strong research and prototyping fundamentals. Several answers would benefit from clearer outcome measurement and more explicit ownership.",
+    responses: [
+      {
+        question:
+          "Walk me through a product decision where user needs and business goals were in tension.",
+        response:
+          "We used prototype testing to identify which enterprise requirements were essential and which could move to a later release. I worked with product to sequence the experience and communicate the trade-off to stakeholders.",
+        score: 88,
+        evidence: "Good process; outcome evidence could be more specific",
+      },
+      {
+        question:
+          "How do you bring engineers and product managers into the design process?",
+        response:
+          "I use working sessions early, share rough artifacts, and ask engineering to identify constraints before the team commits to a direction. That usually gives us more options and avoids a late handoff.",
+        score: 87,
+        evidence: "Collaborative workflow with practical engineering inclusion",
+      },
+    ],
+  },
+  "priya-nair": {
+    completedAt: "Monday, 11:08 AM",
+    duration: "35 minutes",
+    mode: "Voice and text",
+    scores: { content: 92, clarity: 91, confidence: 90, bodyLanguage: 84 },
+    summary:
+      "Priya showed excellent AI product reasoning, structured experimentation, and clear stakeholder communication. Visual-presence evidence is limited because part of the interview was text-based.",
+    responses: [
+      {
+        question:
+          "How would you validate an AI capability before committing a full product team?",
+        response:
+          "I would define the user decision the capability improves, establish a manual baseline, and test whether the model creates enough quality or speed improvement to change behavior. Only then would I expand the technical investment.",
+        score: 93,
+        evidence: "Strong validation sequence and avoids technology-first framing",
+      },
+      {
+        question:
+          "Tell me about a roadmap decision where evidence changed your priorities.",
+        response:
+          "Usage analysis showed our most requested feature would not address the retention problem. I presented the cohort evidence, moved onboarding instrumentation ahead of the feature, and used the results to reset the next quarter's roadmap.",
+        score: 91,
+        evidence: "Evidence-led prioritization and stakeholder alignment",
+      },
+    ],
+  },
+};
 
 export const candidates = [
   {

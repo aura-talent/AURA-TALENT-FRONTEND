@@ -1,0 +1,126 @@
+.reader {
+  display: flex;
+  min-height: 78vh;
+  flex-direction: column;
+}
+
+.readerToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0.8rem;
+  border-bottom: 1px solid var(--ink-06);
+  background: var(--surface);
+}
+
+.toolbarGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.toolbarGroup button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid var(--ink-12);
+  border-radius: var(--r-s);
+  background: transparent;
+  color: var(--ink-72);
+}
+
+.toolbarGroup button:hover:not(:disabled) {
+  border-color: var(--iris-12);
+  background: var(--iris-08);
+  color: var(--iris-deep);
+}
+
+.toolbarGroup button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.toolbarGroup span {
+  min-width: 88px;
+  color: var(--ink-55);
+  font:
+    0.62rem var(--font-mono),
+    monospace;
+  text-align: center;
+}
+
+.toolbarGroup b {
+  color: var(--ink-72);
+}
+
+.readerViewport {
+  display: flex;
+  width: 100%;
+  min-height: calc(78vh - 54px);
+  flex: 1;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1.5rem;
+  overflow: auto;
+  background: var(--porcelain);
+}
+
+.readerViewport :global(.react-pdf__Document),
+.readerViewport :global(.react-pdf__Page) {
+  width: max-content;
+}
+
+.readerViewport :global(.react-pdf__Page__canvas) {
+  display: block;
+  max-width: none;
+  border-radius: 2px;
+  box-shadow: 0 8px 28px rgba(26, 29, 41, 0.14);
+}
+
+.readerState {
+  display: grid;
+  min-height: 55vh;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+  color: var(--ink-55);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.loadingSpinner {
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--ink-12);
+  border-top-color: var(--iris);
+  border-radius: 50%;
+  animation: reader-spin 700ms linear infinite;
+}
+
+@keyframes reader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 560px) {
+  .reader {
+    min-height: 65vh;
+  }
+
+  .readerToolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .toolbarGroup {
+    justify-content: center;
+  }
+
+  .readerViewport {
+    min-height: calc(65vh - 94px);
+    padding: 0.8rem;
+  }
+}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import HeroDemo from "@/components/HeroDemo";
+import HeroScene from "@/components/HeroScene";
 import Reveal from "@/components/Reveal";
 
 const STEPS = [
@@ -32,118 +33,154 @@ const BLOCKS = [
 
 export default function Landing() {
   return (
-    <>
+    <div className="landing">
       <section className="hero">
-        <div className="container hero-grid">
-          <div>
-            <h1>Know which jobs deserve you.</h1>
-            <p className="hero-sub">
-              Aura reads a job post the way a sharp recruiter would — scores
-              your real fit, shows what to fix in your resume, and tells you
-              when to walk away.
-            </p>
-            <div className="hero-ctas">
-              <Link href="/onboarding" className="btn btn-primary">
-                Evaluate your first job
-              </Link>
-              <a href="#how" className="btn btn-ghost">
-                See how it works
-              </a>
-            </div>
-            <p className="hero-trust">
-              Built on the open-source{" "}
-              <a
-                href="https://github.com/santifer/career-ops"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                career-ops
-              </a>{" "}
-              engine — 740+ offers evaluated by its author before it landed
-              him the job.
-            </p>
+        <HeroScene />
+        <div className="hero-hud" aria-hidden="true">
+          <span className="hero-hud-label hero-hud-tl">
+            AURA_TALENT
+            <br />
+            [FIT_ENGINE_V2]
+          </span>
+          <span className="hero-hud-label hero-hud-br">
+            (DIAGRAM 01)
+            <br />
+            EVALUATION_READY
+          </span>
+        </div>
+        <div className="hero-copy">
+          <h1>Know which jobs deserve you.</h1>
+          <p className="hero-sub">
+            Aura reads a job post the way a sharp recruiter would — scores
+            your real fit, shows what to fix in your resume, and tells you
+            when to walk away.
+          </p>
+          <div className="hero-ctas">
+            <Link href="/onboarding" className="btn btn-primary">
+              Evaluate your first job
+            </Link>
           </div>
+          <p className="hero-trust text-xs">
+            Built on the open-source{" "}
+            <a
+              href="https://github.com/santifer/career-ops"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              career-ops
+            </a>{" "}
+            engine — 740+ offers evaluated by its author before it landed
+            him the job.
+          </p>
+        </div>
+        <div className="hero-demo-float">
           <HeroDemo />
         </div>
       </section>
 
-      <Reveal as="section" className="section" id="how">
-        <div className="container">
-          <h2 data-reveal>Three steps, then you decide.</h2>
-          <p className="section-lede" data-reveal>
-            No mass-apply tricks. Aura does the reading and the research, you
-            keep the judgment.
-          </p>
-          <div className="steps">
-            {STEPS.map((s) => (
-              <div className="step" key={s.num} data-reveal>
-                <div className="step-num">{s.num}</div>
-                <h3>{s.title}</h3>
-                <p>{s.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Reveal>
-
-      <section className="section" id="report">
-        <div className="container dossier">
-          <div className="dossier-intro">
-            <h2>Seven blocks. The whole picture.</h2>
-            <p className="section-lede">
-              Every evaluation is a full dossier — the same structure a
-              careful career coach would build, in about a minute.
+      <div className="landing-sheet">
+        <Reveal as="section" className="section" id="how">
+          <div className="container">
+            <div className="section-kicker" data-reveal>
+              (02) // PROCESS
+            </div>
+            <h2 data-reveal>Three steps, then you decide.</h2>
+            <p className="section-lede" data-reveal>
+              No mass-apply tricks. Aura does the reading and the research, you
+              keep the judgment.
             </p>
-            <Link href="/evaluate" className="btn btn-ghost">
-              Run one on a real job
-            </Link>
-          </div>
-          <Reveal className="dossier-index" variant="row">
-            {BLOCKS.map((b) => (
-              <div className="dossier-row" key={b.letter} data-reveal>
-                <span className="dossier-letter" aria-hidden="true">{b.letter}</span>
-                <div>
-                  <h3>{b.title}</h3>
-                  <p>{b.body}</p>
+            <span className="rule" data-reveal-line />
+            <div className="steps">
+              {STEPS.map((s) => (
+                <div className="step" key={s.num} data-reveal>
+                  <div className="step-num">[0{s.num}]</div>
+                  <h3>{s.title}</h3>
+                  <p>{s.body}</p>
                 </div>
-              </div>
-            ))}
-          </Reveal>
-        </div>
-      </section>
+              ))}
+            </div>
+          </div>
+        </Reveal>
 
-      <Reveal as="section" className="section-tight">
-        <div className="container">
-          <div className="ethos" data-reveal>
-            <div className="aura-glow" />
-            <div className="grain" />
-            <blockquote>
-              Five sharp applications beat fifty blind ones.
-            </blockquote>
-            <p>
-              Aura never auto-submits anything. It drafts, you decide. And when
-              a job scores below 3.5, it says so plainly — your time is worth
-              more than a maybe.
+        <section className="section" id="report">
+          <div className="container dossier">
+            <div className="dossier-intro">
+              <div className="section-kicker">(03) // THE_REPORT</div>
+              <h2>Seven blocks. The whole picture.</h2>
+              <p className="section-lede">
+                Every evaluation is a full dossier — the same structure a
+                careful career coach would build, in about a minute.
+              </p>
+              <Link href="/evaluate" className="btn btn-ghost">
+                Run one on a real job
+              </Link>
+            </div>
+            <Reveal className="dossier-index" variant="row">
+              <span className="rule" data-reveal-line />
+              {BLOCKS.map((b) => (
+                <div className="dossier-row" key={b.letter} data-reveal>
+                  <span className="dossier-letter" aria-hidden="true">{b.letter}</span>
+                  <div>
+                    <h3>{b.title}</h3>
+                    <p>{b.body}</p>
+                  </div>
+                </div>
+              ))}
+            </Reveal>
+          </div>
+        </section>
+
+        <Reveal as="section" className="section-tight">
+          <div className="container">
+            <div className="ethos" data-reveal>
+              <div className="grain" />
+              <span className="ethos-label ethos-label-tl" aria-hidden="true">
+                (04) // ETHOS
+              </span>
+              <span className="ethos-label ethos-label-br" aria-hidden="true">
+                JUDGMENT &gt; VOLUME
+              </span>
+              <blockquote>
+                Five sharp applications beat fifty blind ones.
+              </blockquote>
+              <p>
+                Aura never auto-submits anything. It drafts, you decide. And when
+                a job scores below 3.5, it says so plainly — your time is worth
+                more than a maybe.
+              </p>
+            </div>
+          </div>
+        </Reveal>
+
+        <Reveal as="section" className="cta-band">
+          <span className="cta-label cta-label-tl" aria-hidden="true">
+            (DIAGRAM 02)
+            <br />
+            FINAL_CALL
+          </span>
+          <span className="cta-label cta-label-br" aria-hidden="true">
+            SYSTEM_READY
+            <br />
+            AWAITING_INPUT
+          </span>
+          <div className="container" style={{ position: "relative" }}>
+            <h2 data-reveal>
+              The next application you send should be your best one.
+            </h2>
+            <p className="section-lede" data-reveal>
+              Upload your resume and evaluate your first job in under two minutes.
+            </p>
+            <div className="hero-ctas" data-reveal>
+              <Link href="/onboarding" className="btn btn-inverse">
+                Get started — it&apos;s free
+              </Link>
+            </div>
+            <p className="footnote" data-reveal>
+              NO_MASS_APPLICATIONS // NO_AUTO_SUBMIT // EVER
             </p>
           </div>
-        </div>
-      </Reveal>
-
-      <section className="cta-band">
-        <div className="aura-glow" />
-        <div className="container" style={{ position: "relative" }}>
-          <h2>The next application you send should be your best one.</h2>
-          <p className="section-lede">
-            Upload your resume and evaluate your first job in under two minutes.
-          </p>
-          <div className="hero-ctas">
-            <Link href="/onboarding" className="btn btn-inverse">
-              Get started — it&apos;s free
-            </Link>
-          </div>
-          <p className="footnote">No mass applications. No auto-submit. Ever.</p>
-        </div>
-      </section>
-    </>
+        </Reveal>
+      </div>
+    </div>
   );
 }

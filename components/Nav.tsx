@@ -31,7 +31,7 @@ export default function Nav() {
   const links = isEmployerMode ? EMPLOYER_LINKS : APP_LINKS;
 
   return (
-    <header className="nav">
+    <header className={onLanding ? "nav nav-blueprint" : "nav"}>
       <div className="nav-inner">
         <Link href="/" className="nav-brand">
           <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true">
@@ -56,7 +56,7 @@ export default function Nav() {
               transform="rotate(-90 16 16)"
             />
           </svg>
-          Aura Talent
+          {onLanding ? "AURA_TALENT" : "Aura Talent"}
         </Link>
         <nav className="nav-links">
           {onEmployer ? (
@@ -65,9 +65,9 @@ export default function Nav() {
             </>
           ) : onLanding ? (
             <>
-              <a href="#how">How it works</a>
-              <a href="#report">The report</a>
-              <Link href={role === "employer" ? "/employer" : "/dashboard"}>{role === "employer" ? "Employer workspace" : "Dashboard"}</Link>
+              <a href="#how">HOW_IT_WORKS</a>
+              <a href="#report">THE_REPORT</a>
+              <Link href={role === "employer" ? "/employer" : "/dashboard"}>{role === "employer" ? "EMPLOYER_WORKSPACE" : "DASHBOARD"}</Link>
               {loading ? (
                 <span className="mono" style={{ fontSize: "0.85rem", opacity: 0.5 }}>Loading...</span>
               ) : user ? (
@@ -189,10 +189,10 @@ export default function Nav() {
               ) : (
                 <>
                   <Link href="/login" style={{ marginRight: "0.5rem" }}>
-                    Sign in
+                    SIGN_IN
                   </Link>
                   <Link href="/onboarding" className="btn btn-primary !text-white">
-                    Get started
+                    GET_STARTED →
                   </Link>
                 </>
               )}

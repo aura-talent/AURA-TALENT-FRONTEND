@@ -7,6 +7,7 @@ import {
   scoringDimensions,
   weightedScore,
 } from "../../data";
+import CandidateEmailComposer from "@/components/employer/CandidateEmailComposer";
 
 function scoreTone(score: number) {
   if (score >= 90) return "strong";
@@ -82,8 +83,13 @@ export default async function CandidateDetail({
             <option>Interview</option>
             <option>Final review</option>
             <option>Offer</option>
+            <option>Rejected</option>
           </select>
-          <button className="btn btn-primary">Message candidate</button>
+          <CandidateEmailComposer
+            candidateName={candidate.name}
+            role={candidate.role}
+            score={wlcScore}
+          />
         </div>
       </div>
 

@@ -286,7 +286,7 @@ export const candidates = [
     applied: false,
     interviewAttempted: true,
     jobId: "senior-product-designer",
-    stage: "Interview",
+    stage: "Rejected",
     location: "Singapore",
     experience: "6 years",
     skills: ["UX research", "Prototyping", "B2B SaaS"],
@@ -317,7 +317,7 @@ export const candidates = [
     applied: true,
     interviewAttempted: true,
     jobId: "ai-product-manager",
-    stage: "Assessment",
+    stage: "Rejected",
     location: "Remote",
     experience: "5 years",
     skills: ["AI products", "Analytics", "Roadmapping"],
@@ -493,3 +493,42 @@ export const jobs = [
     recommended: false,
   },
 ];
+
+export const talentPoolProfiles: Record<
+  string,
+  {
+    previousOutcome: string;
+    reason: string;
+    targetRoles: string[];
+    preferredLocations: string[];
+    availableFrom: string;
+    lastContacted: string;
+    consent: "Granted" | "Pending";
+  }
+> = {
+  "daniel-kim": {
+    previousOutcome: "Final interview · Senior Product Designer",
+    reason: "Strong finalist; another candidate had deeper design-systems leadership.",
+    targetRoles: ["Senior Product Designer", "Product Design Lead"],
+    preferredLocations: ["Singapore", "Remote"],
+    availableFrom: "Now",
+    lastContacted: "4 months ago",
+    consent: "Granted",
+  },
+  "priya-nair": {
+    previousOutcome: "Assessment · AI Product Manager",
+    reason: "High-potential candidate; role was paused before the final round.",
+    targetRoles: ["AI Product Manager", "Product Lead"],
+    preferredLocations: ["Remote", "Kuala Lumpur"],
+    availableFrom: "July 2026",
+    lastContacted: "2 months ago",
+    consent: "Granted",
+  },
+};
+
+export const talentPoolCandidates = candidates.filter(
+  (candidate) =>
+    candidate.stage === "Rejected" &&
+    candidate.score >= 80 &&
+    candidate.id in talentPoolProfiles,
+);

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const APP_LINKS = [
   { href: "/dashboard", label: "DASHBOARD" },
@@ -29,9 +29,17 @@ export default function Nav() {
   const onEmployer = pathname.startsWith("/employer");
   const { user, loading, role, signOut } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const isEmployerMode = role === "employer";
   const links = isEmployerMode ? EMPLOYER_LINKS : APP_LINKS;
+  const currentIdx = links.findIndex((l) => pathname.startsWith(l.href));
+
+  // close both menus whenever the route changes
+  useEffect(() => {
+    setMenuOpen(false);
+    setDropdownOpen(false);
+  }, [pathname]);
 
   return (
     <header className="nav nav-blueprint">
@@ -241,15 +249,46 @@ export default function Nav() {
             </>
           ) : (
             <>
-              {links.map(({ href, label }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  aria-current={pathname.startsWith(href) ? "page" : undefined}
+              <div className="nav-index">
+                <button
+                  className="nav-index-toggle"
+                  onClick={() => setMenuOpen((o) => !o)}
+                  aria-expanded={menuOpen}
+                  aria-label="Open navigation index"
                 >
-                  {label}
-                </Link>
-              ))}
+                  <span className="nav-index-current">
+                    {currentIdx >= 0
+                      ? `${String(currentIdx + 1).padStart(2, "0")} / ${links[currentIdx].label}`
+                      : "INDEX"}
+                  </span>
+                  <span className={menuOpen ? "nav-index-caret open" : "nav-index-caret"} aria-hidden="true">
+                    +
+                  </span>
+                </button>
+                {menuOpen && (
+                  <>
+                    <div className="nav-index-backdrop" onClick={() => setMenuOpen(false)} />
+                    <div className="nav-index-panel" role="menu">
+                      <span className="nav-index-head">
+                        INDEX // {isEmployerMode ? "EMPLOYER" : "WORKSPACE"}
+                      </span>
+                      {links.map((l, i) => (
+                        <Link
+                          key={l.href}
+                          href={l.href}
+                          role="menuitem"
+                          className="nav-index-item"
+                          aria-current={pathname.startsWith(l.href) ? "page" : undefined}
+                          onClick={() => setMenuOpen(false)}
+                        >
+                          <span className="nav-index-num">{String(i + 1).padStart(2, "0")}</span>
+                          <span>{l.label}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
               {loading ? (
                 <span
                   className="mono"

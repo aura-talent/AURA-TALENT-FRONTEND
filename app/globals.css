@@ -282,7 +282,8 @@ button {
 }
 
 @media (max-width: 720px) {
-  .nav-links a:not(.btn) {
+  /* hide inline landing links on mobile, but keep the index-menu items */
+  .nav-links a:not(.btn):not(.nav-index-item) {
     display: none;
   }
 }
@@ -935,6 +936,100 @@ button {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-55);
+}
+
+/* numbered index menu — replaces the cluttered inline link row */
+.nav-index {
+  position: relative;
+}
+.nav-index-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: transparent;
+  border: 1px solid var(--ink-30);
+  padding: 0.45rem 0.8rem;
+  cursor: pointer;
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  transition: border-color 0.15s, color 0.15s;
+}
+.nav-index-toggle:hover { border-color: var(--ink); }
+.nav-index-current {
+  white-space: nowrap;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nav-index-caret {
+  color: var(--iris);
+  font-weight: 700;
+  transition: transform 0.2s ease;
+  line-height: 1;
+}
+.nav-index-caret.open { transform: rotate(45deg); }
+
+.nav-index-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+.nav-index-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.6rem);
+  z-index: 60;
+  min-width: 16rem;
+  background: var(--surface);
+  border: 1px solid var(--ink-30);
+  box-shadow: 0 12px 40px rgba(26, 29, 41, 0.14);
+  display: flex;
+  flex-direction: column;
+}
+.nav-index-head {
+  font-family: var(--font-space), monospace;
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--iris);
+  padding: 0.75rem 1rem;
+  border-bottom: 1px dashed var(--ink-30);
+}
+.nav-index-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.85rem;
+  padding: 0.65rem 1rem;
+  text-decoration: none;
+  font-family: var(--font-space), monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-72);
+  border-bottom: 1px dashed var(--ink-12);
+  transition: background 0.15s, color 0.15s, padding-left 0.2s ease;
+}
+.nav-index-item:last-child { border-bottom: none; }
+.nav-index-item:hover {
+  background: var(--iris-08);
+  color: var(--ink);
+  padding-left: 1.25rem;
+}
+.nav-index-item[aria-current="page"] { color: var(--iris); }
+.nav-index-num {
+  color: var(--ink-30);
+  font-size: 0.6875rem;
+  min-width: 1.4rem;
+}
+.nav-index-item:hover .nav-index-num,
+.nav-index-item[aria-current="page"] .nav-index-num { color: var(--iris); }
+
+@media (max-width: 720px) {
+  .nav-index-current { max-width: 9rem; }
+  .nav-index-panel { min-width: 13rem; }
 }
 
 /* controls go square and mono on the blueprint surfaces */

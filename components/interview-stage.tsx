@@ -54,39 +54,105 @@ export default function InterviewStage({
 
   function startRecording() {
     recordStartRef.current = performance.now();
+
+    setStage("recording");
+
+    // reset transcript state
+    liveTranscriptRef.current = "";
+    srActiveRef.current = false;
+
+    const SR =
+      (window as any).SpeechRecognition ??
+      (window as any).webkitSpeechRecognition;
+
+    /**
+     * IMPORTANT (Arc fix):
+     * Create a dedicated mic stream for SpeechRecognition FIRST
+     * so MediaRecorder does not "lock" the device.
+     */
+    if (SR) {
+      try {
+        srActiveRef.current = true;
+
+        const rec = new SR();
+        rec.continuous = true;
+        rec.interimResults = false;
+
+        rec.onresult = (e: any) => {
+          for (let i = e.resultIndex; i < e.results.length; i++) {
+            if (e.results[i].isFinal) {
+              liveTranscriptRef.current +=
+                e.results[i][0].transcript + " ";
+            }
+          }
+        };
+
+        rec.onerror = () => {
+          srActiveRef.current = false;
+        };
+
+        recognitionRef.current = rec;
+        rec.start();
+      } catch (e) {
+        console.warn("SpeechRecognition failed:", e);
+        srActiveRef.current = false;
+      }
+    }
+
+    /**
+     * THEN start recorder + vision AFTER SR
+     * (Arc fix: prevents mic starvation)
+     */
     recorder.start();
+
     if (vision.status === "ready" && videoRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
+
       if (canvas) {
         canvas.width = video.videoWidth || 640;
         canvas.height = video.videoHeight || 480;
       }
+
       vision.start(video, canvas);
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SR: any = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
-    liveTranscriptRef.current = "";
-    srActiveRef.current = false;
-    if (SR) {
-      srActiveRef.current = true;
-      const rec = new SR();
-      rec.continuous = true;
-      rec.interimResults = false;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      rec.onresult = (e: any) => {
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          if (e.results[i].isFinal) {
-            liveTranscriptRef.current += e.results[i][0].transcript + " ";
-          }
-        }
-      };
-      rec.start();
-      recognitionRef.current = rec;
-    }
-    setStage("recording");
   }
+
+  // function startRecording() {
+  //   recordStartRef.current = performance.now();
+  //   recorder.start();
+  //   if (vision.status === "ready" && videoRef.current) {
+  //     const video = videoRef.current;
+  //     const canvas = canvasRef.current;
+  //     if (canvas) {
+  //       canvas.width = video.videoWidth || 640;
+  //       canvas.height = video.videoHeight || 480;
+  //     }
+  //     vision.start(video, canvas);
+  //   }
+
+  //   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  //   const SR: any = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+  //   liveTranscriptRef.current = "";
+  //   srActiveRef.current = false;
+  //   if (SR) {
+  //     srActiveRef.current = true;
+  //     const rec = new SR();
+  //     rec.continuous = true;
+  //     rec.interimResults = false;
+  //     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  //     rec.onresult = (e: any) => {
+  //       for (let i = e.resultIndex; i < e.results.length; i++) {
+  //         if (e.results[i].isFinal) {
+  //           liveTranscriptRef.current += e.results[i][0].transcript + " ";
+  //         }
+  //       }
+  //     };
+  //     rec.start();
+  //     recognitionRef.current = rec;
+  //   }
+  //   setStage("recording");
+  // }
 
   const zeroEvaluation = useCallback((telemetry: Telemetry | null): Answer => ({
     question,
@@ -138,32 +204,99 @@ export default function InterviewStage({
     [question, session.role, onEvaluated, zeroEvaluation],
   );
 
+  // async function stopRecording() {
+  //   console.log('pressed stop button');
+  //   // Wait for SR to flush all final onresult events before reading the transcript.
+  //   // SR delivers results asynchronously after stop(), so we must await onend.
+  //   await new Promise<void>((resolve) => {
+  //     if (recognitionRef.current) {
+  //       recognitionRef.current.onend = () => resolve();
+  //       recognitionRef.current.stop();
+  //     } else {
+  //       resolve();
+  //     }
+  //   });
+  //   recognitionRef.current = null;
+
+  //   const audio = await recorder.stop();
+  //   const frames = vision.stop();
+  //   const durationMs = performance.now() - recordStartRef.current;
+  //   const telemetry = vision.status === "ready" ? aggregateTelemetry(frames, durationMs) : null;
+
+  //   // Skip API entirely if SR was active but caught nothing (user said nothing)
+  //   if (srActiveRef.current && liveTranscriptRef.current.trim() === "") {
+  //     onEvaluated(zeroEvaluation(telemetry));
+  //     setStage("feedback");
+  //     return;
+  //   }
+
+  //   pendingRef.current = { audio, telemetry };
+  //   await submit(audio, telemetry);
+  // }
+
   async function stopRecording() {
-    // Wait for SR to flush all final onresult events before reading the transcript.
-    // SR delivers results asynchronously after stop(), so we must await onend.
+    console.log("pressed stop button");
+
+    const rec = recognitionRef.current;
+
+    // Stop SpeechRecognition safely (Arc-proof)
     await new Promise<void>((resolve) => {
-      if (recognitionRef.current) {
-        recognitionRef.current.onend = () => resolve();
-        recognitionRef.current.stop();
-      } else {
+      if (!rec) return resolve();
+
+      let done = false;
+
+      const cleanup = () => {
+        if (done) return;
+        done = true;
+
+        try {
+          rec.onresult = null;
+          rec.onerror = null;
+          rec.onend = null;
+        } catch { }
+
         resolve();
+      };
+
+      // Attach FIRST (Arc timing fix)
+      rec.onend = cleanup;
+      rec.onerror = cleanup;
+
+      try {
+        rec.stop();
+      } catch {
+        cleanup();
       }
+
+      // HARD fallback (Arc often never fires onend)
+      setTimeout(cleanup, 500);
     });
+
     recognitionRef.current = null;
 
+    // Stop recorder + vision
     const audio = await recorder.stop();
     const frames = vision.stop();
-    const durationMs = performance.now() - recordStartRef.current;
-    const telemetry = vision.status === "ready" ? aggregateTelemetry(frames, durationMs) : null;
 
-    // Skip API entirely if SR was active but caught nothing (user said nothing)
-    if (srActiveRef.current && liveTranscriptRef.current.trim() === "") {
+    const durationMs = performance.now() - recordStartRef.current;
+
+    const telemetry =
+      vision.status === "ready"
+        ? aggregateTelemetry(frames, durationMs)
+        : null;
+
+    /**
+     * Arc safety net:
+     * If SR captured nothing, fallback immediately
+     */
+    if (srActiveRef.current && !liveTranscriptRef.current.trim()) {
       onEvaluated(zeroEvaluation(telemetry));
       setStage("feedback");
       return;
     }
 
     pendingRef.current = { audio, telemetry };
+
     await submit(audio, telemetry);
   }
 

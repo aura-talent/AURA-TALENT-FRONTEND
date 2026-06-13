@@ -145,11 +145,12 @@ export default function Dashboard() {
   const isDesktop = windowWidth > 960;
 
   useEffect(() => {
+    if (authLoading) return;
     api
       .listApplications()
       .then(setApps)
       .catch(() => setError("Could not load your tracker — is the backend running?"));
-  }, []);
+  }, [user, authLoading]);
 
   // Load resume and extract search terms
   useEffect(() => {

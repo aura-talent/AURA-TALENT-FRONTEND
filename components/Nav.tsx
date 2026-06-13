@@ -88,6 +88,7 @@ export default function Nav() {
                       border: "none",
                       color: "var(--ink)",
                       padding: 0,
+                      flexShrink: 0,
                     }}
                   >
                     {user.user_metadata?.avatar_url ||
@@ -123,7 +124,7 @@ export default function Nav() {
                       </div>
                     )}
                     <span
-                      style={{ fontSize: "0.9375rem", fontWeight: 500 }}
+                      style={{ fontSize: "0.9375rem", fontWeight: 500, whiteSpace: "nowrap" }}
                       className="nav-user-name"
                     >
                       {user.user_metadata?.full_name ||
@@ -269,6 +270,7 @@ export default function Nav() {
                       border: "none",
                       color: "var(--ink)",
                       padding: 0,
+                      flexShrink: 0,
                     }}
                   >
                     {user.user_metadata?.avatar_url ||
@@ -304,7 +306,7 @@ export default function Nav() {
                       </div>
                     )}
                     <span
-                      style={{ fontSize: "0.9375rem", fontWeight: 500 }}
+                      style={{ fontSize: "0.9375rem", fontWeight: 500, whiteSpace: "nowrap" }}
                       className="nav-user-name"
                     >
                       {user.user_metadata?.full_name ||

@@ -497,6 +497,9 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Career Path Navigator */}
+            {!authLoading && user && hasResume === true && <CareerPathNavigator />}
+
             {/* Upcoming Interviews Reminder Checklist */}
             <div className="panel" style={{ padding: "1.5rem" }}>
               <h3 style={{ fontSize: "1.05rem", fontWeight: 700, marginBottom: "1rem", fontFamily: "var(--font-space), monospace" }}>
@@ -813,8 +816,6 @@ export default function Dashboard() {
 
         </div>
       </div>
-
-      {!authLoading && user && hasResume === true && <CareerPathNavigator />}
     </div>
   );
 }

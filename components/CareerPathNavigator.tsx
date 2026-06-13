@@ -5,13 +5,89 @@ import gsap from "gsap";
 import { useStream } from "@/lib/useStream";
 import StreamProgress from "@/components/StreamProgress";
 import { scoreColor } from "@/components/ScoreDial";
-import type { CareerPathOut, CareerRoute } from "@/lib/api";
+import type { CareerMove, CareerPathOut, CareerRoute } from "@/lib/api";
 
 const FALLBACK_LINES = [
   "Gathering your resume and evaluation history…",
   "Mapping realistic career routes…",
   "Composing your career path…",
 ];
+
+/* effort badge → color (low = easy/green, high = heavy/orange) */
+function effortColor(effort: string): string {
+  switch (effort.toLowerCase()) {
+    case "low":
+      return "var(--score-strong)";
+    case "medium":
+      return "var(--score-fair)";
+    case "high":
+      return "var(--score-weak)";
+    default:
+      return "var(--ink-72)";
+  }
+}
+
+function MoveRow({ move }: { move: CareerMove }) {
+  return (
+    <div
+      style={{
+        padding: "0.6rem 0.7rem",
+        border: "1px solid var(--ink-30)",
+        borderRadius: "var(--r-s)",
+        background: "var(--surface)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.3rem",
+      }}
+    >
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", alignItems: "center" }}>
+        <span
+          className="page-kicker"
+          style={{
+            fontSize: "0.6rem",
+            color: "var(--iris)",
+            background: "var(--iris-08)",
+            border: "1px solid var(--iris-12)",
+            borderRadius: "var(--r-s)",
+            padding: "0.08rem 0.4rem",
+          }}
+        >
+          {move.category}
+        </span>
+        <span
+          className="mono"
+          style={{
+            fontSize: "0.62rem",
+            color: effortColor(move.effort),
+            border: `1px solid ${effortColor(move.effort)}`,
+            borderRadius: "var(--r-s)",
+            padding: "0.04rem 0.4rem",
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+          }}
+        >
+          {move.effort} effort
+        </span>
+        <span
+          className="mono"
+          style={{
+            fontSize: "0.62rem",
+            color: "var(--ink-72)",
+            border: "1px solid var(--ink-30)",
+            borderRadius: "var(--r-s)",
+            padding: "0.04rem 0.4rem",
+          }}
+        >
+          {move.timeframe}
+        </span>
+      </div>
+      <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--ink-92, var(--ink-72))" }}>
+        {move.action}
+      </div>
+      <div style={{ fontSize: "0.78rem", color: "var(--ink-55)" }}>{move.why}</div>
+    </div>
+  );
+}
 
 /* compact 1–5 fit meter — five segments lit up to the route's fit */
 function FitMeter({ fit }: { fit: number }) {
@@ -132,26 +208,16 @@ function RouteCard({ route, recommended }: { route: CareerRoute; recommended: bo
         </div>
       )}
 
-      {route.next_steps.length > 0 && (
+      {route.moves.length > 0 && (
         <div>
-          <div className="page-kicker" style={{ fontSize: "0.62rem", marginBottom: "0.35rem" }}>
-            NEXT STEPS
+          <div className="page-kicker" style={{ fontSize: "0.62rem", marginBottom: "0.45rem" }}>
+            TACTICAL MOVES
           </div>
-          <ul
-            style={{
-              margin: 0,
-              paddingLeft: "1.1rem",
-              fontSize: "0.83rem",
-              color: "var(--ink-72)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.25rem",
-            }}
-          >
-            {route.next_steps.map((step, i) => (
-              <li key={i}>{step}</li>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            {route.moves.map((move, i) => (
+              <MoveRow key={i} move={move} />
             ))}
-          </ul>
+          </div>
         </div>
       )}
     </div>
@@ -306,9 +372,39 @@ export default function CareerPathNavigator() {
             {result.current_assessment}
           </p>
 
+          {result.first_move && (
+            <div
+              style={{
+                display: "flex",
+                gap: "0.75rem",
+                alignItems: "flex-start",
+                background: "var(--iris-08)",
+                border: "1.5px solid var(--iris)",
+                borderRadius: "var(--r-s)",
+                padding: "0.85rem 1rem",
+                marginBottom: "1rem",
+              }}
+            >
+              <span aria-hidden="true" style={{ fontSize: "1.1rem", lineHeight: 1.3 }}>
+                ⚡
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div
+                  className="page-kicker"
+                  style={{ fontSize: "0.62rem", color: "var(--iris)", marginBottom: "0.2rem" }}
+                >
+                  DO THIS FIRST
+                </div>
+                <p style={{ margin: 0, fontSize: "0.9rem", fontWeight: 600, color: "var(--ink-72)" }}>
+                  {result.first_move}
+                </p>
+              </div>
+            </div>
+          )}
+
           {result.evaluations_considered === 0 ? (
             <p style={{ fontSize: "0.8rem", color: "var(--score-fair)", marginBottom: "1rem" }}>
-              These routes are based on your resume alone. Evaluate a few jobs to make them sharper.
+              These routes and moves are based on your resume alone. Evaluate a few jobs to make them sharper.
             </p>
           ) : (
             <p style={{ fontSize: "0.78rem", color: "var(--ink-55)", marginBottom: "1rem" }}>

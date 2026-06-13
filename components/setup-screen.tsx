@@ -45,18 +45,33 @@ export default function SetupScreen({ onStart }: Props) {
       position: "relative",
       overflow: "hidden",
     }}>
-      {/* Ambient background */}
+      {/* Drafting-grid background, continuing the blueprint sheet */}
       <div aria-hidden style={{
         position: "absolute",
         inset: 0,
-        background: `
-          radial-gradient(70% 60% at 15% 20%, rgba(199, 185, 255, 0.22), transparent 70%),
-          radial-gradient(60% 50% at 85% 80%, rgba(255, 217, 194, 0.18), transparent 70%),
-          radial-gradient(50% 50% at 50% 50%, rgba(191, 234, 216, 0.12), transparent 70%)
+        backgroundImage: `
+          linear-gradient(rgba(26, 29, 41, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(26, 29, 41, 0.035) 1px, transparent 1px)
         `,
-        filter: "blur(1px)",
+        backgroundSize: "44px 44px",
         pointerEvents: "none",
       }} />
+      <span aria-hidden style={{
+        position: "absolute", top: "1.75rem", left: "clamp(1.5rem, 4vw, 3rem)",
+        fontFamily: "var(--font-space), monospace", fontSize: "0.6875rem",
+        letterSpacing: "0.08em", textTransform: "uppercase",
+        color: "var(--ink-55)", lineHeight: 1.7,
+      }}>
+        MOCK_INTERVIEW<br />SIMULATOR_V1
+      </span>
+      <span aria-hidden style={{
+        position: "absolute", bottom: "1.75rem", right: "clamp(1.5rem, 4vw, 3rem)",
+        fontFamily: "var(--font-space), monospace", fontSize: "0.6875rem",
+        letterSpacing: "0.08em", textTransform: "uppercase",
+        color: "var(--ink-55)", lineHeight: 1.7, textAlign: "right",
+      }}>
+        (DIAGRAM 03)<br />AWAITING_ROLE
+      </span>
 
       <div style={{ width: "100%", maxWidth: 520, position: "relative", animation: "setup-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
         {/* Logo mark */}
@@ -68,31 +83,27 @@ export default function SetupScreen({ onStart }: Props) {
               boxShadow: "0 0 0 4px var(--iris-12)",
             }} />
             <span style={{
-              fontFamily: "var(--font-mono), monospace",
-              fontSize: "0.7rem",
-              letterSpacing: "0.14em",
+              fontFamily: "var(--font-space), monospace",
+              fontSize: "0.6875rem",
+              letterSpacing: "0.08em",
               textTransform: "uppercase",
-              color: "var(--ink-55)",
-              fontWeight: 600,
+              color: "var(--iris)",
+              fontWeight: 700,
             }}>
-              Mock Interview
+              (01) // ROLE_SELECT
             </span>
           </div>
           <h1 style={{
-            fontFamily: "var(--font-display), sans-serif",
-            fontSize: "clamp(2.5rem, 7vw, 3.75rem)",
-            fontWeight: 800,
-            letterSpacing: "-0.035em",
-            lineHeight: 0.95,
+            fontFamily: "var(--font-space), monospace",
+            fontSize: "clamp(1.9rem, 5vw, 2.9rem)",
+            fontWeight: 700,
+            letterSpacing: "-0.02em",
+            lineHeight: 1.12,
+            textTransform: "uppercase",
             color: "var(--ink)",
           }}>
             Which role are<br />
-            <span style={{
-              backgroundImage: "linear-gradient(135deg, var(--iris) 0%, #7c6af5 60%, var(--aura-a) 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}>
+            <span style={{ color: "var(--iris)" }}>
               you practicing?
             </span>
           </h1>
@@ -106,15 +117,15 @@ export default function SetupScreen({ onStart }: Props) {
           <div style={{
             display: "flex",
             gap: "0",
-            border: "1.5px solid var(--ink-12)",
-            borderRadius: "var(--r-l)",
+            border: "1px solid var(--ink-30)",
+            borderRadius: 0,
             background: "var(--surface)",
             boxShadow: "var(--shadow-card)",
             overflow: "hidden",
             transition: "border-color 0.2s, box-shadow 0.2s",
             ...(role ? {
               borderColor: "var(--iris-deep)",
-              boxShadow: "0 0 0 3px var(--iris-12), var(--shadow-card)",
+              boxShadow: "0 0 0 3px var(--iris-12)",
             } : {}),
           }}>
             <input
@@ -145,9 +156,12 @@ export default function SetupScreen({ onStart }: Props) {
                 background: !role.trim() || loading ? "var(--ink-06)" : "var(--iris)",
                 color: !role.trim() || loading ? "var(--ink-30)" : "#fff",
                 border: "none",
-                borderRadius: "calc(var(--r-l) - 4px)",
-                fontSize: "0.875rem",
-                fontWeight: 600,
+                borderRadius: 0,
+                fontFamily: "var(--font-space), monospace",
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
                 cursor: !role.trim() || loading ? "not-allowed" : "pointer",
                 whiteSpace: "nowrap",
                 transition: "all 0.2s ease",
@@ -173,7 +187,7 @@ export default function SetupScreen({ onStart }: Props) {
         {/* Suggestions */}
         <div>
           <p style={{
-            fontFamily: "var(--font-mono), monospace",
+            fontFamily: "var(--font-space), monospace",
             fontSize: "0.68rem",
             letterSpacing: "0.1em",
             textTransform: "uppercase",
@@ -191,12 +205,15 @@ export default function SetupScreen({ onStart }: Props) {
                 disabled={loading}
                 style={{
                   padding: "0.35rem 0.85rem",
-                  border: "1.5px solid var(--ink-12)",
-                  borderRadius: "var(--r-pill)",
+                  border: "1px solid var(--ink-30)",
+                  borderRadius: 0,
                   background: role === s ? "var(--iris-08)" : "var(--surface)",
                   borderColor: role === s ? "var(--iris)" : "var(--ink-12)",
                   color: role === s ? "var(--iris-deep)" : "var(--ink-72)",
-                  fontSize: "0.8125rem",
+                  fontFamily: "var(--font-space), monospace",
+                  fontSize: "0.6875rem",
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
                   fontWeight: 500,
                   cursor: "pointer",
                   transition: "all 0.15s ease",
@@ -213,7 +230,7 @@ export default function SetupScreen({ onStart }: Props) {
           marginTop: "3rem",
           display: "flex",
           gap: "2rem",
-          borderTop: "1px solid var(--ink-06)",
+          borderTop: "1px dashed var(--ink-30)",
           paddingTop: "1.5rem",
         }}>
           {[
@@ -223,14 +240,19 @@ export default function SetupScreen({ onStart }: Props) {
           ].map(({ num, label }) => (
             <div key={label}>
               <div style={{
-                fontFamily: "var(--font-display), sans-serif",
+                fontFamily: "var(--font-space), monospace",
                 fontSize: "1.6rem",
-                fontWeight: 800,
+                fontWeight: 700,
                 letterSpacing: "-0.03em",
                 color: "var(--ink)",
                 lineHeight: 1,
               }}>{num}</div>
-              <div style={{ fontSize: "0.78rem", color: "var(--ink-55)", marginTop: "0.2rem" }}>{label}</div>
+              <div style={{
+                fontFamily: "var(--font-space), monospace",
+                fontSize: "0.6875rem", letterSpacing: "0.05em",
+                textTransform: "uppercase",
+                color: "var(--ink-55)", marginTop: "0.3rem",
+              }}>{label}</div>
             </div>
           ))}
         </div>

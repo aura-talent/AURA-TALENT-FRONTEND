@@ -28,16 +28,15 @@ export default function ScoreDashboard({ evaluation }: { evaluation: Evaluation 
 
   return (
     <div style={{
-      border: "1.5px solid var(--ink-06)",
-      borderRadius: "var(--r-l)",
+      border: "1px solid var(--ink-30)",
+      borderRadius: 0,
       background: "var(--surface)",
       overflow: "hidden",
-      boxShadow: "var(--shadow-card)",
     }}>
       {/* Header */}
       <div style={{
         padding: "1.5rem 1.5rem 1rem",
-        borderBottom: "1px solid var(--ink-06)",
+        borderBottom: "1px dashed var(--ink-30)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -47,7 +46,7 @@ export default function ScoreDashboard({ evaluation }: { evaluation: Evaluation 
           <CircleGauge score={overallScore} size={72} />
           <div>
             <div style={{
-              fontFamily: "var(--font-mono), monospace",
+              fontFamily: "var(--font-space), monospace",
               fontSize: "0.65rem", letterSpacing: "0.12em",
               textTransform: "uppercase", color: "var(--ink-55)", fontWeight: 600,
               marginBottom: "0.2rem",
@@ -55,8 +54,8 @@ export default function ScoreDashboard({ evaluation }: { evaluation: Evaluation 
               Overall score
             </div>
             <div style={{
-              fontFamily: "var(--font-display), sans-serif",
-              fontSize: "1.35rem", fontWeight: 800,
+              fontFamily: "var(--font-space), monospace",
+              fontSize: "1.05rem", fontWeight: 700, textTransform: "uppercase",
               letterSpacing: "-0.025em", color: "var(--ink)",
             }}>
               {scoreLabel(overallScore)}
@@ -66,11 +65,11 @@ export default function ScoreDashboard({ evaluation }: { evaluation: Evaluation 
         {mocked && (
           <span style={{
             padding: "0.2rem 0.6rem",
-            borderRadius: "var(--r-pill)",
+            borderRadius: 0,
             background: "var(--ink-06)",
             color: "var(--ink-55)",
             fontSize: "0.7rem",
-            fontFamily: "var(--font-mono), monospace",
+            fontFamily: "var(--font-space), monospace",
             letterSpacing: "0.06em",
             fontWeight: 600,
           }}>
@@ -80,7 +79,7 @@ export default function ScoreDashboard({ evaluation }: { evaluation: Evaluation 
       </div>
 
       {/* Score bars */}
-      <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid var(--ink-06)" }}>
+      <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px dashed var(--ink-30)" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem" }}>
           {DIMENSIONS.map(({ key, abbr }) => {
             const val = scores[key];
@@ -90,18 +89,18 @@ export default function ScoreDashboard({ evaluation }: { evaluation: Evaluation 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.3rem" }}>
                   <span style={{ fontSize: "0.8125rem", color: "var(--ink-72)", fontWeight: 500 }}>{abbr}</span>
                   <span style={{
-                    fontFamily: "var(--font-mono), monospace",
+                    fontFamily: "var(--font-space), monospace",
                     fontSize: "0.78rem", fontWeight: 700, color: c,
                   }}>
                     {val}
                   </span>
                 </div>
-                <div style={{ height: 5, borderRadius: "var(--r-pill)", background: "var(--ink-06)", overflow: "hidden" }}>
+                <div style={{ height: 5, borderRadius: 0, background: "var(--ink-06)", overflow: "hidden" }}>
                   <div style={{
                     height: "100%",
                     width: `${val}%`,
                     background: c,
-                    borderRadius: "var(--r-pill)",
+                    borderRadius: 0,
                     transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
                   }} />
                 </div>
@@ -112,10 +111,10 @@ export default function ScoreDashboard({ evaluation }: { evaluation: Evaluation 
       </div>
 
       {/* Strengths + Improvements */}
-      <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid var(--ink-06)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
+      <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px dashed var(--ink-30)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
         <div>
           <div style={{
-            fontFamily: "var(--font-mono), monospace",
+            fontFamily: "var(--font-space), monospace",
             fontSize: "0.65rem", letterSpacing: "0.1em",
             textTransform: "uppercase", color: "var(--score-strong)",
             fontWeight: 700, marginBottom: "0.6rem",
@@ -135,7 +134,7 @@ export default function ScoreDashboard({ evaluation }: { evaluation: Evaluation 
         </div>
         <div>
           <div style={{
-            fontFamily: "var(--font-mono), monospace",
+            fontFamily: "var(--font-space), monospace",
             fontSize: "0.65rem", letterSpacing: "0.1em",
             textTransform: "uppercase", color: "var(--score-fair)",
             fontWeight: 700, marginBottom: "0.6rem",
@@ -158,14 +157,17 @@ export default function ScoreDashboard({ evaluation }: { evaluation: Evaluation 
       {/* Summary */}
       <div style={{ padding: "1.25rem 1.5rem" }}>
         <p style={{
-          paddingLeft: "0.85rem",
-          color: "var(--ink-72"
-        }} className="font-(--ink-72) pl-[0.85rem]">Summary</p>
+          fontFamily: "var(--font-space), monospace",
+          fontSize: "0.65rem", letterSpacing: "0.1em",
+          textTransform: "uppercase", color: "var(--ink-55)",
+          fontWeight: 700, marginBottom: "0.6rem",
+        }}>
+          Summary
+        </p>
         <p style={{
           fontSize: "0.875rem",
           color: "var(--ink-72)",
           lineHeight: 1.65,
-          paddingLeft: "0.85rem",
         }}>
           {summary}
         </p>
@@ -199,8 +201,8 @@ function CircleGauge({ score, size }: { score: number; size: number }) {
         alignItems: "center", justifyContent: "center",
       }}>
         <span style={{
-          fontFamily: "var(--font-display), sans-serif",
-          fontSize: size * 0.26, fontWeight: 800,
+          fontFamily: "var(--font-space), monospace",
+          fontSize: size * 0.26, fontWeight: 700,
           color, lineHeight: 1, letterSpacing: "-0.02em",
         }}>
           {score}

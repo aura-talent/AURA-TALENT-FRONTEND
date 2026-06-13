@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -6,18 +6,19 @@ import { useAuth } from "./AuthProvider";
 import { useState } from "react";
 
 const APP_LINKS = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/evaluate", label: "Evaluate" },
-  { href: "/scan", label: "Find jobs" },
-  { href: "/compare", label: "Compare" },
-  { href: "/mock-interview", label: "Mock Interview" },
+  { href: "/dashboard", label: "DASHBOARD" },
+  { href: "/evaluate", label: "EVALUATE" },
+  { href: "/jobs", label: "FIND_JOBS" },
+  { href: "/compare", label: "COMPARE" },
+  { href: "/scan", label: "SCAN_JOBS" },
+  { href: "/mock-interview", label: "MOCK_INTERVIEW" },
 ];
 
 const EMPLOYER_LINKS = [
-  { href: '/employer', label: 'Overview' },
-  { href: '/employer/candidates', label: 'Candidates' },
-  { href: '/employer/jobs', label: 'Jobs' },
-  { href: '/employer/interviews', label: 'Interviews' },
+  { href: '/employer', label: 'OVERVIEW' },
+  { href: '/employer/candidates', label: 'CANDIDATES' },
+  { href: '/employer/jobs', label: 'JOBS' },
+  { href: '/employer/interviews', label: 'INTERVIEWS' },
 ];
 
 export default function Nav() {
@@ -31,7 +32,7 @@ export default function Nav() {
   const links = isEmployerMode ? EMPLOYER_LINKS : APP_LINKS;
 
   return (
-    <header className="nav">
+    <header className="nav nav-blueprint">
       <div className="nav-inner">
         <Link href="/" className="nav-brand">
           <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true">
@@ -56,20 +57,23 @@ export default function Nav() {
               transform="rotate(-90 16 16)"
             />
           </svg>
-          Aura Talent
+          AURA_TALENT
         </Link>
         <nav className="nav-links">
           {onEmployer ? (
-            <>
-              <span className="nav-workspace mono">Employer workspace</span>
-            </>
+            <span className="nav-workspace mono">Employer workspace</span>
           ) : onLanding ? (
             <>
-              <a href="#how">How it works</a>
-              <a href="#report">The report</a>
-              <Link href={role === "employer" ? "/employer" : "/dashboard"}>{role === "employer" ? "Employer workspace" : "Dashboard"}</Link>
+              <a href="#how">HOW_IT_WORKS</a>
+              <a href="#report">THE_REPORT</a>
+              <Link href={role === "employer" ? "/employer" : "/dashboard"}>{role === "employer" ? "EMPLOYER_WORKSPACE" : "DASHBOARD"}</Link>
               {loading ? (
-                <span className="mono" style={{ fontSize: "0.85rem", opacity: 0.5 }}>Loading...</span>
+                <span
+                  className="mono"
+                  style={{ fontSize: "0.85rem", opacity: 0.5 }}
+                >
+                  Loading...
+                </span>
               ) : user ? (
                 <div style={{ position: "relative" }}>
                   <button
@@ -84,11 +88,20 @@ export default function Nav() {
                       padding: 0,
                     }}
                   >
-                    {user.user_metadata?.avatar_url || user.user_metadata?.picture ? (
+                    {user.user_metadata?.avatar_url ||
+                      user.user_metadata?.picture ? (
                       <img
-                        src={user.user_metadata.avatar_url || user.user_metadata.picture}
+                        src={
+                          user.user_metadata.avatar_url ||
+                          user.user_metadata.picture
+                        }
                         alt="Profile"
-                        style={{ width: 32, height: 32, borderRadius: "50%", border: "1px solid var(--ink-12)" }}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          border: "1px solid var(--ink-12)",
+                        }}
                       />
                     ) : (
                       <div
@@ -107,8 +120,13 @@ export default function Nav() {
                         {user.email?.[0].toUpperCase() ?? "U"}
                       </div>
                     )}
-                    <span style={{ fontSize: "0.9375rem", fontWeight: 500 }} className="nav-user-name">
-                      {user.user_metadata?.full_name || user.user_metadata?.name || "Account"}
+                    <span
+                      style={{ fontSize: "0.9375rem", fontWeight: 500 }}
+                      className="nav-user-name"
+                    >
+                      {user.user_metadata?.full_name ||
+                        user.user_metadata?.name ||
+                        "Account"}
                     </span>
                   </button>
 
@@ -120,9 +138,8 @@ export default function Nav() {
                         top: "100%",
                         marginTop: "0.5rem",
                         background: "var(--surface)",
-                        border: "1px solid var(--ink-06)",
-                        borderRadius: "var(--r-m)",
-                        boxShadow: "var(--shadow-card)",
+                        border: "1px solid var(--ink-30)",
+                        borderRadius: 0,
                         padding: "0.5rem",
                         minWidth: "180px",
                         display: "flex",
@@ -131,9 +148,32 @@ export default function Nav() {
                         zIndex: 100,
                       }}
                     >
-                      <div style={{ padding: "0.5rem", borderBottom: "1px solid var(--ink-06)", marginBottom: "0.25rem" }}>
-                        <div style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--ink-55)" }}>Logged in as</div>
-                        <div style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: "0.5rem" }}>
+                      <div
+                        style={{
+                          padding: "0.5rem",
+                          borderBottom: "1px solid var(--ink-06)",
+                          marginBottom: "0.25rem",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: "0.8125rem",
+                            fontWeight: 600,
+                            color: "var(--ink-55)",
+                          }}
+                        >
+                          Logged in as
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.875rem",
+                            fontWeight: 500,
+                            color: "var(--ink)",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           {user.email}
                         </div>
                         {role === "employer" && (
@@ -147,7 +187,7 @@ export default function Nav() {
                           <Link
                             href="/employer"
                             onClick={() => setDropdownOpen(false)}
-                            style={{ padding: "0.5rem", borderRadius: "var(--r-s)", fontSize: "0.875rem", color: "var(--ink-72)" }}
+                            style={{ padding: "0.5rem", borderRadius: 0, fontSize: "0.875rem", color: "var(--ink-72)" }}
                             className="dropdown-item"
                           >
                             Employer workspace
@@ -158,7 +198,7 @@ export default function Nav() {
                         <Link
                           href="/onboarding"
                           onClick={() => setDropdownOpen(false)}
-                          style={{ padding: "0.5rem", borderRadius: "var(--r-s)", fontSize: "0.875rem", color: "var(--ink-72)" }}
+                          style={{ padding: "0.5rem", borderRadius: 0, fontSize: "0.875rem", color: "var(--ink-72)" }}
                           className="dropdown-item"
                         >
                           My resume
@@ -172,7 +212,7 @@ export default function Nav() {
                         style={{
                           textAlign: "left",
                           padding: "0.5rem",
-                          borderRadius: "var(--r-s)",
+                          borderRadius: 0,
                           fontSize: "0.875rem",
                           color: "#bc4a2a",
                           background: "transparent",
@@ -189,10 +229,10 @@ export default function Nav() {
               ) : (
                 <>
                   <Link href="/login" style={{ marginRight: "0.5rem" }}>
-                    Sign in
+                    SIGN_IN
                   </Link>
                   <Link href="/onboarding" className="btn btn-primary !text-white">
-                    Get started
+                    GET_STARTED →
                   </Link>
                 </>
               )}
@@ -203,13 +243,18 @@ export default function Nav() {
                 <Link
                   key={href}
                   href={href}
-                  aria-current={pathname.startsWith(href) ? 'page' : undefined}
+                  aria-current={pathname.startsWith(href) ? "page" : undefined}
                 >
                   {label}
                 </Link>
               ))}
               {loading ? (
-                <span className="mono" style={{ fontSize: "0.85rem", opacity: 0.5 }}>Loading...</span>
+                <span
+                  className="mono"
+                  style={{ fontSize: "0.85rem", opacity: 0.5 }}
+                >
+                  Loading...
+                </span>
               ) : user ? (
                 <div style={{ position: "relative" }}>
                   <button
@@ -224,11 +269,20 @@ export default function Nav() {
                       padding: 0,
                     }}
                   >
-                    {user.user_metadata?.avatar_url || user.user_metadata?.picture ? (
+                    {user.user_metadata?.avatar_url ||
+                      user.user_metadata?.picture ? (
                       <img
-                        src={user.user_metadata.avatar_url || user.user_metadata.picture}
+                        src={
+                          user.user_metadata.avatar_url ||
+                          user.user_metadata.picture
+                        }
                         alt="Profile"
-                        style={{ width: 32, height: 32, borderRadius: "50%", border: "1px solid var(--ink-12)" }}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          border: "1px solid var(--ink-12)",
+                        }}
                       />
                     ) : (
                       <div
@@ -247,8 +301,13 @@ export default function Nav() {
                         {user.email?.[0].toUpperCase() ?? "U"}
                       </div>
                     )}
-                    <span style={{ fontSize: "0.9375rem", fontWeight: 500 }} className="nav-user-name">
-                      {user.user_metadata?.full_name || user.user_metadata?.name || "Account"}
+                    <span
+                      style={{ fontSize: "0.9375rem", fontWeight: 500 }}
+                      className="nav-user-name"
+                    >
+                      {user.user_metadata?.full_name ||
+                        user.user_metadata?.name ||
+                        "Account"}
                     </span>
                   </button>
 
@@ -260,9 +319,8 @@ export default function Nav() {
                         top: "100%",
                         marginTop: "0.5rem",
                         background: "var(--surface)",
-                        border: "1px solid var(--ink-06)",
-                        borderRadius: "var(--r-m)",
-                        boxShadow: "var(--shadow-card)",
+                        border: "1px solid var(--ink-30)",
+                        borderRadius: 0,
                         padding: "0.5rem",
                         minWidth: "180px",
                         display: "flex",
@@ -271,9 +329,32 @@ export default function Nav() {
                         zIndex: 100,
                       }}
                     >
-                      <div style={{ padding: "0.5rem", borderBottom: "1px solid var(--ink-06)", marginBottom: "0.25rem" }}>
-                        <div style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--ink-55)" }}>Logged in as</div>
-                        <div style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: "0.5rem" }}>
+                      <div
+                        style={{
+                          padding: "0.5rem",
+                          borderBottom: "1px solid var(--ink-06)",
+                          marginBottom: "0.25rem",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: "0.8125rem",
+                            fontWeight: 600,
+                            color: "var(--ink-55)",
+                          }}
+                        >
+                          Logged in as
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.875rem",
+                            fontWeight: 500,
+                            color: "var(--ink)",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           {user.email}
                         </div>
                         {role === "employer" && (
@@ -287,7 +368,7 @@ export default function Nav() {
                           <Link
                             href="/employer"
                             onClick={() => setDropdownOpen(false)}
-                            style={{ padding: "0.5rem", borderRadius: "var(--r-s)", fontSize: "0.875rem", color: "var(--ink-72)" }}
+                            style={{ padding: "0.5rem", borderRadius: 0, fontSize: "0.875rem", color: "var(--ink-72)" }}
                             className="dropdown-item"
                           >
                             Employer workspace
@@ -298,7 +379,7 @@ export default function Nav() {
                         <Link
                           href="/onboarding"
                           onClick={() => setDropdownOpen(false)}
-                          style={{ padding: "0.5rem", borderRadius: "var(--r-s)", fontSize: "0.875rem", color: "var(--ink-72)" }}
+                          style={{ padding: "0.5rem", borderRadius: 0, fontSize: "0.875rem", color: "var(--ink-72)" }}
                           className="dropdown-item"
                         >
                           My resume
@@ -312,7 +393,7 @@ export default function Nav() {
                         style={{
                           textAlign: "left",
                           padding: "0.5rem",
-                          borderRadius: "var(--r-s)",
+                          borderRadius: 0,
                           fontSize: "0.875rem",
                           color: "#bc4a2a",
                           background: "transparent",

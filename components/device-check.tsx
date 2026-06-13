@@ -65,17 +65,18 @@ export default function DeviceCheck({ visionStatus, loadVision, onReady }: Props
 
         <div style={{ marginBottom: "2rem" }}>
           <span style={{
-            fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.68rem", letterSpacing: "0.12em",
-            textTransform: "uppercase", color: "var(--ink-55)", fontWeight: 600,
+            fontFamily: "var(--font-space), monospace",
+            fontSize: "0.6875rem", letterSpacing: "0.08em",
+            textTransform: "uppercase", color: "var(--iris)", fontWeight: 700,
           }}>
-            Step 1 of 2 — Device setup
+            (02) // DEVICE_CHECK
           </span>
           <h2 style={{
-            fontFamily: "var(--font-display), sans-serif",
-            fontSize: "clamp(1.5rem, 4vw, 2rem)",
-            fontWeight: 800, letterSpacing: "-0.025em",
-            color: "var(--ink)", marginTop: "0.4rem", lineHeight: 1.15,
+            fontFamily: "var(--font-space), monospace",
+            fontSize: "clamp(1.4rem, 3.6vw, 1.85rem)",
+            fontWeight: 700, letterSpacing: "-0.02em",
+            textTransform: "uppercase",
+            color: "var(--ink)", marginTop: "0.5rem", lineHeight: 1.15,
           }}>
             Camera check
           </h2>
@@ -88,7 +89,7 @@ export default function DeviceCheck({ visionStatus, loadVision, onReady }: Props
           <div style={{
             padding: "1.25rem 1.5rem",
             border: "1.5px solid rgba(188, 74, 42, 0.25)",
-            borderRadius: "var(--r-m)",
+            borderRadius: 0,
             background: "rgba(188, 74, 42, 0.04)",
           }}>
             <div style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start" }}>
@@ -101,12 +102,12 @@ export default function DeviceCheck({ visionStatus, loadVision, onReady }: Props
             {/* Camera feed */}
             <div style={{
               position: "relative",
-              borderRadius: "var(--r-l)",
+              borderRadius: 0,
               overflow: "hidden",
               background: "#0d0d14",
               aspectRatio: "16/9",
               marginBottom: "1.5rem",
-              boxShadow: "var(--shadow-lift)",
+              border: "1px solid var(--ink)",
             }}>
               <video
                 ref={videoRef}
@@ -133,8 +134,8 @@ export default function DeviceCheck({ visionStatus, loadVision, onReady }: Props
                 <div key={id} style={{
                   display: "flex", alignItems: "center", gap: "0.85rem",
                   padding: "0.75rem 1rem",
-                  border: "1px solid var(--ink-06)",
-                  borderRadius: "var(--r-s)",
+                  border: "1px solid var(--ink-30)",
+                  borderRadius: 0,
                   background: "var(--surface)",
                 }}>
                   <StatusDot status={status} />
@@ -155,9 +156,12 @@ export default function DeviceCheck({ visionStatus, loadVision, onReady }: Props
                 background: allReady ? "var(--iris)" : "var(--ink-06)",
                 color: allReady ? "#fff" : "var(--ink-30)",
                 border: "none",
-                borderRadius: "var(--r-pill)",
-                fontSize: "0.9375rem",
-                fontWeight: 600,
+                borderRadius: 0,
+                fontFamily: "var(--font-space), monospace",
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
                 cursor: allReady ? "pointer" : "not-allowed",
                 transition: "all 0.25s ease",
                 display: "flex",
@@ -238,7 +242,7 @@ function CameraLoadingIndicator() {
         animation: "spin-slow 1s linear infinite",
         margin: "0 auto 0.75rem",
       }} />
-      <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.8rem", fontFamily: "var(--font-mono), monospace" }}>
+      <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.8rem", fontFamily: "var(--font-space), monospace" }}>
         Requesting camera…
       </p>
     </div>

@@ -173,12 +173,12 @@ export default function InterviewStage({
   }
 
   return (
-    <div style={{ minHeight: "calc(100svh - 64px)", background: "var(--porcelain)" }}>
+    <div style={{ minHeight: "calc(100svh - 64px)", background: "var(--porcelain)", backgroundImage: `linear-gradient(rgba(26, 29, 41, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(26, 29, 41, 0.035) 1px, transparent 1px)`, backgroundSize: "44px 44px", }}>
       {/* Top progress rail */}
       <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: 2, background: "var(--ink-06)", zIndex: 100 }}>
         <div style={{
           height: "100%",
-          background: "linear-gradient(90deg, var(--iris), #7c6af5)",
+          background: "var(--iris)",
           width: `${progressPct}%`,
           transition: "width 0.7s cubic-bezier(0.4, 0, 0.2, 1)",
         }} />
@@ -190,7 +190,7 @@ export default function InterviewStage({
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "2.5rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <span style={{
-              fontFamily: "var(--font-mono), monospace",
+              fontFamily: "var(--font-space), monospace",
               fontSize: "0.68rem", letterSpacing: "0.12em",
               textTransform: "uppercase", color: "var(--ink-55)", fontWeight: 600,
             }}>
@@ -206,9 +206,9 @@ export default function InterviewStage({
           <span aria-hidden style={{
             position: "absolute",
             top: "-1rem", left: "-0.5rem",
-            fontFamily: "var(--font-display), sans-serif",
-            fontSize: "clamp(4.5rem, 12vw, 7rem)",
-            fontWeight: 900,
+            fontFamily: "var(--font-space), monospace",
+            fontSize: "clamp(4rem, 11vw, 6.5rem)",
+            fontWeight: 700,
             color: "var(--ink-06)",
             lineHeight: 1,
             userSelect: "none",
@@ -235,13 +235,14 @@ export default function InterviewStage({
         <div style={{ position: "relative", marginBottom: "1.5rem" }}>
           <div style={{
             position: "relative",
-            borderRadius: "var(--r-l)",
+            borderRadius: 0,
             overflow: "hidden",
             background: "#0a0a12",
             aspectRatio: "16/9",
+            border: "1px solid var(--ink)",
             boxShadow: stage === "recording"
-              ? "0 0 0 2px var(--score-weak), var(--shadow-lift)"
-              : "var(--shadow-lift)",
+              ? "0 0 0 2px var(--score-weak)"
+              : "none",
             transition: "box-shadow 0.3s ease",
           }}>
             <video
@@ -260,7 +261,7 @@ export default function InterviewStage({
                 position: "absolute", top: "1rem", right: "1rem",
                 display: "flex", alignItems: "center", gap: "0.4rem",
                 background: "rgba(188, 74, 42, 0.9)",
-                borderRadius: "var(--r-pill)",
+                borderRadius: 0,
                 padding: "0.3rem 0.75rem",
                 backdropFilter: "blur(8px)",
               }}>
@@ -270,7 +271,7 @@ export default function InterviewStage({
                   animation: "rec-pulse 0.9s ease-in-out infinite",
                 }} />
                 <span style={{
-                  fontFamily: "var(--font-mono), monospace",
+                  fontFamily: "var(--font-space), monospace",
                   fontSize: "0.65rem", letterSpacing: "0.12em",
                   color: "#fff", fontWeight: 700, textTransform: "uppercase",
                 }}>REC</span>
@@ -283,7 +284,7 @@ export default function InterviewStage({
                 position: "absolute", bottom: "1rem",
                 left: "50%", transform: "translateX(-50%)",
                 background: "rgba(78, 63, 216, 0.88)",
-                borderRadius: "var(--r-pill)",
+                borderRadius: 0,
                 padding: "0.4rem 1.1rem",
                 backdropFilter: "blur(8px)",
                 display: "flex", alignItems: "center", gap: "0.55rem",
@@ -336,13 +337,14 @@ export default function InterviewStage({
                 background: speaking ? "var(--ink-06)" : "var(--iris)",
                 color: speaking ? "var(--ink-30)" : "#fff",
                 border: "none",
-                borderRadius: "var(--r-pill)",
-                fontSize: "0.9375rem", fontWeight: 600,
+                borderRadius: 0,
+                fontFamily: "var(--font-space), monospace",
+                fontSize: "0.75rem", fontWeight: 700,
+                letterSpacing: "0.08em", textTransform: "uppercase",
                 cursor: speaking ? "not-allowed" : "pointer",
                 display: "flex", alignItems: "center",
                 justifyContent: "center", gap: "0.5rem",
                 transition: "all 0.2s ease",
-                boxShadow: speaking ? "none" : "0 4px 16px rgba(78, 63, 216, 0.3)",
               }}
             >
               {speaking ? (
@@ -377,7 +379,7 @@ export default function InterviewStage({
                 <div style={{ width: 20, height: 20, borderRadius: 4, background: "#fff" }} />
               </button>
               <span style={{
-                fontFamily: "var(--font-mono), monospace",
+                fontFamily: "var(--font-space), monospace",
                 fontSize: "0.68rem", color: "var(--ink-55)",
                 letterSpacing: "0.1em", textTransform: "uppercase",
               }}>
@@ -397,9 +399,11 @@ export default function InterviewStage({
                   padding: "0.75rem 1.75rem",
                   background: "var(--iris)",
                   color: "#fff", border: "none",
-                  borderRadius: "var(--r-pill)",
-                  fontWeight: 600, cursor: "pointer",
-                  fontSize: "0.875rem",
+                  borderRadius: 0,
+                  fontFamily: "var(--font-space), monospace",
+                  fontWeight: 700, cursor: "pointer",
+                  fontSize: "0.75rem", letterSpacing: "0.08em",
+                  textTransform: "uppercase",
                 }}
               >
                 Retry evaluation
@@ -421,8 +425,10 @@ export default function InterviewStage({
                 background: "var(--ink)",
                 color: "var(--porcelain)",
                 border: "none",
-                borderRadius: "var(--r-pill)",
-                fontSize: "0.9375rem", fontWeight: 600,
+                borderRadius: 0,
+                fontFamily: "var(--font-space), monospace",
+                fontSize: "0.75rem", fontWeight: 700,
+                letterSpacing: "0.08em", textTransform: "uppercase",
                 cursor: "pointer",
                 display: "flex", alignItems: "center",
                 justifyContent: "center", gap: "0.5rem",
@@ -476,10 +482,11 @@ function StagePill({ stage, speaking }: { stage: Stage; speaking: boolean }) {
     <div style={{
       display: "inline-flex", alignItems: "center", gap: "0.35rem",
       background: c.bg, color: c.color,
+      border: "1px solid currentColor",
       padding: "0.25rem 0.65rem",
-      borderRadius: "var(--r-pill)",
+      borderRadius: 0,
       fontSize: "0.65rem", fontWeight: 700,
-      fontFamily: "var(--font-mono), monospace",
+      fontFamily: "var(--font-space), monospace",
       letterSpacing: "0.1em", textTransform: "uppercase",
     }}>
       <span style={{

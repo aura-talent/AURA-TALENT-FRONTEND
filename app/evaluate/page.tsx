@@ -1,8 +1,9 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import gsap from "gsap";
 import { api, type Evaluation, getUserId } from "@/lib/api";
 import { useStream } from "@/lib/useStream";
 import ScoreDial, { scoreColor } from "@/components/ScoreDial";
@@ -36,6 +37,7 @@ function tierChip(tier: string) {
 
 function EvaluateInner() {
   const { user, loading: authLoading } = useAuth();
+  const root = useRef<HTMLDivElement>(null);
   const params = useSearchParams();
   const [mode, setMode] = useState<"url" | "text">("url");
   const [url, setUrl] = useState(params.get("url") ?? "");
@@ -212,10 +214,55 @@ function EvaluateInner() {
     }
   }
 
+  /* input view entrance: title block prints, the form panel rises */
+  useEffect(() => {
+    if (loading || result) return;
+    const mm = gsap.matchMedia(root);
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const q = gsap.utils.selector(root);
+      const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.65 } });
+      tl.from(q(".page-head > *"), { y: 22, autoAlpha: 0, stagger: 0.1 }).from(
+        q(".panel"),
+        { y: 28, autoAlpha: 0, duration: 0.7 },
+        "-=0.35"
+      );
+    });
+    return () => mm.revert();
+  }, [loading, result]);
+
+  /* report entrance: head prints, score panel lands, bars sweep, report rises */
+  useEffect(() => {
+    if (!result) return;
+    const mm = gsap.matchMedia(root);
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const q = gsap.utils.selector(root);
+      const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.6 } });
+      tl.from(q(".page-head > *"), { y: 22, autoAlpha: 0, stagger: 0.1 })
+        .from(q(".eval-result-left"), { y: 28, autoAlpha: 0, duration: 0.7 }, "-=0.3")
+        .from(
+          q(".bar-fill"),
+          {
+            scaleX: 0,
+            transformOrigin: "left center",
+            duration: 0.9,
+            ease: "power3.inOut",
+            stagger: 0.08,
+          },
+          "-=0.3"
+        )
+        .from(q(".eval-report-panel"), { y: 30, autoAlpha: 0, duration: 0.7 }, "<");
+    });
+    return () => mm.revert();
+  }, [result]);
+
   if (loading) {
     return (
+      <div className="app-sheet">
       <div className="container" style={{ maxWidth: 820 }}>
-        <div className="page-head"><h1>Evaluating</h1></div>
+        <div className="page-head">
+          <div className="page-kicker">EVALUATION_AGENT // RUNNING</div>
+          <h1>Evaluating</h1>
+        </div>
         <div className="panel">
           <StreamProgress
             title="Evaluation agent"
@@ -225,13 +272,16 @@ function EvaluateInner() {
         </div>
         {error && <div className="notice notice-error" style={{ marginTop: "1rem" }}>{error}</div>}
       </div>
+      </div>
     );
   }
 
   if (result) {
     return (
+      <div className="app-sheet" ref={root}>
       <div className="container" style={{ maxWidth: "var(--maxw)", paddingBottom: "4rem" }}>
         <div className="page-head">
+          <div className="page-kicker">(02) // EVALUATION_REPORT</div>
           <h1>{result.company} — {result.role}</h1>
           <p>{result.archetype}</p>
         </div>
@@ -245,9 +295,15 @@ function EvaluateInner() {
           }}
         >
           {/* Left Column: Metrics & Recommendations */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", position: isDesktop ? "sticky" : "static", top: "6.5rem" }}>
-            <div className="panel" style={{ position: "relative", overflow: "hidden" }}>
-              <div className="aura-glow" style={{ opacity: 0.35 }} />
+          <div className="eval-result-left" style={{ display: "flex", flexDirection: "column", gap: "1.5rem", position: isDesktop ? "sticky" : "static", top: "6.5rem" }}>
+            <div className="panel">
+              <span className="eval-tick eval-tick-tl" />
+              <span className="eval-tick eval-tick-tr" />
+              <span className="eval-tick eval-tick-bl" />
+              <span className="eval-tick eval-tick-br" />
+              <div className="page-kicker" style={{ marginBottom: "1rem" }}>
+                FIT_SCORE // FIVE_AXES
+              </div>
               <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: "1.5rem", alignItems: "center" }}>
                 <ScoreDial score={result.score} />
                 <div style={{ width: "100%" }}>
@@ -317,7 +373,7 @@ function EvaluateInner() {
           </div>
 
           {/* Right Column: Detailed Markdown Report */}
-          <div className="panel" style={{ minWidth: 0, maxHeight: isDesktop ? "calc(100vh - 12rem)" : "none", overflowY: isDesktop ? "auto" : "visible" }}>
+          <div className="panel eval-report-panel" style={{ minWidth: 0, maxHeight: isDesktop ? "calc(100vh - 12rem)" : "none", overflowY: isDesktop ? "auto" : "visible" }}>
             <ReportView markdown={result.report_markdown} />
           </div>
         </div>
@@ -450,12 +506,15 @@ function EvaluateInner() {
           </div>
         )}
       </div>
+      </div>
     );
   }
 
   return (
+    <div className="app-sheet" ref={root}>
     <div className="container" style={{ maxWidth: 760, paddingBottom: "4rem" }}>
       <div className="page-head">
+        <div className="page-kicker">(01) // INPUT</div>
         <h1>Evaluate a job</h1>
         <p>Paste a job link or the description itself. Aura scores your fit and writes the full report — about a minute.</p>
       </div>
@@ -510,6 +569,7 @@ function EvaluateInner() {
           Score this job
         </button>
       </div>
+    </div>
     </div>
   );
 }

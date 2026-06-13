@@ -52,31 +52,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const authId = currentSession.user.id;
       setUserId(authId);
 
-      // Save/sync user info to backend
       const userMeta = currentSession.user.user_metadata;
       try {
         let activeRole = "candidate";
         try {
-          // Query the custom users table directly via Supabase client
-          // (avoids backend routing issues and uses the user's own JWT for RLS)
-          const { data: userRow } = await supabase
-            .from("users")
-            .select("role")
-            .eq("id", authId)
-            .single();
-          if (userRow?.role) {
-            activeRole = userRow.role;
-          } else {
-            // User not in custom table yet — check pending role from onboarding
-            const pendingRole = localStorage.getItem("aura_pending_role");
-            activeRole = pendingRole ?? userMeta?.role ?? "candidate";
-            if (pendingRole) localStorage.removeItem("aura_pending_role");
-          }
-        } catch {
+          const authMode = localStorage.getItem("aura_auth_mode");
           const pendingRole = localStorage.getItem("aura_pending_role");
-          activeRole = pendingRole ?? userMeta?.role ?? "candidate";
-          if (pendingRole) localStorage.removeItem("aura_pending_role");
+
+          // Fetch the user's existing DB row (may exist due to DB trigger even for new users)
+          let userRowData: { role: string } | null = null;
+          try {
+            const { data: userRow } = await supabase
+              .from("users")
+              .select("role")
+              .eq("id", authId)
+              .single();
+            userRowData = userRow;
+          } catch {
+            // Ignore — user may not have a row yet
+          }
+
+          if (authMode === "signup") {
+            if (pendingRole) {
+              // User explicitly chose a role — ALWAYS honor it.
+              // Do not block based on DB row existence; the trigger may have already created one.
+              activeRole = pendingRole;
+              localStorage.removeItem("aura_pending_role");
+              localStorage.removeItem("aura_auth_mode");
+              await supabase.from("users").upsert({ id: authId, role: activeRole });
+              // Fall through — /auth/callback will redirect based on role
+            } else {
+              // Signup flow reached without a role selection — send back to pick one.
+              localStorage.removeItem("aura_auth_mode");
+              await supabase.auth.signOut();
+              if (typeof window !== "undefined") {
+                window.location.href = `/login?mode=signup`;
+              }
+              return;
+            }
+          } else if (authMode === "signin") {
+            // Returning user signing in
+            if (userRowData?.role) {
+              activeRole = userRowData.role;
+              localStorage.removeItem("aura_auth_mode");
+            } else {
+              // No completed account found — redirect to sign up
+              localStorage.removeItem("aura_auth_mode");
+              await supabase.auth.signOut();
+              if (typeof window !== "undefined") {
+                window.location.href = `/login?mode=signup&error=account_not_found`;
+              }
+              return;
+            }
+          } else {
+            // No auth mode — session restored (page refresh / direct navigation).
+            // Just use whatever role is already in the DB.
+            activeRole = userRowData?.role ?? userMeta?.role ?? "candidate";
+          }
+        } catch (innerErr) {
+          console.error("Auth init error:", innerErr);
         }
+
         setRole(activeRole);
 
         await api.saveUser({
@@ -84,6 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: currentSession.user.email ?? null,
           full_name: userMeta?.full_name ?? userMeta?.name ?? null,
           avatar_url: userMeta?.avatar_url ?? userMeta?.picture ?? null,
+          role: activeRole,
         });
 
         // Trigger data migration if we have a legacy anonymous ID
@@ -93,7 +130,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             anon_id: anonId,
             auth_id: authId,
           });
-          // Update aura_uid in localStorage to user ID to prevent redundant migrations
           localStorage.setItem("aura_uid", authId);
         }
       } catch (err) {

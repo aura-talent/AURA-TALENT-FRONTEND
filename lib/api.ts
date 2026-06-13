@@ -84,6 +84,59 @@ export interface Legitimacy {
   context_notes: string;
 }
 
+export interface SalaryBand {
+  low: number; // ~P25
+  mid: number; // ~P50 / median
+  high: number; // ~P75
+}
+
+/**
+ * Salary intelligence attached to an evaluation. Every figure carries its
+ * provenance (sources, as_of, confidence) so the UI can stay honest when
+ * data is thin — the same principle as the legitimacy tier. All fields
+ * beyond role_worth/currency/confidence are optional; the panel degrades
+ * gracefully when the backend can only supply part of the picture.
+ */
+export interface SalaryEstimate {
+  currency: string; // ISO 4217, e.g. "USD", "MYR"
+  period: "year" | "month" | "hour";
+  role_worth: SalaryBand; // what this role should pay (base)
+  candidate_worth?: SalaryBand; // what the user is worth, from their profile
+  total_comp_high?: number; // realistic ceiling incl. bonus/equity
+  posted?: { low?: number; high?: number }; // range from the JD, if stated
+  gap?: {
+    verdict: "below" | "fair" | "above"; // posted range vs role_worth
+    delta_pct: number; // signed %: posted mid vs role mid
+    note: string;
+  };
+  negotiation?: { anchor: number; line: string };
+  confidence: "high" | "medium" | "low";
+  sources: string[]; // e.g. ["Adzuna", "BLS OES 15-1252"]
+  as_of: string; // ISO date the market data was pulled
+  location_basis: string; // e.g. "Remote (US national)", "Kuala Lumpur"
+}
+
+export interface SkillDelta {
+  skill: string;
+  delta_pct: number;
+  note: string;
+}
+
+/** Candidate's own market worth, profile-driven (the "Your worth" page). */
+export interface SelfWorthEstimate {
+  currency: string;
+  period: "year" | "month" | "hour";
+  worth: SalaryBand;
+  total_comp_high?: number;
+  confidence: "high" | "medium" | "low";
+  sources: string[];
+  as_of: string;
+  location_basis: string;
+  headline_role: string;
+  summary: string;
+  skill_deltas: SkillDelta[];
+}
+
 export interface Evaluation {
   evaluation_id: number;
   company: string;
@@ -96,16 +149,38 @@ export interface Evaluation {
   report_markdown: string;
   keywords: string[];
   jd_url?: string;
+  salary?: SalaryEstimate;
 }
 
 export interface Application {
+  id: string;
   evaluation_id: number;
   date: string;
   company: string;
   role: string;
   score: number;
   status: string;
+  interview_type: "virtual" | "physical" | "none";
+  mock_interview_done: boolean;
   notes: string;
+  attachments: { name: string; url: string; type: "file" | "link"; category?: string }[];
+  priority: "low" | "medium" | "high";
+  tags: string[];
+  interviews: {
+    id: string;
+    name: string;
+    type: "virtual" | "physical" | "phone";
+    date: string;
+    interviewer?: string;
+    checklist?: { text: string; done: boolean }[];
+    feedback?: string;
+  }[];
+  timeline: {
+    date: string;
+    title: string;
+    description: string;
+    custom?: boolean;
+  }[];
 }
 
 export interface ResumeData {
@@ -120,6 +195,50 @@ export interface JobPosting {
   url: string;
   location: string;
   source: string;
+}
+
+export type MoveCategory =
+  | "Networking"
+  | "Side project / business"
+  | "Visibility / personal brand"
+  | "Internal play"
+  | "Skill / credential"
+  | "Strategic job move"
+  | "Comp / geo arbitrage"
+  | "Mentorship";
+
+export interface CareerMove {
+  category: MoveCategory | string; // model may return a close variant; treat as string-safe
+  action: string;
+  why: string;
+  effort: "low" | "medium" | "high" | string;
+  timeframe: string;
+}
+
+export interface CareerRoute {
+  title: string;
+  archetype: string;
+  fit: number; // 1–5, how realistic from the current position
+  time_horizon: string;
+  rationale: string;
+  skill_gaps: string[];
+  moves: CareerMove[];
+}
+
+export interface CareerPathOut {
+  user_id: string;
+  current_assessment: string;
+  first_move: string;
+  routes: CareerRoute[];
+  recommended_route: string;
+  evaluations_considered: number;
+  report_markdown: string;
+}
+
+export interface CareerPathIn {
+  user_id: string;
+  goal?: string;
+  horizon?: string;
 }
 
 /* ── Endpoints ── */
@@ -146,6 +265,9 @@ export const api = {
       evaluation_ids,
     }),
 
+  selfWorth: (input: { location?: string; currency?: string } = {}) =>
+    postJson<SelfWorthEstimate>("salary/self", { user_id: getUserId(), ...input }),
+
   suggestions: (input: { jd_text?: string; jd_url?: string }) =>
     postJson<{ suggestions_markdown: string }>("resume/suggestions", {
       user_id: getUserId(),
@@ -163,11 +285,39 @@ export const api = {
       `applications/${getUserId()}/${id}/report`
     ),
 
-  updateStatus: (id: number, status: string, notes?: string) =>
+  updateStatus: (id: string | number, status: string, notes?: string) =>
     request<{ ok: boolean }>(`applications/${getUserId()}/${id}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, notes }),
+    }),
+
+  createManualApplication: (company: string, role: string, status = "Applied") =>
+    postJson<Application>(`applications/${getUserId()}`, { company, role, status }),
+
+  updateApplicationDetails: (
+    applicationId: string,
+    updatePayload: {
+      status: string;
+      interview_type: string;
+      mock_interview_done: boolean;
+      notes: string;
+      attachments: Application["attachments"];
+      priority: string;
+      tags: string[];
+      interviews: Application["interviews"];
+      timeline: Application["timeline"];
+    }
+  ) =>
+    request<{ ok: boolean }>(`applications/${getUserId()}/${applicationId}/details`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatePayload),
+    }),
+
+  deleteApplication: (applicationId: string) =>
+    request<{ ok: boolean }>(`applications/${getUserId()}/${applicationId}`, {
+      method: "DELETE",
     }),
 
   saveUser: (input: { id: string; email: string | null; full_name: string | null; avatar_url: string | null; role?: string | null }) =>

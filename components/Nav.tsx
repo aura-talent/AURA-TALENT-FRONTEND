@@ -3,11 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
-import { useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 
 const APP_LINKS = [
   { href: "/dashboard", label: "DASHBOARD" },
+  { href: "/tracker", label: "JOB_TRACKER" },
   { href: "/evaluate", label: "EVALUATE" },
+  { href: "/worth", label: "YOUR_WORTH" },
   { href: "/jobs", label: "FIND_JOBS" },
   { href: "/compare", label: "COMPARE" },
   { href: "/scan", label: "SCAN_JOBS" },
@@ -27,9 +30,46 @@ export default function Nav() {
   const onEmployer = pathname.startsWith("/employer");
   const { user, loading, role, signOut } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  // animate the sheet back up before unmounting
+  function closeMenu() {
+    setClosing(true);
+    window.setTimeout(() => {
+      setMenuOpen(false);
+      setClosing(false);
+    }, 450);
+  }
 
   const isEmployerMode = role === "employer";
   const links = isEmployerMode ? EMPLOYER_LINKS : APP_LINKS;
+  const currentIdx = links.findIndex((l) => pathname.startsWith(l.href));
+
+  // close both menus whenever the route changes
+  useEffect(() => {
+    setMenuOpen(false);
+    setDropdownOpen(false);
+  }, [pathname]);
+
+  // lock scroll + close on Escape while the fullscreen menu is open.
+  // Pad by the scrollbar width so removing the scrollbar doesn't shift
+  // the page sideways (no permanent gutter reserved).
+  useEffect(() => {
+    if (!menuOpen) return;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeMenu();
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.paddingRight = "";
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
 
   return (
     <header className="nav nav-blueprint">
@@ -86,6 +126,7 @@ export default function Nav() {
                       border: "none",
                       color: "var(--ink)",
                       padding: 0,
+                      flexShrink: 0,
                     }}
                   >
                     {user.user_metadata?.avatar_url ||
@@ -121,7 +162,7 @@ export default function Nav() {
                       </div>
                     )}
                     <span
-                      style={{ fontSize: "0.9375rem", fontWeight: 500 }}
+                      style={{ fontSize: "0.9375rem", fontWeight: 500, whiteSpace: "nowrap" }}
                       className="nav-user-name"
                     >
                       {user.user_metadata?.full_name ||
@@ -196,7 +237,7 @@ export default function Nav() {
                       )}
                       {role === "candidate" && (
                         <Link
-                          href="/onboarding"
+                          href="/my-resume"
                           onClick={() => setDropdownOpen(false)}
                           style={{ padding: "0.5rem", borderRadius: 0, fontSize: "0.875rem", color: "var(--ink-72)" }}
                           className="dropdown-item"
@@ -228,10 +269,10 @@ export default function Nav() {
                 </div>
               ) : (
                 <>
-                  <Link href="/login" style={{ marginRight: "0.5rem" }}>
+                  <Link href="/login?mode=signin" style={{ marginRight: "0.5rem" }}>
                     SIGN_IN
                   </Link>
-                  <Link href="/onboarding" className="btn btn-primary !text-white">
+                  <Link href="/login?mode=signup" className="btn btn-primary !text-white">
                     GET_STARTED →
                   </Link>
                 </>
@@ -239,15 +280,71 @@ export default function Nav() {
             </>
           ) : (
             <>
-              {links.map(({ href, label }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  aria-current={pathname.startsWith(href) ? "page" : undefined}
+              <button
+                className="nav-index-toggle"
+                onClick={() => (menuOpen ? closeMenu() : setMenuOpen(true))}
+                aria-expanded={menuOpen}
+                aria-label="Open navigation index"
+              >
+                <span className="nav-index-current">
+                  {currentIdx >= 0
+                    ? `${String(currentIdx + 1).padStart(2, "0")} / ${links[currentIdx].label}`
+                    : "INDEX"}
+                </span>
+                <span
+                  className={menuOpen ? "nav-index-caret open" : "nav-index-caret"}
+                  aria-hidden="true"
                 >
-                  {label}
-                </Link>
-              ))}
+                  +
+                </span>
+              </button>
+              {menuOpen && mounted &&
+                createPortal(
+                  <div
+                    className={closing ? "nav-menu-overlay closing" : "nav-menu-overlay"}
+                    role="dialog"
+                    aria-modal="true"
+                  >
+                    <span className="nav-menu-label nav-menu-tl">
+                      AURA_TALENT
+                      <br />
+                      {isEmployerMode ? "EMPLOYER_INDEX" : "WORKSPACE_INDEX"}
+                    </span>
+                    <span className="nav-menu-label nav-menu-br">
+                      {currentIdx >= 0 ? `// ${links[currentIdx].label}` : "// MENU"}
+                      <br />
+                      SELECT_DESTINATION
+                    </span>
+                    <button
+                      className="nav-menu-close"
+                      onClick={closeMenu}
+                      aria-label="Close menu"
+                    >
+                      ×
+                    </button>
+                    {user && (
+                      <span className="nav-menu-foot">LOGGED_IN // {user.email}</span>
+                    )}
+                    <div className="nav-menu-inner">
+                      <nav className="nav-menu-links">
+                        {links.map((l, i) => (
+                          <Link
+                            key={l.href}
+                            href={l.href}
+                            className="nav-menu-link"
+                            aria-current={pathname.startsWith(l.href) ? "page" : undefined}
+                            onClick={() => setMenuOpen(false)}
+                            style={{ "--i": i } as CSSProperties}
+                          >
+                            <span className="nav-menu-num">{String(i + 1).padStart(2, "0")}</span>
+                            <span className="nav-menu-text">{l.label}</span>
+                          </Link>
+                        ))}
+                      </nav>
+                    </div>
+                  </div>,
+                  document.body
+                )}
               {loading ? (
                 <span
                   className="mono"
@@ -267,6 +364,7 @@ export default function Nav() {
                       border: "none",
                       color: "var(--ink)",
                       padding: 0,
+                      flexShrink: 0,
                     }}
                   >
                     {user.user_metadata?.avatar_url ||
@@ -302,7 +400,7 @@ export default function Nav() {
                       </div>
                     )}
                     <span
-                      style={{ fontSize: "0.9375rem", fontWeight: 500 }}
+                      style={{ fontSize: "0.9375rem", fontWeight: 500, whiteSpace: "nowrap" }}
                       className="nav-user-name"
                     >
                       {user.user_metadata?.full_name ||
@@ -377,7 +475,7 @@ export default function Nav() {
                       )}
                       {role === "candidate" && (
                         <Link
-                          href="/onboarding"
+                          href="/my-resume"
                           onClick={() => setDropdownOpen(false)}
                           style={{ padding: "0.5rem", borderRadius: 0, fontSize: "0.875rem", color: "var(--ink-72)" }}
                           className="dropdown-item"
@@ -409,7 +507,7 @@ export default function Nav() {
                 </div>
               ) : (
                 <>
-                  <Link href="/login" className="btn btn-ghost">
+                  <Link href="/login?mode=signin" className="btn btn-ghost">
                     Sign in
                   </Link>
                 </>

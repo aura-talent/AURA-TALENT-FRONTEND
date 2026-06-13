@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 
 const APP_LINKS = [
   { href: "/dashboard", label: "DASHBOARD" },
@@ -30,6 +31,18 @@ export default function Nav() {
   const { user, loading, role, signOut } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  // animate the sheet back up before unmounting
+  function closeMenu() {
+    setClosing(true);
+    window.setTimeout(() => {
+      setMenuOpen(false);
+      setClosing(false);
+    }, 450);
+  }
 
   const isEmployerMode = role === "employer";
   const links = isEmployerMode ? EMPLOYER_LINKS : APP_LINKS;
@@ -40,6 +53,23 @@ export default function Nav() {
     setMenuOpen(false);
     setDropdownOpen(false);
   }, [pathname]);
+
+  // lock scroll + close on Escape while the fullscreen menu is open.
+  // Pad by the scrollbar width so removing the scrollbar doesn't shift
+  // the page sideways (no permanent gutter reserved).
+  useEffect(() => {
+    if (!menuOpen) return;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeMenu();
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.paddingRight = "";
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
 
   return (
     <header className="nav nav-blueprint">
@@ -249,46 +279,71 @@ export default function Nav() {
             </>
           ) : (
             <>
-              <div className="nav-index">
-                <button
-                  className="nav-index-toggle"
-                  onClick={() => setMenuOpen((o) => !o)}
-                  aria-expanded={menuOpen}
-                  aria-label="Open navigation index"
+              <button
+                className="nav-index-toggle"
+                onClick={() => (menuOpen ? closeMenu() : setMenuOpen(true))}
+                aria-expanded={menuOpen}
+                aria-label="Open navigation index"
+              >
+                <span className="nav-index-current">
+                  {currentIdx >= 0
+                    ? `${String(currentIdx + 1).padStart(2, "0")} / ${links[currentIdx].label}`
+                    : "INDEX"}
+                </span>
+                <span
+                  className={menuOpen ? "nav-index-caret open" : "nav-index-caret"}
+                  aria-hidden="true"
                 >
-                  <span className="nav-index-current">
-                    {currentIdx >= 0
-                      ? `${String(currentIdx + 1).padStart(2, "0")} / ${links[currentIdx].label}`
-                      : "INDEX"}
-                  </span>
-                  <span className={menuOpen ? "nav-index-caret open" : "nav-index-caret"} aria-hidden="true">
-                    +
-                  </span>
-                </button>
-                {menuOpen && (
-                  <>
-                    <div className="nav-index-backdrop" onClick={() => setMenuOpen(false)} />
-                    <div className="nav-index-panel" role="menu">
-                      <span className="nav-index-head">
-                        INDEX // {isEmployerMode ? "EMPLOYER" : "WORKSPACE"}
-                      </span>
-                      {links.map((l, i) => (
-                        <Link
-                          key={l.href}
-                          href={l.href}
-                          role="menuitem"
-                          className="nav-index-item"
-                          aria-current={pathname.startsWith(l.href) ? "page" : undefined}
-                          onClick={() => setMenuOpen(false)}
-                        >
-                          <span className="nav-index-num">{String(i + 1).padStart(2, "0")}</span>
-                          <span>{l.label}</span>
-                        </Link>
-                      ))}
+                  +
+                </span>
+              </button>
+              {menuOpen && mounted &&
+                createPortal(
+                  <div
+                    className={closing ? "nav-menu-overlay closing" : "nav-menu-overlay"}
+                    role="dialog"
+                    aria-modal="true"
+                  >
+                    <span className="nav-menu-label nav-menu-tl">
+                      AURA_TALENT
+                      <br />
+                      {isEmployerMode ? "EMPLOYER_INDEX" : "WORKSPACE_INDEX"}
+                    </span>
+                    <span className="nav-menu-label nav-menu-br">
+                      {currentIdx >= 0 ? `// ${links[currentIdx].label}` : "// MENU"}
+                      <br />
+                      SELECT_DESTINATION
+                    </span>
+                    <button
+                      className="nav-menu-close"
+                      onClick={closeMenu}
+                      aria-label="Close menu"
+                    >
+                      ×
+                    </button>
+                    {user && (
+                      <span className="nav-menu-foot">LOGGED_IN // {user.email}</span>
+                    )}
+                    <div className="nav-menu-inner">
+                      <nav className="nav-menu-links">
+                        {links.map((l, i) => (
+                          <Link
+                            key={l.href}
+                            href={l.href}
+                            className="nav-menu-link"
+                            aria-current={pathname.startsWith(l.href) ? "page" : undefined}
+                            onClick={() => setMenuOpen(false)}
+                            style={{ "--i": i } as CSSProperties}
+                          >
+                            <span className="nav-menu-num">{String(i + 1).padStart(2, "0")}</span>
+                            <span className="nav-menu-text">{l.label}</span>
+                          </Link>
+                        ))}
+                      </nav>
                     </div>
-                  </>
+                  </div>,
+                  document.body
                 )}
-              </div>
               {loading ? (
                 <span
                   className="mono"

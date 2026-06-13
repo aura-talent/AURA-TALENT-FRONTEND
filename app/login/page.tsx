@@ -10,19 +10,41 @@ function LoginInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") ?? "/dashboard";
+  
+  const initialMode = searchParams.get("mode") === "signup" ? "signup" : "signin";
+  const errorParam = searchParams.get("error");
+  
+  const [mode, setMode] = useState<"signin" | "signup">(initialMode);
+  const [role, setRole] = useState<"candidate" | "employer" | null>(null);
   const [signingIn, setSigningIn] = useState<"google" | "linkedin" | null>(null);
 
   useEffect(() => {
     if (!loading && user) router.push(redirect);
   }, [user, loading, router, redirect]);
 
+  const handleSelectRole = (selectedRole: "candidate" | "employer") => {
+    setRole(selectedRole);
+  };
+
   const handleSignIn = async (provider: "google" | "linkedin") => {
     setSigningIn(provider);
     try {
+      if (typeof window !== "undefined") {
+        if (mode === "signup" && role) {
+          localStorage.setItem("aura_pending_role", role);
+        } else {
+          localStorage.removeItem("aura_pending_role");
+        }
+        localStorage.setItem("aura_auth_mode", mode);
+      }
       if (provider === "google") await signInWithGoogle();
       if (provider === "linkedin") await signInWithLinkedIn();
     } catch {
       setSigningIn(null);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("aura_pending_role");
+        localStorage.removeItem("aura_auth_mode");
+      }
     }
   };
 
@@ -45,17 +67,17 @@ function LoginInner() {
       {/* Aura ambient glow */}
       <div className="auth-glow" aria-hidden="true" />
 
-      {/* Corner HUD labels — same as hero and intro-loader */}
+      {/* Corner HUD labels */}
       <span className="auth-hud auth-hud-tl" aria-hidden="true">
         (AUTH) // GATEWAY<br />
         AURA_TALENT v1.0
       </span>
       <span className="auth-hud auth-hud-br" aria-hidden="true">
         OAUTH_SECURE<br />
-        SESSION_INIT
+        {mode === "signup" ? "NEW_USER_INIT" : "SESSION_INIT"}
       </span>
 
-      {/* The panel — styled like the hero eval-panel */}
+      {/* The panel */}
       <div className="auth-panel">
         {/* Registration-tick corners */}
         <span className="auth-tick auth-tick-tl" aria-hidden="true" />
@@ -65,7 +87,6 @@ function LoginInner() {
 
         {/* Panel header */}
         <div className="auth-panel-head">
-          {/* Logo */}
           <div className="auth-logo">
             <svg width="32" height="32" viewBox="0 0 32 32" aria-label="Aura Talent">
               <defs>
@@ -89,77 +110,128 @@ function LoginInner() {
             </svg>
             <div>
               <div className="auth-logo-name">Aura Talent</div>
-              <div className="auth-logo-sub">WORKSPACE_ACCESS</div>
+              <div className="auth-logo-sub">{mode === "signup" ? "WORKSPACE_CREATION" : "WORKSPACE_ACCESS"}</div>
             </div>
           </div>
-
-          {/* Status dot */}
           <div className="auth-status">
             <span className="auth-status-dot" />
             ONLINE
           </div>
         </div>
 
-        {/* Dashed rule */}
-        <div className="auth-rule" aria-hidden="true" />
+        {/* Auth Tabs */}
+        <div className="auth-tabs">
+          <button 
+            className={`auth-tab ${mode === "signin" ? "active" : ""}`}
+            onClick={() => { setMode("signin"); setRole(null); }}
+          >
+            Sign In
+          </button>
+          <button 
+            className={`auth-tab ${mode === "signup" ? "active" : ""}`}
+            onClick={() => setMode("signup")}
+          >
+            Create Account
+          </button>
+        </div>
 
         {/* Main copy */}
         <div className="auth-copy">
-          <div className="auth-kicker">[AUTH_REQUIRED]</div>
-          <h1 className="auth-heading">Sign in to Aura.</h1>
+          {errorParam === "already_registered" && (
+            <div className="notice notice-error" style={{ marginBottom: "1rem" }}>
+              You already have an account. Please sign in instead.
+            </div>
+          )}
+          {errorParam === "account_not_found" && (
+            <div className="notice notice-error" style={{ marginBottom: "1rem" }}>
+              Account not found. Please create an account first.
+            </div>
+          )}
+
+          <h1 className="auth-heading">{mode === "signin" ? "Welcome back." : "Join Aura."}</h1>
           <p className="auth-sub">
-            Know which jobs deserve you.
+            {mode === "signin" 
+              ? "Know which jobs deserve you."
+              : !role 
+                ? "Are you looking for jobs or hiring talent?"
+                : role === "employer" 
+                  ? "Sign up as an employer to discover top talent."
+                  : "Sign up as a candidate to find jobs that deserve you."
+            }
           </p>
         </div>
 
-        {/* Dashed rule */}
         <div className="auth-rule" aria-hidden="true" />
 
         {/* Auth actions */}
         <div className="auth-actions">
-          <button
-            id="login-google-btn"
-            onClick={() => handleSignIn("google")}
-            disabled={signingIn !== null}
-            className="btn btn-ghost auth-btn"
-          >
-            {signingIn === "google" ? (
-              <span className="auth-spinner" />
-            ) : (
-              <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0 }}>
-                <path fill="#EA4335" d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.37 0 3.39 2.673 1.486 6.573l3.78 3.192Z" />
-                <path fill="#4285F4" d="M23.64 12.273c0-.818-.073-1.609-.208-2.373H12v4.582h6.54c-.282 1.505-1.127 2.782-2.395 3.636l3.736 2.9C22.064 19.064 23.64 15.936 23.64 12.273Z" />
-                <path fill="#FBBC05" d="M5.266 14.235 1.486 17.427C3.39 21.327 7.37 24 12 24c3.082 0 5.673-1.009 7.564-2.755l-3.736-2.9c-1.027.691-2.345 1.109-3.828 1.109-2.936 0-5.427-1.982-6.31-4.645l-3.78 3.191Z" />
-                <path fill="#34A853" d="M1.486 6.573A12.016 12.016 0 0 0 1 12c0 1.955.473 3.81 1.305 5.46L6.09 14.27A7.03 7.03 0 0 1 5.266 12c0-1.045.232-2.04.646-2.946L2.126 5.864l-.64 1.127-.001-.418Z" />
-              </svg>
-            )}
-            {signingIn === "google" ? "Authenticating…" : "Continue with Google"}
-          </button>
-
-          <button
-            id="login-linkedin-btn"
-            onClick={() => handleSignIn("linkedin")}
-            disabled={signingIn !== null}
-            className="btn auth-btn auth-btn-linkedin"
-          >
-            {signingIn === "linkedin" ? (
-              <span className="auth-spinner auth-spinner-white" />
-            ) : (
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ flexShrink: 0 }}>
-                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
-              </svg>
-            )}
-            {signingIn === "linkedin" ? "Authenticating…" : "Continue with LinkedIn"}
-          </button>
+          {mode === "signup" && !role ? (
+            <>
+              <button
+                onClick={() => handleSelectRole("candidate")}
+                className="btn auth-btn auth-btn-candidate"
+              >
+                I am a Candidate
+              </button>
+              <button
+                onClick={() => handleSelectRole("employer")}
+                className="btn auth-btn auth-btn-employer"
+              >
+                I am an Employer
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                id="login-google-btn"
+                onClick={() => handleSignIn("google")}
+                disabled={signingIn !== null}
+                className="btn btn-ghost auth-btn"
+              >
+                {signingIn === "google" ? (
+                  <span className="auth-spinner" />
+                ) : (
+                  <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0 }}>
+                    <path fill="#EA4335" d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.37 0 3.39 2.673 1.486 6.573l3.78 3.192Z" />
+                    <path fill="#4285F4" d="M23.64 12.273c0-.818-.073-1.609-.208-2.373H12v4.582h6.54c-.282 1.505-1.127 2.782-2.395 3.636l3.736 2.9C22.064 19.064 23.64 15.936 23.64 12.273Z" />
+                    <path fill="#FBBC05" d="M5.266 14.235 1.486 17.427C3.39 21.327 7.37 24 12 24c3.082 0 5.673-1.009 7.564-2.755l-3.736-2.9c-1.027.691-2.345 1.109-3.828 1.109-2.936 0-5.427-1.982-6.31-4.645l-3.78 3.191Z" />
+                    <path fill="#34A853" d="M1.486 6.573A12.016 12.016 0 0 0 1 12c0 1.955.473 3.81 1.305 5.46L6.09 14.27A7.03 7.03 0 0 1 5.266 12c0-1.045.232-2.04.646-2.946L2.126 5.864l-.64 1.127-.001-.418Z" />
+                  </svg>
+                )}
+                {signingIn === "google" ? "Authenticating…" : (mode === "signup" ? "Sign up with Google" : "Continue with Google")}
+              </button>
+              <button
+                id="login-linkedin-btn"
+                onClick={() => handleSignIn("linkedin")}
+                disabled={signingIn !== null}
+                className="btn auth-btn auth-btn-linkedin"
+              >
+                {signingIn === "linkedin" ? (
+                  <span className="auth-spinner auth-spinner-white" />
+                ) : (
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ flexShrink: 0 }}>
+                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                  </svg>
+                )}
+                {signingIn === "linkedin" ? "Authenticating…" : (mode === "signup" ? "Sign up with LinkedIn" : "Continue with LinkedIn")}
+              </button>
+            </>
+          )}
         </div>
 
         {/* Footer */}
         <div className="auth-panel-foot">
-          <Link href="/" className="auth-back">
-            ← HOME
-          </Link>
+          {mode === "signup" && role ? (
+            <button onClick={() => setRole(null)} className="auth-back" style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+              ← BACK
+            </button>
+          ) : (
+            <Link href="/" className="auth-back">
+              ← HOME
+            </Link>
+          )}
           <span className="auth-legal">
-            Signing in accepts our{" "}
+            {mode === "signup" ? "Signing up" : "Signing in"} accepts our{" "}
             <a href="#" className="auth-legal-link">Terms</a>{" "}
             &amp;{" "}
             <a href="#" className="auth-legal-link">Privacy</a>
@@ -352,6 +424,40 @@ function LoginInner() {
           text-wrap: balance;
         }
 
+        .auth-tabs {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 1.5rem;
+          background: rgba(26, 29, 41, 0.04);
+          padding: 0.25rem;
+          border-radius: var(--r-s);
+        }
+
+        .auth-tab {
+          flex: 1;
+          background: transparent;
+          border: none;
+          padding: 0.5rem;
+          font-family: var(--font-space), monospace;
+          font-size: 0.75rem;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          color: var(--ink-55);
+          cursor: pointer;
+          border-radius: calc(var(--r-s) - 0.15rem);
+          transition: background 0.2s, color 0.2s;
+        }
+
+        .auth-tab:hover {
+          color: var(--ink);
+        }
+
+        .auth-tab.active {
+          background: #fff;
+          color: var(--ink);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
         .auth-sub {
           font-size: 0.9375rem;
           color: var(--ink-55);
@@ -381,6 +487,28 @@ function LoginInner() {
           opacity: 0.5;
           cursor: not-allowed;
           pointer-events: none;
+        }
+
+        .auth-btn-candidate {
+          background: var(--iris);
+          color: #fff;
+          border: none;
+        }
+
+        .auth-btn-candidate:hover {
+          background: var(--iris-deep);
+          transform: translateY(-1px);
+        }
+
+        .auth-btn-employer {
+          background: var(--ink);
+          color: #fff;
+          border: none;
+        }
+
+        .auth-btn-employer:hover {
+          background: rgba(26, 29, 41, 0.85);
+          transform: translateY(-1px);
         }
 
         .auth-btn-linkedin {

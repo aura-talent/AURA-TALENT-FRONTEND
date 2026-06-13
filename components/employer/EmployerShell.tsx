@@ -8,6 +8,7 @@ const links = [
   { href: "/employer", label: "Overview", icon: "grid" },
   { href: "/employer/workforce", label: "Workforce plan", icon: "chart" },
   { href: "/employer/candidates", label: "Candidates", icon: "people" },
+  { href: "/employer/talent-pool", label: "Talent pool", icon: "archive" },
   { href: "/employer/interviews", label: "Interviews", icon: "spark" },
   { href: "/employer/jobs", label: "Job listings", icon: "briefcase" },
   { href: "/employer/profile", label: "Company profile", icon: "building" },
@@ -46,6 +47,12 @@ function Icon({ name }: { name: string }) {
     chart: (
       <>
         <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+      </>
+    ),
+    archive: (
+      <>
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <path d="M8 3h8a2 2 0 0 1 2 2v0M8 10h8M10 14h4" />
       </>
     ),
     building: (

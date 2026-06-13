@@ -111,10 +111,11 @@ export default function JobsPage() {
                 <td>
                   <div className="job-row-actions">
                     <Link
-                      className="table-action"
-                      href={`/employer/jobs/${job.id}/edit`}
+                      className="job-detail-arrow"
+                      href={`/employer/jobs/${job.id}`}
+                      aria-label={`View ${job.title} details`}
                     >
-                      Edit
+                      →
                     </Link>
                   </div>
                 </td>

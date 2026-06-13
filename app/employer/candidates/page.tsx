@@ -66,6 +66,7 @@ export default function CandidatesPage() {
           <option>Assessment</option>
           <option>Interview</option>
           <option>Final review</option>
+          <option>Rejected</option>
         </select>
         <select
           className="select"

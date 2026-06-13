@@ -8,6 +8,7 @@ import { api, type Application, type JobPosting } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import { scoreColor } from "@/components/ScoreDial";
 import { useAuth } from "@/components/AuthProvider";
+import CareerPathNavigator from "@/components/CareerPathNavigator";
 
 function guessCountry(): string {
   try {
@@ -644,6 +645,8 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {!authLoading && user && hasResume === true && <CareerPathNavigator />}
     </div>
     </div>
   );

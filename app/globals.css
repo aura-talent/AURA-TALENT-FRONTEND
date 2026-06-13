@@ -71,7 +71,8 @@
 
 @layer base {
   * {
-    @apply border-border/10 outline-ring/50;
+    border-color: color-mix(in srgb, var(--border) 10%, transparent);
+    outline-color: color-mix(in srgb, var(--ring) 50%, transparent);
   }
 }
 
@@ -4176,4 +4177,25 @@ textarea.input {
   font-size: 0.6875rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+/* ── Career Path Navigator: compact fit meter ── */
+.cpn-fit {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+.cpn-fit-bar {
+  display: flex;
+  gap: 2px;
+}
+.cpn-fit-seg {
+  width: 6px;
+  height: 16px;
+  border-radius: 1px;
+}
+.cpn-fit-num {
+  font-size: 0.85rem;
+  font-weight: 600;
 }

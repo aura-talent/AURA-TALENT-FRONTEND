@@ -122,6 +122,31 @@ export interface JobPosting {
   source: string;
 }
 
+export interface CareerRoute {
+  title: string;
+  archetype: string;
+  fit: number; // 1–5, how realistic from the current position
+  time_horizon: string;
+  rationale: string;
+  skill_gaps: string[];
+  next_steps: string[];
+}
+
+export interface CareerPathOut {
+  user_id: string;
+  current_assessment: string;
+  routes: CareerRoute[];
+  recommended_route: string;
+  evaluations_considered: number;
+  report_markdown: string;
+}
+
+export interface CareerPathIn {
+  user_id: string;
+  goal?: string;
+  horizon?: string;
+}
+
 /* ── Endpoints ── */
 
 export const api = {

@@ -8,6 +8,7 @@ import { useState } from "react";
 const APP_LINKS = [
   { href: "/dashboard", label: "DASHBOARD" },
   { href: "/evaluate", label: "EVALUATE" },
+  { href: "/worth", label: "YOUR_WORTH" },
   { href: "/jobs", label: "FIND_JOBS" },
   { href: "/compare", label: "COMPARE" },
   { href: "/scan", label: "SCAN_JOBS" },
@@ -196,7 +197,7 @@ export default function Nav() {
                       )}
                       {role === "candidate" && (
                         <Link
-                          href="/onboarding"
+                          href="/my-resume"
                           onClick={() => setDropdownOpen(false)}
                           style={{ padding: "0.5rem", borderRadius: 0, fontSize: "0.875rem", color: "var(--ink-72)" }}
                           className="dropdown-item"
@@ -377,7 +378,7 @@ export default function Nav() {
                       )}
                       {role === "candidate" && (
                         <Link
-                          href="/onboarding"
+                          href="/my-resume"
                           onClick={() => setDropdownOpen(false)}
                           style={{ padding: "0.5rem", borderRadius: 0, fontSize: "0.875rem", color: "var(--ink-72)" }}
                           className="dropdown-item"

@@ -1594,6 +1594,229 @@ textarea.input {
   }
 }
 
+/* salary panel — calibration-ruler comp analysis */
+.sal-panel { display: flex; flex-direction: column; gap: 1.1rem; }
+
+.sal-ruler {
+  position: relative;
+  height: 56px;
+  margin-top: 0.4rem;
+  border-bottom: 1px solid var(--ink-30);
+}
+/* role-worth band: filled iris segment */
+.sal-band-fill {
+  position: absolute;
+  top: 28px;
+  height: 8px;
+  background: var(--iris);
+  opacity: 0.85;
+}
+.sal-median {
+  position: absolute;
+  top: 22px;
+  width: 1px;
+  height: 20px;
+  background: var(--ink);
+  transform: translateX(-0.5px);
+}
+/* posted range: dashed outline bracket above the band */
+.sal-posted {
+  position: absolute;
+  top: 14px;
+  height: 9px;
+  border: 1px dashed var(--ink-55);
+  border-bottom: none;
+}
+/* markers: a tick + caret label that hangs above the rule */
+.sal-marker {
+  position: absolute;
+  top: 0;
+  height: 40px;
+  width: 1px;
+  background: var(--ink);
+  transform: translateX(-0.5px);
+}
+.sal-marker-label {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-space), monospace;
+  font-size: 0.5625rem;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  padding: 0.1rem 0.3rem;
+  color: #fff;
+}
+.sal-you { background: var(--ink); }
+.sal-you .sal-marker-label { background: var(--ink); }
+.sal-anchor { background: var(--score-strong); }
+.sal-anchor .sal-marker-label { background: var(--score-strong); }
+
+.sal-rows { display: flex; flex-direction: column; gap: 0.55rem; }
+.sal-row {
+  display: grid;
+  grid-template-columns: 0.8rem auto 1fr;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.84rem;
+}
+.sal-swatch { width: 0.8rem; height: 0.8rem; }
+.sal-swatch-role { background: var(--iris); }
+.sal-swatch-posted { border: 1px dashed var(--ink-55); }
+.sal-swatch-you { background: var(--ink); }
+.sal-row-label { color: var(--ink-72); }
+.sal-row-val {
+  font-family: var(--font-space), monospace;
+  font-size: 0.78rem;
+  text-align: right;
+  color: var(--ink);
+}
+.sal-gap {
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+}
+
+.sal-note {
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: var(--ink-72);
+  border-left: 2px solid var(--ink-30);
+  padding-left: 0.85rem;
+}
+
+.sal-negotiation {
+  border: 1px solid var(--ink-30);
+  padding: 0.9rem 1rem;
+}
+.sal-neg-head {
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  color: var(--score-strong);
+  margin-bottom: 0.4rem;
+}
+.sal-negotiation p { font-size: 0.84rem; line-height: 1.55; color: var(--ink-72); }
+
+.sal-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 0.9rem;
+  border-top: 1px dashed var(--ink-30);
+  font-family: var(--font-space), monospace;
+  font-size: 0.625rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.sal-conf { display: flex; align-items: center; gap: 0.45rem; }
+.sal-conf-dot { width: 6px; height: 6px; border-radius: 50%; }
+.sal-conf[data-conf="high"] { color: var(--score-strong); }
+.sal-conf[data-conf="high"] .sal-conf-dot { background: var(--score-strong); }
+.sal-conf[data-conf="medium"] { color: var(--score-fair); }
+.sal-conf[data-conf="medium"] .sal-conf-dot { background: var(--score-fair); }
+.sal-conf[data-conf="low"] { color: var(--score-weak); }
+.sal-conf[data-conf="low"] .sal-conf-dot { background: var(--score-weak); }
+.sal-source { color: var(--ink-55); }
+
+/* my-resume viewer */
+.my-resume-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.my-resume-head .btn { flex-shrink: 0; }
+@media (max-width: 600px) {
+  .my-resume-head { align-items: stretch; }
+}
+
+/* your-worth page */
+.worth-result { display: flex; flex-direction: column; gap: 1.25rem; margin-top: 1.5rem; }
+.worth-band-panel, .worth-deltas-panel { position: relative; }
+
+.worth-figure {
+  font-family: var(--font-space), monospace;
+  font-weight: 700;
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  letter-spacing: -0.02em;
+  color: var(--iris);
+  line-height: 1;
+  margin: 0.4rem 0 1.1rem;
+}
+.worth-figure-suffix {
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+  margin-left: 0.6rem;
+}
+
+.worth-ruler {
+  position: relative;
+  height: 14px;
+  background: var(--ink-06);
+}
+.worth-band-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--iris);
+  opacity: 0.85;
+}
+.worth-median {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 1px;
+  height: 22px;
+  background: var(--ink);
+  transform: translateX(-0.5px);
+}
+.worth-ruler-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  font-family: var(--font-space), monospace;
+  font-size: 0.72rem;
+  color: var(--ink-72);
+}
+.worth-tc {
+  margin-top: 0.9rem;
+  font-family: var(--font-space), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+}
+.worth-summary {
+  margin-top: 1rem;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--ink-72);
+}
+.worth-band-panel .sal-footer { margin-top: 1.1rem; }
+
+.worth-deltas { display: flex; flex-direction: column; }
+.worth-delta {
+  display: grid;
+  grid-template-columns: 3.4rem 1fr;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.9rem 0;
+  border-bottom: 1px dashed var(--ink-12);
+}
+.worth-delta:last-child { border-bottom: none; }
+.worth-delta-pct {
+  font-family: var(--font-space), monospace;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--score-strong);
+}
+.worth-delta-skill { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.15rem; }
+.worth-delta-note { font-size: 0.85rem; color: var(--ink-72); line-height: 1.5; }
+
 /* scan results */
 .scan-results-head {
   display: flex;

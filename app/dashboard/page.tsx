@@ -7,6 +7,7 @@ import gsap from "gsap";
 import { api, type Application, type JobPosting } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
+import CareerPathNavigator from "@/components/CareerPathNavigator";
 
 function guessCountry(): string {
   try {
@@ -495,6 +496,9 @@ export default function Dashboard() {
 
               </div>
             </div>
+
+            {/* Career Path Navigator */}
+            {!authLoading && user && hasResume === true && <CareerPathNavigator />}
 
             {/* Upcoming Interviews Reminder Checklist */}
             <div className="panel" style={{ padding: "1.5rem" }}>

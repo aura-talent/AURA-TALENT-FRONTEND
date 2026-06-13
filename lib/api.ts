@@ -197,6 +197,50 @@ export interface JobPosting {
   source: string;
 }
 
+export type MoveCategory =
+  | "Networking"
+  | "Side project / business"
+  | "Visibility / personal brand"
+  | "Internal play"
+  | "Skill / credential"
+  | "Strategic job move"
+  | "Comp / geo arbitrage"
+  | "Mentorship";
+
+export interface CareerMove {
+  category: MoveCategory | string; // model may return a close variant; treat as string-safe
+  action: string;
+  why: string;
+  effort: "low" | "medium" | "high" | string;
+  timeframe: string;
+}
+
+export interface CareerRoute {
+  title: string;
+  archetype: string;
+  fit: number; // 1–5, how realistic from the current position
+  time_horizon: string;
+  rationale: string;
+  skill_gaps: string[];
+  moves: CareerMove[];
+}
+
+export interface CareerPathOut {
+  user_id: string;
+  current_assessment: string;
+  first_move: string;
+  routes: CareerRoute[];
+  recommended_route: string;
+  evaluations_considered: number;
+  report_markdown: string;
+}
+
+export interface CareerPathIn {
+  user_id: string;
+  goal?: string;
+  horizon?: string;
+}
+
 /* ── Endpoints ── */
 
 export const api = {

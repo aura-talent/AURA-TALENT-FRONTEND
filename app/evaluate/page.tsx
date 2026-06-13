@@ -9,6 +9,7 @@ import { useStream } from "@/lib/useStream";
 import ScoreDial, { scoreColor } from "@/components/ScoreDial";
 import StreamProgress from "@/components/StreamProgress";
 import ReportView from "@/components/ReportView";
+import SalaryPanel from "@/components/SalaryPanel";
 import Thinking from "@/components/Thinking";
 
 const BAR_LABELS: Record<string, string> = {
@@ -354,6 +355,8 @@ function EvaluateInner() {
                 )}
               </div>
             </div>
+
+            {result.salary && <SalaryPanel salary={result.salary} />}
 
             <div className="hero-ctas" style={{ gap: "0.75rem" }}>
               <button className="btn btn-primary text-white" onClick={resetEvaluation}>

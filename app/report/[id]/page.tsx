@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api, type Evaluation, getUserId } from "@/lib/api";
 import ReportView from "@/components/ReportView";
 import ScoreDial, { scoreColor } from "@/components/ScoreDial";
+import SalaryPanel from "@/components/SalaryPanel";
 import Thinking from "@/components/Thinking";
 
 const BAR_LABELS: Record<string, string> = {
@@ -263,6 +264,8 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                 )}
               </div>
             </div>
+
+            {result.salary && <SalaryPanel salary={result.salary} />}
 
           </div>
 

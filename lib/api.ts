@@ -84,6 +84,59 @@ export interface Legitimacy {
   context_notes: string;
 }
 
+export interface SalaryBand {
+  low: number; // ~P25
+  mid: number; // ~P50 / median
+  high: number; // ~P75
+}
+
+/**
+ * Salary intelligence attached to an evaluation. Every figure carries its
+ * provenance (sources, as_of, confidence) so the UI can stay honest when
+ * data is thin — the same principle as the legitimacy tier. All fields
+ * beyond role_worth/currency/confidence are optional; the panel degrades
+ * gracefully when the backend can only supply part of the picture.
+ */
+export interface SalaryEstimate {
+  currency: string; // ISO 4217, e.g. "USD", "MYR"
+  period: "year" | "month" | "hour";
+  role_worth: SalaryBand; // what this role should pay (base)
+  candidate_worth?: SalaryBand; // what the user is worth, from their profile
+  total_comp_high?: number; // realistic ceiling incl. bonus/equity
+  posted?: { low?: number; high?: number }; // range from the JD, if stated
+  gap?: {
+    verdict: "below" | "fair" | "above"; // posted range vs role_worth
+    delta_pct: number; // signed %: posted mid vs role mid
+    note: string;
+  };
+  negotiation?: { anchor: number; line: string };
+  confidence: "high" | "medium" | "low";
+  sources: string[]; // e.g. ["Adzuna", "BLS OES 15-1252"]
+  as_of: string; // ISO date the market data was pulled
+  location_basis: string; // e.g. "Remote (US national)", "Kuala Lumpur"
+}
+
+export interface SkillDelta {
+  skill: string;
+  delta_pct: number;
+  note: string;
+}
+
+/** Candidate's own market worth, profile-driven (the "Your worth" page). */
+export interface SelfWorthEstimate {
+  currency: string;
+  period: "year" | "month" | "hour";
+  worth: SalaryBand;
+  total_comp_high?: number;
+  confidence: "high" | "medium" | "low";
+  sources: string[];
+  as_of: string;
+  location_basis: string;
+  headline_role: string;
+  summary: string;
+  skill_deltas: SkillDelta[];
+}
+
 export interface Evaluation {
   evaluation_id: number;
   company: string;
@@ -96,6 +149,7 @@ export interface Evaluation {
   report_markdown: string;
   keywords: string[];
   jd_url?: string;
+  salary?: SalaryEstimate;
 }
 
 export interface Application {
@@ -145,6 +199,9 @@ export const api = {
       user_id: getUserId(),
       evaluation_ids,
     }),
+
+  selfWorth: (input: { location?: string; currency?: string } = {}) =>
+    postJson<SelfWorthEstimate>("salary/self", { user_id: getUserId(), ...input }),
 
   suggestions: (input: { jd_text?: string; jd_url?: string }) =>
     postJson<{ suggestions_markdown: string }>("resume/suggestions", {

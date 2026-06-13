@@ -153,13 +153,34 @@ export interface Evaluation {
 }
 
 export interface Application {
+  id: string;
   evaluation_id: number;
   date: string;
   company: string;
   role: string;
   score: number;
   status: string;
+  interview_type: "virtual" | "physical" | "none";
+  mock_interview_done: boolean;
   notes: string;
+  attachments: { name: string; url: string; type: "file" | "link"; category?: string }[];
+  priority: "low" | "medium" | "high";
+  tags: string[];
+  interviews: {
+    id: string;
+    name: string;
+    type: "virtual" | "physical" | "phone";
+    date: string;
+    interviewer?: string;
+    checklist?: { text: string; done: boolean }[];
+    feedback?: string;
+  }[];
+  timeline: {
+    date: string;
+    title: string;
+    description: string;
+    custom?: boolean;
+  }[];
 }
 
 export interface ResumeData {
@@ -220,11 +241,39 @@ export const api = {
       `applications/${getUserId()}/${id}/report`
     ),
 
-  updateStatus: (id: number, status: string, notes?: string) =>
+  updateStatus: (id: string | number, status: string, notes?: string) =>
     request<{ ok: boolean }>(`applications/${getUserId()}/${id}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, notes }),
+    }),
+
+  createManualApplication: (company: string, role: string, status = "Applied") =>
+    postJson<Application>(`applications/${getUserId()}`, { company, role, status }),
+
+  updateApplicationDetails: (
+    applicationId: string,
+    updatePayload: {
+      status: string;
+      interview_type: string;
+      mock_interview_done: boolean;
+      notes: string;
+      attachments: Application["attachments"];
+      priority: string;
+      tags: string[];
+      interviews: Application["interviews"];
+      timeline: Application["timeline"];
+    }
+  ) =>
+    request<{ ok: boolean }>(`applications/${getUserId()}/${applicationId}/details`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatePayload),
+    }),
+
+  deleteApplication: (applicationId: string) =>
+    request<{ ok: boolean }>(`applications/${getUserId()}/${applicationId}`, {
+      method: "DELETE",
     }),
 
   saveUser: (input: { id: string; email: string | null; full_name: string | null; avatar_url: string | null; role?: string | null }) =>

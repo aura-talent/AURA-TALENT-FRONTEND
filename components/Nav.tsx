@@ -7,6 +7,7 @@ import { useState } from "react";
 
 const APP_LINKS = [
   { href: "/dashboard", label: "DASHBOARD" },
+  { href: "/tracker", label: "JOB_TRACKER" },
   { href: "/evaluate", label: "EVALUATE" },
   { href: "/worth", label: "YOUR_WORTH" },
   { href: "/jobs", label: "FIND_JOBS" },

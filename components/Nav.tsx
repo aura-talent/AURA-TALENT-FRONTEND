@@ -7,7 +7,9 @@ import { useState } from "react";
 
 const APP_LINKS = [
   { href: "/dashboard", label: "DASHBOARD" },
+  { href: "/tracker", label: "JOB_TRACKER" },
   { href: "/evaluate", label: "EVALUATE" },
+  { href: "/worth", label: "YOUR_WORTH" },
   { href: "/jobs", label: "FIND_JOBS" },
   { href: "/compare", label: "COMPARE" },
   { href: "/scan", label: "SCAN_JOBS" },
@@ -196,7 +198,7 @@ export default function Nav() {
                       )}
                       {role === "candidate" && (
                         <Link
-                          href="/onboarding"
+                          href="/my-resume"
                           onClick={() => setDropdownOpen(false)}
                           style={{ padding: "0.5rem", borderRadius: 0, fontSize: "0.875rem", color: "var(--ink-72)" }}
                           className="dropdown-item"
@@ -228,10 +230,10 @@ export default function Nav() {
                 </div>
               ) : (
                 <>
-                  <Link href="/login" style={{ marginRight: "0.5rem" }}>
+                  <Link href="/login?mode=signin" style={{ marginRight: "0.5rem" }}>
                     SIGN_IN
                   </Link>
-                  <Link href="/onboarding" className="btn btn-primary !text-white">
+                  <Link href="/login?mode=signup" className="btn btn-primary !text-white">
                     GET_STARTED →
                   </Link>
                 </>
@@ -377,7 +379,7 @@ export default function Nav() {
                       )}
                       {role === "candidate" && (
                         <Link
-                          href="/onboarding"
+                          href="/my-resume"
                           onClick={() => setDropdownOpen(false)}
                           style={{ padding: "0.5rem", borderRadius: 0, fontSize: "0.875rem", color: "var(--ink-72)" }}
                           className="dropdown-item"
@@ -409,7 +411,7 @@ export default function Nav() {
                 </div>
               ) : (
                 <>
-                  <Link href="/login" className="btn btn-ghost">
+                  <Link href="/login?mode=signin" className="btn btn-ghost">
                     Sign in
                   </Link>
                 </>

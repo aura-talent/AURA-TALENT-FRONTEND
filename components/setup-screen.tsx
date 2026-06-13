@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { QuestionsResponseSchema } from "@/lib/schemas";
 
 const SUGGESTIONS = [
@@ -15,6 +15,16 @@ export default function SetupScreen({ onStart }: Props) {
   const [role, setRole] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const roleParam = params.get("role");
+      if (roleParam) {
+        setRole(roleParam);
+      }
+    }
+  }, []);
 
   async function begin() {
     if (!role.trim() || loading) return;

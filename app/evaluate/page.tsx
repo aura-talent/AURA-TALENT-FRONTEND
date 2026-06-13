@@ -9,6 +9,8 @@ import ScoreDial, { scoreColor } from "@/components/ScoreDial";
 import StreamProgress from "@/components/StreamProgress";
 import ReportView from "@/components/ReportView";
 import Thinking from "@/components/Thinking";
+import { useAuth } from "@/components/AuthProvider";
+
 
 const BAR_LABELS: Record<string, string> = {
   match_cv: "Resume match",
@@ -33,6 +35,7 @@ function tierChip(tier: string) {
 }
 
 function EvaluateInner() {
+  const { user, loading: authLoading } = useAuth();
   const params = useSearchParams();
   const [mode, setMode] = useState<"url" | "text">("url");
   const [url, setUrl] = useState(params.get("url") ?? "");
@@ -74,8 +77,14 @@ function EvaluateInner() {
   const isDesktop = windowWidth > 960;
 
   useEffect(() => {
-    api.getResume().then(() => setHasResume(true)).catch(() => setHasResume(false));
-  }, []);
+    if (!authLoading) {
+      if (!user) {
+        setHasResume(false);
+      } else {
+        api.getResume().then(() => setHasResume(true)).catch(() => setHasResume(false));
+      }
+    }
+  }, [user, authLoading]);
 
   function run() {
     const input = mode === "url" ? { jd_url: url.trim() } : { jd_text: text };

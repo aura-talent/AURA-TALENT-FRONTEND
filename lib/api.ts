@@ -159,6 +159,16 @@ export interface Application {
   company: string;
   role: string;
   score: number;
+  /** Raw LLM score breakdown: match_cv, alignment, comp, culture, red_flags, global_score (1-5 scale) */
+  scores?: {
+    match_cv?: number;
+    alignment?: number;
+    comp?: number;
+    culture?: number;
+    red_flags?: number;
+    global_score?: number;
+  } | null;
+  user_id?: string;
   status: string;
   interview_type: "virtual" | "physical" | "none";
   mock_interview_done: boolean;
@@ -328,9 +338,145 @@ export const api = {
 
   migrateUser: (input: { anon_id: string; auth_id: string }) =>
     postJson<{ ok: boolean }>("users/migrate", input),
+
+  getPipelineUpdates: () =>
+    request<PipelineStageUpdate[]>(`applications/${getUserId()}/pipeline`),
+
+  getAllApplications: () =>
+    request<Application[]>("applications/all"),
+
+  computeWLC: (userId: string, applicationId: string) =>
+    request<{
+      rubric: { technical: number; problem: number; communication: number; culture: number };
+      metrics: { match: number; depth: number; tenure: number; craft: number; reputation: number; behavioral: number };
+      wlc_score: number;
+      raw_scores: { match_cv: number; alignment: number; comp: number; culture: number; red_flags: number; global_score: number };
+      recommendation: string;
+    }>(`applications/${userId}/${applicationId}/wlc`, { method: "POST" }),
+
+  /** Employer posts a pipeline stage update for a real candidate. */
+  postPipelineUpdate: (candidateUserId: string, payload: PipelineUpdateIn) =>
+    postJson<PipelineStageUpdate>(`applications/${candidateUserId || "employer-demo"}/pipeline`, payload),
+
+  /**
+   * Update a candidate's tracker status from the employer side.
+   * Uses the candidate's user_id (not the logged-in employer) so the
+   * backend's per-user row lookup succeeds.
+   */
+  updateCandidateTrackerStatus: (candidateUserId: string, applicationId: string, status: string, notes?: string) =>
+    request<{ ok: boolean }>(`applications/${candidateUserId}/${applicationId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, notes }),
+    }),
 };
+
 
 export const STATUSES = [
   "Evaluated", "Applied", "Responded", "Interview",
   "Offer", "Rejected", "Discarded", "SKIP",
 ] as const;
+
+export interface PipelineStageUpdate {
+  id: string;
+  employer_id: string;
+  application_id?: string;
+  candidate_user_id?: string;
+  candidate_name: string;
+  job_title: string;
+  stage: string;
+  stage_index: number;
+  note: string;
+  updated_at: string;
+}
+
+export interface PipelineUpdateIn {
+  employer_id: string;
+  application_id?: string | null;
+  candidate_user_id?: string | null;
+  candidate_name: string;
+  job_title: string;
+  stage: string;
+  stage_index: number;
+  note?: string;
+}
+
+export const PIPELINE_STAGES = [
+  { label: "Application Received", icon: "📥", color: "#3b82f6" },
+  { label: "Under Review",          icon: "🔍", color: "#6366f1" },
+  { label: "Shortlisted",           icon: "⭐", color: "#8b5cf6" },
+  { label: "Interview Scheduled",   icon: "📅", color: "#a855f7" },
+  { label: "Assessment",            icon: "📝", color: "#f59e0b" },
+  { label: "Offer Extended",        icon: "🎯", color: "#10b981" },
+  { label: "Hired",                 icon: "✅", color: "#22c55e" },
+] as const;
+
+export const PIPELINE_REJECTED = { label: "Rejected", icon: "✗", color: "#ef4444" };
+
+/**
+ * Canonical bidirectional mapping between employer pipeline stages and
+ * candidate tracker statuses. Single source of truth for both sides.
+ */
+export const EMPLOYER_STAGE_TO_CANDIDATE_STATUS: Record<string, string> = {
+  "Application Received": "Applied",
+  "Under Review":          "Phone Screen",
+  "Shortlisted":           "Final Round",
+  "Interview Scheduled":   "First Round",
+  "Assessment":            "Technical Test",
+  "Offer Extended":        "Offer",
+  "Hired":                 "Offer",
+  "Rejected":              "Rejected",
+};
+
+export const CANDIDATE_STATUS_TO_EMPLOYER_STAGE: Record<string, { stage: string; stage_index: number }> = {
+  "Applied":        { stage: "Application Received", stage_index: 0 },
+  "Phone Screen":   { stage: "Under Review",          stage_index: 1 },
+  "Technical Test": { stage: "Assessment",            stage_index: 4 },
+  "First Round":    { stage: "Interview Scheduled",   stage_index: 3 },
+  "Second Round":   { stage: "Interview Scheduled",   stage_index: 3 },
+  "Final Round":    { stage: "Shortlisted",           stage_index: 2 },
+  "Offer":          { stage: "Offer Extended",        stage_index: 5 },
+  "Rejected":       { stage: "Rejected",              stage_index: -1 },
+};
+
+/** Employer candidate list stage-label mapping (for the candidates table). */
+export const EMPLOYER_LIST_STAGE: Record<string, string> = {
+  "Applied":        "New",
+  "Phone Screen":   "Screening",
+  "Technical Test": "Assessment",
+  "First Round":    "Interview",
+  "Second Round":   "Interview",
+  "Final Round":    "Final review",
+  "Offer":          "Final review",
+  "Rejected":       "Rejected",
+  "Withdrawn":      "Rejected",
+};
+
+/** Kanban groups for the candidate tracker board — 4 phase columns. */
+export const KANBAN_GROUPS = [
+  {
+    label: "PREP",
+    icon: "📋",
+    color: "rgba(100,116,139,0.75)",
+    statuses: ["Evaluated", "Saved"],
+  },
+  {
+    label: "ACTIVE",
+    icon: "🎯",
+    color: "rgba(59,130,246,0.8)",
+    statuses: ["Applied", "Phone Screen", "Technical Test"],
+  },
+  {
+    label: "INTERVIEWS",
+    icon: "💬",
+    color: "rgba(139,92,246,0.8)",
+    statuses: ["First Round", "Second Round", "Final Round"],
+  },
+  {
+    label: "CLOSED",
+    icon: "✓",
+    color: "rgba(16,185,129,0.8)",
+    statuses: ["Offer", "Rejected", "Withdrawn"],
+  },
+] as const;
+

@@ -1,13 +1,18 @@
+"use client";
+
+import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  candidates,
+  candidates as mockCandidates,
   defaultMetricPriorities,
   evaluationMetrics,
   scoringDimensions,
   weightedScore,
 } from "../../data";
 import CandidateEmailComposer from "@/components/employer/CandidateEmailComposer";
+import PipelineStageManager from "@/components/employer/PipelineStageManager";
+import { api } from "@/lib/api";
 
 function scoreTone(score: number) {
   if (score >= 90) return "strong";
@@ -23,16 +28,114 @@ function scoreColor(score: number) {
   return "var(--score-weak)";
 }
 
-export default async function CandidateDetail({
+export default function CandidateDetail({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
-  const candidate = candidates.find((item) => item.id === id);
-  if (!candidate) notFound();
+  const { id } = use(params);
+  const [realApp, setRealApp] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [wlcLiveData, setWlcLiveData] = useState<any>(null);
+  const [wlcRunning, setWlcRunning] = useState(false);
+  const [wlcError, setWlcError] = useState("");
 
-  const wlcScore = weightedScore(candidate.rubric);
+  useEffect(() => {
+    // Check if ID looks like a UUID (real application)
+    if (id.length > 20) {
+      api.getAllApplications().then(apps => {
+        const found = apps.find(a => a.id === id);
+        if (found) {
+          setRealApp(found);
+        }
+        setLoading(false);
+      }).catch(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, [id]);
+
+  const handleRunWLC = async () => {
+    if (!realApp) return;
+    setWlcRunning(true);
+    setWlcError("");
+    try {
+      const result = await api.computeWLC(realApp.user_id || "", realApp.id);
+      setWlcLiveData(result);
+    } catch (err: any) {
+      setWlcError(err?.message || "WLC computation failed. Check candidate has a resume uploaded.");
+    } finally {
+      setWlcRunning(false);
+    }
+  };
+
+  let candidate: any = mockCandidates.find((item) => item.id === id);
+
+
+  if (loading) {
+    return <div className="employer-page" style={{ padding: "4rem", textAlign: "center" }}>Loading candidate profile...</div>;
+  }
+
+  if (realApp) {
+    // Map real app to mock structure for the UI
+    // Backend scores are on 1-5 scale; we convert to 0-100 for the WLC UI
+    // If a live WLC run has been done this session, prefer those scores
+    const s = wlcLiveData?.raw_scores || realApp.scores;
+    const to100 = (v?: number | null, fallback = 75) =>
+      v != null ? Math.round(((v - 1) / 4) * 100) : fallback;
+
+    // WLC Rubric dimensions (0-100):
+    const rubric = wlcLiveData?.rubric || (s ? {
+      technical:     Math.round((to100(s.match_cv) + to100(s.global_score)) / 2),
+      problem:       to100(s.alignment),
+      communication: to100(s.red_flags),
+      culture:       to100(s.culture),
+    } : { technical: 75, problem: 72, communication: 70, culture: 75 });
+
+    // Evaluation metrics shown in the grid (0-100)
+    const metrics = wlcLiveData?.metrics || (s ? {
+      match:      to100(s.match_cv),
+      depth:      to100(s.alignment),
+      tenure:     to100(s.comp),
+      craft:      to100(s.global_score),
+      reputation: realApp.mock_interview_done ? to100(s.global_score, 85) : 0,
+      behavioral: realApp.mock_interview_done ? to100(s.red_flags, 80) : 0,
+    } : { match: 80, depth: 70, tenure: 75, craft: 72, reputation: 0, behavioral: 0 });
+
+    const interviewScore = realApp.mock_interview_done
+      ? Math.round((to100(s?.global_score) + to100(s?.red_flags)) / 2)
+      : 0;
+
+    candidate = {
+      id: realApp.id,
+      name: `Candidate ${realApp.id.substring(0, 4)}`,
+      initials: "C",
+      role: realApp.role,
+      location: "Remote",
+      experience: "Mid-Level",
+      skills: realApp.tags || ["General"],
+      applied: true,
+      interviewAttempted: realApp.mock_interview_done,
+      stage: realApp.status === "Applied" ? "New" 
+           : realApp.status === "Phone Screen" ? "Screening"
+           : realApp.status === "Technical Test" ? "Assessment"
+           : realApp.status === "First Round" || realApp.status === "Second Round" ? "Interview"
+           : realApp.status === "Offer" ? "Final review"
+           : realApp.status === "Rejected" ? "Rejected"
+           : "New",
+      resume: to100(s?.match_cv),
+      interview: interviewScore,
+      score: wlcLiveData?.wlc_score || Math.round((to100(s?.global_score) * 0.5) + ((interviewScore || 60) * 0.5)),
+      metrics,
+      matchedKeywords: realApp.tags?.length ? realApp.tags : ["Resume", "Role", "Fit"],
+      rubric,
+    };
+  }
+
+  if (!candidate) return notFound();
+
+  const wlcScore = wlcLiveData?.wlc_score || weightedScore(candidate.rubric);
+
 
   return (
     <div className="employer-page">
@@ -46,14 +149,17 @@ export default async function CandidateDetail({
           </span>
           <div>
             <div className="candidate-name-row">
-              <h1>{candidate.name}</h1>
+              <h1>
+                {realApp && <span style={{ fontSize: "0.6rem", background: "var(--iris)", color: "#fff", padding: "0.2rem 0.4rem", borderRadius: "4px", marginRight: "0.6rem", verticalAlign: "middle" }}>LIVE</span>}
+                {candidate.name}
+              </h1>
               <span className="chip chip-tier-high">High confidence</span>
             </div>
             <p>
               {candidate.role} · {candidate.location} · {candidate.experience}
             </p>
             <div className="candidate-skill-row">
-              {candidate.skills.map((skill) => (
+              {candidate.skills.map((skill: string) => (
                 <span className="chip" key={skill}>
                   {skill}
                 </span>
@@ -90,6 +196,25 @@ export default async function CandidateDetail({
             role={candidate.role}
             score={wlcScore}
           />
+          {realApp && (
+            <button
+              onClick={handleRunWLC}
+              disabled={wlcRunning}
+              className="btn btn-primary"
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem", whiteSpace: "nowrap" }}
+            >
+              {wlcRunning ? (
+                <><span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⟳</span> Running Analysis...</>
+              ) : wlcLiveData ? (
+                <>⟳ Re-run WLC Analysis</>
+              ) : (
+                <>✦ Run WLC Analysis</>
+              )}
+            </button>
+          )}
+          {wlcError && (
+            <p style={{ fontSize: "0.72rem", color: "#ef4444", marginTop: "0.25rem", maxWidth: "200px" }}>{wlcError}</p>
+          )}
         </div>
       </div>
 
@@ -103,19 +228,25 @@ export default async function CandidateDetail({
           >
             <strong>{wlcScore}</strong>
             <span>
-              {candidate.interviewAttempted ? "WLC score" : "Provisional"}
+              {wlcLiveData ? "WLC score" : candidate.interviewAttempted ? "WLC score" : "Provisional"}
             </span>
           </div>
           <div>
             <p className="eyebrow">Weighted Linear Combination</p>
             <h2>
-              {candidate.interviewAttempted
+              {wlcLiveData
+                ? "AI-powered evaluation complete"
+                : candidate.interviewAttempted
                 ? "Strong evidence across the full hiring model"
                 : "Application-based evaluation"}
             </h2>
             <p>
-              {candidate.interviewAttempted
+              {wlcLiveData
+                ? wlcLiveData.recommendation
+                : candidate.interviewAttempted
                 ? "Six evaluation metrics supply evidence into four awarded dimensions. Those four weighted scores produce this single final result."
+                : realApp
+                ? "Click \"Run WLC Analysis\" above to trigger a live AI scoring of this candidate's resume against the job role."
                 : "This score uses available resume, profile, preference, and risk evidence. Interview-derived evidence remains optional and is not treated as zero."}
             </p>
             <code>
@@ -244,6 +375,15 @@ export default async function CandidateDetail({
         </div>
       </section>
 
+      {/* ── Employer Pipeline Manager ── */}
+      <PipelineStageManager
+        candidateName={candidate.name}
+        jobTitle={candidate.role}
+        initialStageIndex={candidate.stage === "Final review" ? 5 : candidate.stage === "Interview" ? 3 : candidate.stage === "Assessment" ? 4 : candidate.stage === "Screening" ? 1 : candidate.stage === "Rejected" ? 5 : 0}
+        targetAppId={realApp ? realApp.id : undefined}
+        targetUserId={realApp ? realApp.user_id : undefined}
+      />
+
       <div className="candidate-detail-grid candidate-evaluation-grid">
         <main>
           <section className="panel employer-section">
@@ -320,7 +460,7 @@ export default async function CandidateDetail({
               </span>
             </div>
             <div className="ats-keywords">
-              {candidate.matchedKeywords.map((keyword, index) => (
+              {candidate.matchedKeywords.map((keyword: string, index: number) => (
                 <span key={keyword}>
                   <i>{index < 3 ? "Priority" : "Matched"}</i>
                   {keyword}

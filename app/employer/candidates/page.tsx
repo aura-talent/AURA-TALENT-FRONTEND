@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { candidates } from "../data";
+import { candidates, stageOptions } from "../data";
+import StageChip from "@/components/employer/StageChip";
 
 export default function CandidatesPage() {
   const [query, setQuery] = useState("");
@@ -61,12 +62,9 @@ export default function CandidatesPage() {
           onChange={(event) => setStage(event.target.value)}
         >
           <option>All stages</option>
-          <option>New</option>
-          <option>Screening</option>
-          <option>Assessment</option>
-          <option>Interview</option>
-          <option>Final review</option>
-          <option>Rejected</option>
+          {stageOptions.map((option) => (
+            <option key={option}>{option}</option>
+          ))}
         </select>
         <select
           className="select"
@@ -131,7 +129,7 @@ export default function CandidatesPage() {
                   </div>
                 </td>
                 <td>
-                  <span className="chip">{candidate.stage}</span>
+                  <StageChip stage={candidate.stage} />
                 </td>
                 <td>
                   <span className="signal-score">{candidate.resume}</span>

@@ -17,6 +17,7 @@ export type JobSeed = {
   keywords?: string[];
   mockInterviewEnabled?: boolean;
   interviewQuestions?: number;
+  headhunterIds?: string[];
 };
 
 export type CustomCriterion = {

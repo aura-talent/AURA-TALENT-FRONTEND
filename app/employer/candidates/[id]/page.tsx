@@ -8,6 +8,7 @@ import {
   weightedScore,
 } from "../../data";
 import CandidateEmailComposer from "@/components/employer/CandidateEmailComposer";
+import StageTracker from "@/components/employer/StageTracker";
 
 function scoreTone(score: number) {
   if (score >= 90) return "strong";
@@ -40,57 +41,51 @@ export default async function CandidateDetail({
         ← All candidates
       </Link>
       <div className="candidate-profile-head panel">
-        <div className="candidate-profile-person">
-          <span className="candidate-avatar candidate-avatar-large">
-            {candidate.initials}
-          </span>
-          <div>
-            <div className="candidate-name-row">
-              <h1>{candidate.name}</h1>
-              <span className="chip chip-tier-high">High confidence</span>
-            </div>
-            <p>
-              {candidate.role} · {candidate.location} · {candidate.experience}
-            </p>
-            <div className="candidate-skill-row">
-              {candidate.skills.map((skill) => (
-                <span className="chip" key={skill}>
-                  {skill}
-                </span>
-              ))}
+        <div className="candidate-profile-top">
+          <div className="candidate-profile-person">
+            <span className="candidate-avatar candidate-avatar-large">
+              {candidate.initials}
+            </span>
+            <div>
+              <div className="candidate-name-row">
+                <h1>{candidate.name}</h1>
+                <span className="chip chip-tier-high">High confidence</span>
+              </div>
+              <p>
+                {candidate.role} · {candidate.location} · {candidate.experience}
+              </p>
+              <div className="candidate-skill-row">
+                {candidate.skills.map((skill) => (
+                  <span className="chip" key={skill}>
+                    {skill}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
+          <div className="candidate-profile-actions">
+            {candidate.applied ? (
+              <Link
+                className="btn btn-ghost"
+                href={`/employer/candidates/${candidate.id}/resume`}
+              >
+                View resume
+              </Link>
+            ) : (
+              <span className="resume-unavailable">
+                {candidate.interviewAttempted
+                  ? "Resume not submitted · interview attempt only"
+                  : "Resume not submitted"}
+              </span>
+            )}
+            <CandidateEmailComposer
+              candidateName={candidate.name}
+              role={candidate.role}
+              score={wlcScore}
+            />
+          </div>
         </div>
-        <div className="candidate-profile-actions">
-          {candidate.applied ? (
-            <Link
-              className="btn btn-ghost"
-              href={`/employer/candidates/${candidate.id}/resume`}
-            >
-              View resume
-            </Link>
-          ) : (
-            <span className="resume-unavailable">
-              {candidate.interviewAttempted
-                ? "Resume not submitted · interview attempt only"
-                : "Resume not submitted"}
-            </span>
-          )}
-          <select className="select" defaultValue={candidate.stage}>
-            <option>New</option>
-            <option>Screening</option>
-            <option>Assessment</option>
-            <option>Interview</option>
-            <option>Final review</option>
-            <option>Offer</option>
-            <option>Rejected</option>
-          </select>
-          <CandidateEmailComposer
-            candidateName={candidate.name}
-            role={candidate.role}
-            score={wlcScore}
-          />
-        </div>
+        <StageTracker initialStage={candidate.stage} />
       </div>
 
       <div className="candidate-evaluation-summary">

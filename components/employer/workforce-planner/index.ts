@@ -1,1 +1,1 @@
-export { default } from "./WorkforcePlanner";
+export { default } from "./JobPlanEditor";

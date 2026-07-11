@@ -1,6 +1,8 @@
 // lib/career-map/scene.ts
 // Framework-free three.js scene for the career constellation.
 // React never touches three objects; the page talks to this class only.
+// Node look matches the approved demo exactly: one flat soft-glow disc per
+// node in its branch color, porcelain root with a pulsing ring, labels below.
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
@@ -26,6 +28,12 @@ const KIND_HEX: Record<CareerMapNode["kind"], string> = {
 
 const CAM_HOME = { pos: new THREE.Vector3(0, 120, 620), target: new THREE.Vector3(0, 0, 0) };
 
+/** Deterministic pseudo-random in [0,1) — the scene must never use Math.random. */
+function hash01(i: number): number {
+  const x = Math.sin(i * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
 /** Materials that carry an opacity we tween — base opacity is stashed in userData. */
 type OpacityMaterial = { opacity: number; userData: { baseOpacity: number } };
 
@@ -45,13 +53,12 @@ function asOpacityMaterial(mat: THREE.Material | THREE.Material[]): OpacityMater
 
 interface NodeVisual {
   node: CareerMapNode;
-  group: THREE.Group; // orb + halo + picker + label (+ pulse ring on the root)
-  orb: THREE.Sprite;
+  group: THREE.Group; // orb + halo + picker + label (+ root pulse ring)
+  orb: THREE.Sprite; // the demo disc: flat solid core + soft glow, one texture
   halo: THREE.Sprite; // invisible at rest; becomes the room we stand in on dive
   picker: THREE.Mesh; // invisible raycast target
-  ring: THREE.Sprite | null;
+  ring: THREE.Sprite | null; // root pulse ring
   label: THREE.Sprite;
-  baseOrbScale: number;
   baseHaloScale: number;
   baseRingScale: number;
   baseLabelScale: { x: number; y: number };
@@ -64,7 +71,7 @@ function childMaterial(child: THREE.Object3D): OpacityMaterial {
   return asOpacityMaterial((child as VisualChild).material);
 }
 
-/* ── canvas textures (the demo's soft-orb look) ─────────────────── */
+/* ── canvas textures ────────────────────────────────────────────── */
 
 function makeHaloTexture(): THREE.CanvasTexture {
   const c = document.createElement("canvas");
@@ -80,8 +87,8 @@ function makeHaloTexture(): THREE.CanvasTexture {
 }
 
 /**
- * One soft glowing orb per kind, exactly like the approved 2D demo: a solid
- * bright core with a hot center, wrapped in a wide colored glow falloff.
+ * The demo's node: a flat, solid color disc wrapped in a soft glow — nothing
+ * else. Core occupies 30% of the half-size, glow fades to the edge (~3.3×).
  * Baked once per kind and shared by every node of that kind.
  */
 function makeOrbTexture(hex: string, isRoot: boolean): THREE.CanvasTexture {
@@ -89,22 +96,14 @@ function makeOrbTexture(hex: string, isRoot: boolean): THREE.CanvasTexture {
   c.width = c.height = 256;
   const g = c.getContext("2d")!;
   const glow = g.createRadialGradient(128, 128, 0, 128, 128, 128);
-  glow.addColorStop(0, hex + (isRoot ? "e6" : "b3"));
-  glow.addColorStop(0.28, hex + "4d");
+  glow.addColorStop(0, hex + (isRoot ? "cc" : "99"));
   glow.addColorStop(1, hex + "00");
   g.fillStyle = glow;
   g.fillRect(0, 0, 256, 256);
-
-  const coreR = isRoot ? 42 : 32;
-  const core = g.createRadialGradient(128, 128, 0, 128, 128, coreR);
-  core.addColorStop(0, "#ffffff");
-  core.addColorStop(0.35, hex);
-  core.addColorStop(1, hex);
-  g.fillStyle = core;
+  g.fillStyle = hex;
   g.beginPath();
-  g.arc(128, 128, coreR, 0, Math.PI * 2);
+  g.arc(128, 128, 38, 0, Math.PI * 2); // 38/128 = 0.30 of the half-size
   g.fill();
-
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
@@ -167,6 +166,10 @@ export class CareerMapScene {
   private nodesGroup = new THREE.Group();
   private map: CareerMapOut | null = null;
 
+  /** Starfield layers that twinkle asynchronously in tick(). */
+  private starLayers: { points: THREE.Points; baseOpacity: number; phase: number; period: number }[] = [];
+  private bgResources: { geometry?: THREE.BufferGeometry; material: THREE.Material }[] = [];
+
   private hoveredId: string | null = null;
   /** Node currently growing new branches — pulses as a beacon until cleared. */
   private discoveringId: string | null = null;
@@ -191,7 +194,7 @@ export class CareerMapScene {
     this.scene.background = new THREE.Color(0x0b0e1c);
     this.scene.fog = new THREE.FogExp2(0x0b0e1c, 0.00085);
 
-    this.camera = new THREE.PerspectiveCamera(55, w / h, 1, 4000);
+    this.camera = new THREE.PerspectiveCamera(55, w / h, 1, 6000);
     this.camera.position.copy(CAM_HOME.pos);
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -217,6 +220,8 @@ export class CareerMapScene {
     this.composer.addPass(new FilmPass(0.18, false)); // subtle grain (spec §6)
 
     this.scene.add(this.edgesGroup, this.nodesGroup);
+    this.addStars();
+    this.addNebulae();
     this.addDust();
 
     this.renderer.domElement.addEventListener("pointermove", this.onPointerMove);
@@ -224,6 +229,66 @@ export class CareerMapScene {
     this.renderer.domElement.addEventListener("dblclick", this.onDblClick);
     window.addEventListener("resize", this.onResize);
     this.tick();
+  }
+
+  /* ── deep space backdrop ── */
+
+  /**
+   * Three star layers on a far spherical shell (fibonacci-distributed, fully
+   * deterministic), each twinkling on its own slow phase. Fog is disabled and
+   * sizes are in screen pixels so they read as infinitely far at any zoom.
+   */
+  private addStars() {
+    const layers: { count: number; color: number; size: number; opacity: number; r0: number; period: number }[] = [
+      { count: 900, color: 0xdde3ff, size: 3.0, opacity: 0.8, r0: 1900, period: 1100 },
+      { count: 220, color: 0xc7b9ff, size: 4.6, opacity: 0.85, r0: 1700, period: 800 },
+      { count: 120, color: 0xffd9c2, size: 3.8, opacity: 0.7, r0: 2100, period: 1400 },
+    ];
+    layers.forEach((l, li) => {
+      const pos = new Float32Array(l.count * 3);
+      for (let i = 0; i < l.count; i++) {
+        // fibonacci sphere + hashed radial jitter
+        const y = 1 - (2 * (i + 0.5)) / l.count;
+        const rr = Math.sqrt(Math.max(0, 1 - y * y));
+        const phi = i * 2.399963229728653;
+        const radius = l.r0 + hash01(i * 7 + li * 131) * 400;
+        pos[i * 3] = Math.cos(phi) * rr * radius;
+        pos[i * 3 + 1] = y * radius;
+        pos[i * 3 + 2] = Math.sin(phi) * rr * radius;
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      const mat = new THREE.PointsMaterial({
+        size: l.size, map: this.haloTex, color: l.color, transparent: true,
+        opacity: l.opacity, depthWrite: false, blending: THREE.AdditiveBlending,
+        fog: false, sizeAttenuation: false,
+      });
+      const points = new THREE.Points(geo, mat);
+      this.scene.add(points);
+      this.starLayers.push({ points, baseOpacity: l.opacity, phase: li * 2.1, period: l.period });
+      this.bgResources.push({ geometry: geo, material: mat });
+    });
+  }
+
+  /** Vast, faint aura-tinted clouds far behind the map — depth, not decoration. */
+  private addNebulae() {
+    const blobs: { color: number; opacity: number; scale: number; pos: [number, number, number] }[] = [
+      { color: 0x4e3fd8, opacity: 0.07, scale: 1900, pos: [-800, 260, -1500] },
+      { color: 0xc7b9ff, opacity: 0.05, scale: 1500, pos: [1000, -200, -1700] },
+      { color: 0xffd9c2, opacity: 0.045, scale: 1300, pos: [-500, -380, -1300] },
+      { color: 0xbfead8, opacity: 0.04, scale: 1200, pos: [700, 420, -1100] },
+    ];
+    for (const b of blobs) {
+      const mat = new THREE.SpriteMaterial({
+        map: this.haloTex, color: b.color, transparent: true, opacity: b.opacity,
+        depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
+      });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.setScalar(b.scale);
+      sprite.position.set(...b.pos);
+      this.scene.add(sprite);
+      this.bgResources.push({ material: mat });
+    }
   }
 
   /* ── ambient dust ── */
@@ -246,13 +311,13 @@ export class CareerMapScene {
       color: 0xc7b9ff, depthWrite: false, blending: THREE.AdditiveBlending,
     });
     this.scene.add(new THREE.Points(geo, mat));
+    this.bgResources.push({ geometry: geo, material: mat });
   }
 
   /**
    * Kills any tweens still targeting the current visuals/edges, then disposes
-   * every GPU resource they own. The orb/halo/ring textures are shared across
-   * nodes (baked once per kind) — those are freed only in `dispose()`. Each
-   * label sprite owns its texture outright and frees it here.
+   * every GPU resource they own. Shared textures (orb/halo/ring) are freed
+   * only in `dispose()`. Each label sprite owns its texture and frees it here.
    */
   private disposeVisuals() {
     for (const v of this.visuals.values()) {
@@ -322,14 +387,15 @@ export class CareerMapScene {
       group.position.set(p.x, p.y, p.z);
 
       const isRoot = node.kind === "current";
-      const coreR = isRoot ? 13 : 5.5 + node.fit * 1.7;
+      const coreR = isRoot ? 12 : 5 + node.fit * 1.5;
 
-      // the node itself: one soft glowing orb sprite (demo look), billboarded
+      // the node itself: the demo's flat disc + glow, one billboard sprite.
+      // Texture core is 30% of the half-size, so scale = coreR / 0.15 keeps
+      // the visible disc radius at coreR world units.
       const orb = new THREE.Sprite(withBaseOpacity(new THREE.SpriteMaterial({
         map: this.orbTex[node.kind], transparent: true, depthWrite: false,
       })));
-      const orbScale = coreR * 7.5;
-      orb.scale.setScalar(orbScale);
+      orb.scale.setScalar(coreR / 0.15);
       group.add(orb);
 
       // dive backdrop halo: invisible at rest, swells into the room on dive
@@ -341,7 +407,7 @@ export class CareerMapScene {
       halo.scale.setScalar(haloScale);
       group.add(halo);
 
-      // invisible raycast target sized to the orb's visual core
+      // invisible raycast target sized generously around the disc
       const picker = new THREE.Mesh(
         new THREE.SphereGeometry(coreR * 2.2, 8, 8),
         withBaseOpacity(new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }))
@@ -349,7 +415,7 @@ export class CareerMapScene {
       picker.userData.nodeId = node.id;
       group.add(picker);
 
-      // pulsing aura ring on the root only (matches the demo's "you" node)
+      // pulsing aura ring on the root only (the demo's "you" node)
       let ring: THREE.Sprite | null = null;
       const ringScale = coreR * 3.4;
       if (isRoot) {
@@ -374,7 +440,7 @@ export class CareerMapScene {
       this.nodesGroup.add(group);
       this.visuals.set(node.id, {
         node, group, orb, halo, picker, ring, label,
-        baseOrbScale: orbScale, baseHaloScale: haloScale, baseRingScale: ringScale, baseLabelScale,
+        baseHaloScale: haloScale, baseRingScale: ringScale, baseLabelScale,
       });
     }
 
@@ -548,7 +614,7 @@ export class CareerMapScene {
     const dur = this.opts.reducedMotion ? 0 : 1.15;
 
     // fade everything but the target; its halo swells into the ambient backdrop
-    // while the orb itself dims so we pass "through the surface"
+    // while the disc itself dims so we pass "through the surface"
     this.hoveredId = null;
     for (const [id, ov] of this.visuals) {
       if (id === nodeId) continue;
@@ -620,8 +686,17 @@ export class CareerMapScene {
 
   private tick = () => {
     if (this.disposed) return;
+    const now = performance.now();
+
+    // starfield twinkle: whole layers breathe slowly out of phase
+    if (!this.opts.reducedMotion) {
+      for (const l of this.starLayers) {
+        (l.points.material as THREE.PointsMaterial).opacity =
+          l.baseOpacity * (0.78 + 0.22 * Math.sin(now / l.period + l.phase));
+      }
+    }
+
     if (this.mode === "map") {
-      const now = performance.now();
       for (const v of this.visuals.values()) {
         // labels grow with distance so the far side of the map stays readable
         const d = this.camera.position.distanceTo(v.group.position);
@@ -664,7 +739,11 @@ export class CareerMapScene {
     gsap.killTweensOf(this.camera.position);
     gsap.killTweensOf(this.controls.target);
     this.disposeVisuals();
-    // shared textures (baked once, reused by every node) are only freed here
+    // backdrop resources (stars, nebulae, dust) and shared textures
+    for (const r of this.bgResources) {
+      r.geometry?.dispose();
+      r.material.dispose();
+    }
     this.haloTex.dispose();
     this.ringTex.dispose();
     for (const tex of Object.values(this.orbTex)) tex.dispose();

@@ -498,7 +498,31 @@ export default function Dashboard() {
             </div>
 
             {/* Career Path Navigator */}
-            {!authLoading && user && hasResume === true && <CareerPathNavigator />}
+            {!authLoading && user && hasResume === true && (
+              <>
+                <Link
+                  href="/career-map"
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    gap: "1rem", padding: "1rem 1.2rem", marginBottom: "1rem",
+                    borderRadius: "var(--r-m, 12px)", textDecoration: "none",
+                    background: "linear-gradient(120deg, #10132a, #1c1440)",
+                    border: "1px solid rgba(143,125,255,0.35)", color: "#fafaf8",
+                  }}
+                >
+                  <span style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+                    <span style={{ fontWeight: 700 }}>Career Map</span>
+                    <span style={{ fontSize: "0.8rem", color: "rgba(250,250,248,0.6)" }}>
+                      Explore your next roles, pivots, and wildcards in 3D
+                    </span>
+                  </span>
+                  <span className="mono" style={{ fontSize: "0.75rem", color: "#c7b9ff", whiteSpace: "nowrap" }}>
+                    Open map →
+                  </span>
+                </Link>
+                <CareerPathNavigator />
+              </>
+            )}
 
             {/* Upcoming Interviews Reminder Checklist */}
             <div className="panel" style={{ padding: "1.5rem" }}>

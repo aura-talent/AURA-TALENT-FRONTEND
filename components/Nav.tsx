@@ -71,6 +71,9 @@ export default function Nav() {
     };
   }, [menuOpen]);
 
+  // the career map is a fullscreen immersive space with its own themed bar
+  if (pathname.startsWith("/career-map")) return null;
+
   return (
     <header className="nav nav-blueprint">
       <div className="nav-inner">

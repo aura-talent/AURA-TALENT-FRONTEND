@@ -19,6 +19,7 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/scan") ||
     pathname.startsWith("/compare") ||
     pathname.startsWith("/report") ||
+    pathname.startsWith("/career-map") ||
     pathname.startsWith("/onboarding");
 
   useEffect(() => {

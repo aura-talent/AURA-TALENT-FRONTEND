@@ -8,7 +8,8 @@ import { api, type Application } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import { scoreColor } from "@/components/ScoreDial";
 import { useAuth } from "@/components/AuthProvider";
-import KanbanBoard, { type KanbanColumn } from "@/components/kanban";
+import EmployerPipelineTimeline from "@/components/tracker/EmployerPipelineTimeline";
+
 
 const TRACKER_STATUSES = [
   "Evaluated",
@@ -24,28 +25,29 @@ const TRACKER_STATUSES = [
   "Withdrawn"
 ];
 
-// Column color per status — same rule the inline kanban board used to
-// compute per-render (status.includes("Round"/"Screen"/"Test") -> iris),
-// lifted out to a static table since TRACKER_STATUSES never changes.
-const TRACKER_KANBAN_COLUMNS: KanbanColumn[] = TRACKER_STATUSES.map((status) => {
-  let color = "var(--ink-30)";
-  if (status === "Applied") color = "rgba(59, 130, 246, 0.65)";
-  else if (status.includes("Round") || status.includes("Screen") || status.includes("Test")) color = "var(--iris)";
-  else if (status === "Offer") color = "rgba(16, 185, 129, 0.65)";
-  else if (status === "Rejected") color = "rgba(239, 68, 68, 0.65)";
-  else if (status === "Withdrawn") color = "var(--ink-55)";
-  return { id: status, label: status, color };
-});
+/** Four phase groups for the grouped Kanban view. */
+const KANBAN_GROUPS: { label: string; icon: string; color: string; statuses: readonly string[] }[] = [
+  { label: "PREP",       icon: "📋", color: "rgba(100,116,139,0.75)", statuses: ["Evaluated", "Saved"] },
+  { label: "ACTIVE",     icon: "🎯", color: "rgba(59,130,246,0.85)",  statuses: ["Applied", "Phone Screen", "Technical Test"] },
+  { label: "INTERVIEWS", icon: "💬", color: "rgba(139,92,246,0.85)",  statuses: ["First Round", "Second Round", "Final Round"] },
+  { label: "CLOSED",     icon: "✓",    color: "rgba(16,185,129,0.85)",  statuses: ["Offer", "Rejected", "Withdrawn"] },
+];
 
-// Which kanban lane an application currently belongs to — a lane also
-// catches a couple of legacy backend status values so nothing falls through:
-// "Phone Screen" also shows Interview/Responded, "Withdrawn" also shows
-// Discarded/SKIP. Everything else is an exact status match.
-function trackerColumnFor(app: Application): string {
-  if (app.status === "Interview" || app.status === "Responded") return "Phone Screen";
-  if (app.status === "Discarded" || app.status === "SKIP") return "Withdrawn";
-  return app.status;
-}
+/** Legacy status aliases kept for backward compat with old tracker entries. */
+const statusMatchesLane = (appStatus: string, laneStatus: string): boolean => {
+  if (laneStatus === "Phone Screen" && (appStatus === "Interview" || appStatus === "Responded")) return true;
+  if (laneStatus === "Withdrawn"    && (appStatus === "Discarded" || appStatus === "SKIP"))      return true;
+  return appStatus === laneStatus;
+};
+
+/** Sub-status dot colour for cards within a group. */
+const laneColor = (status: string): string => {
+  if (status === "Applied")                               return "rgba(59,130,246,0.8)";
+  if (["Phone Screen","First Round","Second Round","Final Round","Technical Test"].includes(status)) return "var(--iris)";
+  if (status === "Offer")                                return "rgba(16,185,129,0.8)";
+  if (status === "Rejected")                             return "rgba(239,68,68,0.8)";
+  return "var(--ink-30)";
+};
 
 const PRIORITIES = ["low", "medium", "high"];
 type ToastTone = "success" | "error" | "info";
@@ -108,6 +110,11 @@ export default function JobTracker() {
   // Custom Timeline Milestone state
   const [customMilestoneTitle, setCustomMilestoneTitle] = useState("");
   const [customMilestoneDesc, setCustomMilestoneDesc] = useState("");
+
+  // Drag & drop lane highlighting
+  const [draggedOverLane, setDraggedOverLane] = useState<string | null>(null);
+  // Use a ref (not state) for the dragged app ID — state causes stale closure in handleDrop
+  const draggedAppIdRef = useRef<string | null>(null);
 
   // Helper formatting for Notion-style editor
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -178,9 +185,29 @@ export default function JobTracker() {
     return matchesSearch && matchesPriority && matchesTag;
   });
 
-  // Kanban move handler — invoked by the shared <KanbanBoard> on drop.
-  const handleKanbanMove = async (appId: string, targetStatus: string) => {
-    if (!apps) return;
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, appId: string) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", appId);
+    draggedAppIdRef.current = appId; // use ref — always fresh, no stale closure
+  };
+
+  const handleDragOver = (e: React.DragEvent, laneId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDraggedOverLane(laneId);
+  };
+
+  const handleDragLeave = () => {
+    setDraggedOverLane(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetStatus: string) => {
+    e.preventDefault();
+    setDraggedOverLane(null);
+    const appId = e.dataTransfer.getData("text/plain") || draggedAppIdRef.current;
+    draggedAppIdRef.current = null;
+    if (!appId || !apps) return;
 
     const matchedApp = apps.find((a) => a.id === appId);
     if (!matchedApp || matchedApp.status === targetStatus) return;
@@ -228,60 +255,6 @@ export default function JobTracker() {
       setApps((prev) => (prev ? prev.map((a) => (a.id === appId ? matchedApp : a)) : null));
     }
   };
-
-  // Kanban card body for one application — rendered inside <KanbanBoard>'s
-  // generic draggable/clickable card shell.
-  function renderTrackerCard(app: Application) {
-    return (
-      <>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.25rem" }}>
-          <span style={{ fontSize: "0.65rem", textTransform: "uppercase", fontWeight: 700, color: "var(--ink-40)" }}>
-            {app.company}
-          </span>
-          {app.priority === "high" && (
-            <span style={{ fontSize: "0.55rem", background: "rgba(239,68,68,0.1)", color: "#ef4444", fontWeight: 700, padding: "0.05rem 0.25rem", borderRadius: "3px", textTransform: "uppercase" }}>
-              High
-            </span>
-          )}
-        </div>
-        <h4 style={{ fontSize: "0.85rem", fontWeight: 600, margin: "0 0 0.5rem 0", color: "var(--ink)" }}>
-          {app.role}
-        </h4>
-
-        {app.tags && app.tags.length > 0 && (
-          <div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap", marginBottom: "0.6rem" }}>
-            {app.tags.map((tag, tagIdx) => (
-              <span key={`${tag}-${tagIdx}`} style={{ fontSize: "0.6rem", background: "var(--ink-06)", color: "var(--ink-72)", padding: "0.05rem 0.3rem", borderRadius: "3px" }}>
-                #{tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", alignItems: "center", borderTop: "1px solid var(--ink-06)", paddingTop: "0.5rem", marginTop: "0.25rem" }}>
-          {app.evaluation_id ? (
-            <span style={{ fontSize: "0.65rem", background: scoreColor(app.score), color: "#fff", fontWeight: 700, padding: "0.05rem 0.35rem", borderRadius: "3px" }}>
-              {app.score.toFixed(1)}
-            </span>
-          ) : (
-            <span style={{ fontSize: "0.62rem", color: "var(--ink-40)", fontStyle: "italic" }}>Manual</span>
-          )}
-
-          {app.interviews && app.interviews.length > 0 && (
-            <span style={{ fontSize: "0.62rem", color: "var(--iris)", fontWeight: 600 }}>
-              🗓️ {app.interviews.length} rounds
-            </span>
-          )}
-
-          {app.attachments && app.attachments.length > 0 && (
-            <span style={{ fontSize: "0.62rem", color: "var(--ink-55)" }}>
-              📎 {app.attachments.length}
-            </span>
-          )}
-        </div>
-      </>
-    );
-  }
 
   const saveApplicationDetails = async (updatedApp: Application) => {
     // Guard: bail out early if id is missing (prevents "undefined" in URL)
@@ -822,17 +795,328 @@ export default function JobTracker() {
             </div>
           )}
 
-          {/* KANBAN BOARD VIEW */}
+          {/* ─── KANBAN BOARD — 4 Phase Groups ─────────────────────────────── */}
           {apps && apps.length > 0 && filteredApps.length > 0 && viewMode === "kanban" && (
-            <KanbanBoard
-              columns={TRACKER_KANBAN_COLUMNS}
-              items={filteredApps}
-              getItemId={(app) => app.id}
-              getItemColumnId={trackerColumnFor}
-              renderCard={renderTrackerCard}
-              onCardClick={(app) => { setSelectedApp(app); setDrawerOpen(true); }}
-              onMove={handleKanbanMove}
-            />
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gap: "0.75rem",
+                alignItems: "start",
+              }}
+            >
+              {KANBAN_GROUPS.map((group) => {
+                const groupApps = filteredApps.filter((a) =>
+                  group.statuses.some((s) => statusMatchesLane(a.status, s))
+                );
+
+                return (
+                  <div
+                    key={group.label}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.4rem",
+                      background: "rgba(26,29,41,0.012)",
+                      border: "1.5px solid var(--ink-08)",
+                      borderRadius: "var(--r-s)",
+                      padding: "0.65rem",
+                      minHeight: "200px",
+                    }}
+                  >
+                    {/* ── Group phase header ── */}
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        paddingBottom: "0.55rem",
+                        marginBottom: "0.2rem",
+                        borderBottom: `2px solid ${group.color}`,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "0.68rem",
+                          fontWeight: 800,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.09em",
+                          color: group.color,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.3rem",
+                        }}
+                      >
+                        {group.icon} {group.label}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "0.62rem",
+                          fontWeight: 700,
+                          background: "rgba(26,29,41,0.07)",
+                          padding: "0.05rem 0.4rem",
+                          borderRadius: "10px",
+                        }}
+                      >
+                        {groupApps.length}
+                      </span>
+                    </div>
+
+                    {/* ── Sub-status lanes inside this group ── */}
+                    {group.statuses.map((status) => {
+                      const laneApps = filteredApps.filter((a) => statusMatchesLane(a.status, status));
+                      const isOver = draggedOverLane === status;
+
+                      return (
+                        <div
+                          key={status}
+                          onDragOver={(e) => handleDragOver(e, status)}
+                          onDragLeave={handleDragLeave}
+                          onDrop={(e) => handleDrop(e, status)}
+                          style={{
+                            borderRadius: "6px",
+                            border: isOver
+                              ? "1.5px dashed var(--iris)"
+                              : "1px dashed var(--ink-10)",
+                            background: isOver ? "rgba(78,63,216,0.04)" : "transparent",
+                            transition: "all 0.15s ease",
+                            overflow: "hidden",
+                          }}
+                        >
+                          {/* Sub-lane header */}
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              padding: "0.28rem 0.5rem",
+                              background: "rgba(26,29,41,0.025)",
+                              borderBottom:
+                                laneApps.length > 0 ? "1px solid var(--ink-06)" : "none",
+                            }}
+                          >
+                            <span
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.3rem",
+                                fontSize: "0.6rem",
+                                fontWeight: 700,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.04em",
+                                color: "var(--ink-45)",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: 5,
+                                  height: 5,
+                                  borderRadius: "50%",
+                                  background: laneColor(status),
+                                  display: "inline-block",
+                                  flexShrink: 0,
+                                }}
+                              />
+                              {status}
+                            </span>
+                            {laneApps.length > 0 && (
+                              <span
+                                style={{
+                                  fontSize: "0.58rem",
+                                  fontWeight: 700,
+                                  color: "var(--ink-55)",
+                                }}
+                              >
+                                {laneApps.length}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Empty drop hint */}
+                          {laneApps.length === 0 && (
+                            <div
+                              style={{
+                                padding: "0.45rem",
+                                textAlign: "center",
+                                fontSize: "0.58rem",
+                                color: isOver ? "var(--iris)" : "var(--ink-20)",
+                                fontStyle: "italic",
+                                transition: "color 0.15s ease",
+                              }}
+                            >
+                              {isOver ? "Drop here" : "empty"}
+                            </div>
+                          )}
+
+                          {/* Cards */}
+                          {laneApps.length > 0 && (
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "0.35rem",
+                                padding: "0.4rem",
+                              }}
+                            >
+                              {laneApps.map((app, cardIdx) => (
+                                <div
+                                  key={app.id || `${app.company}-${app.role}-${cardIdx}`}
+                                  draggable
+                                  onDragStart={(e) => handleDragStart(e, app.id)}
+                                  onClick={() => { setSelectedApp(app); setDrawerOpen(true); }}
+                                  className="kanban-card-new panel"
+                                  style={{
+                                    padding: "0.7rem",
+                                    borderRadius: "calc(var(--r-s) - 2px)",
+                                    cursor: "grab",
+                                    transition: "all 0.18s ease",
+                                    boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                                    userSelect: "none",
+                                    WebkitUserSelect: "none",
+                                  }}
+                                >
+                                  {/* Card top row */}
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      alignItems: "flex-start",
+                                      marginBottom: "0.2rem",
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        fontSize: "0.6rem",
+                                        textTransform: "uppercase",
+                                        fontWeight: 700,
+                                        color: "var(--ink-40)",
+                                        maxWidth: "75%",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                      }}
+                                    >
+                                      {app.company}
+                                    </span>
+                                    {app.priority === "high" && (
+                                      <span
+                                        style={{
+                                          fontSize: "0.52rem",
+                                          background: "rgba(239,68,68,0.1)",
+                                          color: "#ef4444",
+                                          fontWeight: 700,
+                                          padding: "0.05rem 0.22rem",
+                                          borderRadius: "3px",
+                                          textTransform: "uppercase",
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        High
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <h4
+                                    style={{
+                                      fontSize: "0.82rem",
+                                      fontWeight: 600,
+                                      margin: "0 0 0.35rem 0",
+                                      color: "var(--ink)",
+                                      lineHeight: 1.3,
+                                    }}
+                                  >
+                                    {app.role}
+                                  </h4>
+
+                                  {/* Tags — max 2 shown */}
+                                  {app.tags && app.tags.length > 0 && (
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        gap: "0.18rem",
+                                        flexWrap: "wrap",
+                                        marginBottom: "0.4rem",
+                                      }}
+                                    >
+                                      {app.tags.slice(0, 2).map((tag, tIdx) => (
+                                        <span
+                                          key={`${tag}-${tIdx}`}
+                                          style={{
+                                            fontSize: "0.57rem",
+                                            background: "var(--ink-06)",
+                                            color: "var(--ink-65)",
+                                            padding: "0.03rem 0.22rem",
+                                            borderRadius: "3px",
+                                          }}
+                                        >
+                                          #{tag}
+                                        </span>
+                                      ))}
+                                      {app.tags.length > 2 && (
+                                        <span style={{ fontSize: "0.57rem", color: "var(--ink-35)" }}>
+                                          +{app.tags.length - 2}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Footer badges */}
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      gap: "0.28rem",
+                                      flexWrap: "wrap",
+                                      alignItems: "center",
+                                      borderTop: "1px solid var(--ink-06)",
+                                      paddingTop: "0.35rem",
+                                    }}
+                                  >
+                                    {app.evaluation_id ? (
+                                      <span
+                                        style={{
+                                          fontSize: "0.6rem",
+                                          background: scoreColor(app.score),
+                                          color: "#fff",
+                                          fontWeight: 700,
+                                          padding: "0.05rem 0.28rem",
+                                          borderRadius: "3px",
+                                        }}
+                                      >
+                                        {app.score.toFixed(1)}
+                                      </span>
+                                    ) : (
+                                      <span
+                                        style={{
+                                          fontSize: "0.58rem",
+                                          color: "var(--ink-35)",
+                                          fontStyle: "italic",
+                                        }}
+                                      >
+                                        Manual
+                                      </span>
+                                    )}
+                                    {app.interviews && app.interviews.length > 0 && (
+                                      <span style={{ fontSize: "0.58rem", color: "var(--iris)", fontWeight: 600 }}>
+                                        🗓 {app.interviews.length}
+                                      </span>
+                                    )}
+                                    {app.attachments && app.attachments.length > 0 && (
+                                      <span style={{ fontSize: "0.58rem", color: "var(--ink-50)" }}>
+                                        📎{app.attachments.length}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
           )}
 
           {/* LIST VIEW */}
@@ -1385,6 +1669,9 @@ export default function JobTracker() {
                 />
               </div>
 
+              {/* Employer-Driven Pipeline Timeline */}
+              <EmployerPipelineTimeline applicationId={selectedApp.id} />
+
               {/* Visual Audit Trail Timeline */}
               <div>
                 <h4 style={{ fontSize: "0.8rem", fontWeight: 700, marginBottom: "0.75rem", fontFamily: "var(--font-space), monospace" }}>MILESTONES_TIMELINE</h4>
@@ -1709,6 +1996,37 @@ export default function JobTracker() {
             opacity: 1;
             transform: translateY(0);
           }
+        }
+        .kanban-lane-new {
+          background: rgba(26, 29, 41, 0.015);
+          border: 1.5px dashed var(--ink-12);
+          border-radius: var(--r-s);
+          padding: 0.75rem;
+          min-height: 550px;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          transition: all 0.2s ease;
+        }
+        .kanban-lane-new.dragover {
+          background: var(--iris-08) !important;
+          border-color: var(--iris) !important;
+        }
+        .kanban-card-new {
+          background: var(--surface);
+          border: 1px solid var(--ink-12);
+          border-radius: calc(var(--r-s) - 2px);
+          cursor: grab;
+          transition: all 0.2s ease;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+        }
+        .kanban-card-new:hover {
+          border-color: var(--ink-30);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(26,29,41,0.05);
+        }
+        .kanban-card-new:active {
+          cursor: grabbing;
         }
         .input-inline {
           background: transparent;

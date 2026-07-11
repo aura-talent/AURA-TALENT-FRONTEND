@@ -17,6 +17,8 @@ export interface SceneCallbacks {
   onHover(node: CareerMapNode | null): void;
   onDiveComplete(node: CareerMapNode): void;
   onSpawn(born: number, total: number): void;
+  /** Fired whenever the focus carousel moves (and once per setMap with the root). */
+  onFocus(node: CareerMapNode, index: number, total: number): void;
 }
 
 const KIND_HEX: Record<CareerMapNode["kind"], string> = {
@@ -124,23 +126,55 @@ function makeRingTexture(): THREE.CanvasTexture {
   return tex;
 }
 
-function makeLabelTexture(title: string, sub: string, color: string): THREE.CanvasTexture {
-  const c = document.createElement("canvas");
+/**
+ * Node label: title (word-wrapped to at most two lines, ellipsized beyond)
+ * over the colored duration. Returns the texture plus its aspect ratio so the
+ * sprite can be sized per-label without stretching.
+ */
+function makeLabelTexture(title: string, sub: string, color: string): { tex: THREE.CanvasTexture; aspect: number } {
+  const W = 280, TITLE_FONT = "600 19px 'Hanken Grotesk', 'Avenir Next', sans-serif";
   const scale = 2;
-  c.width = 340 * scale;
-  c.height = 64 * scale;
+  const measure = document.createElement("canvas").getContext("2d")!;
+  measure.font = TITLE_FONT;
+
+  // greedy word wrap into at most 2 lines
+  const words = title.split(" ");
+  const lines: string[] = [];
+  let cur = "";
+  for (const word of words) {
+    const attempt = cur ? `${cur} ${word}` : word;
+    if (measure.measureText(attempt).width <= W - 16 || !cur) {
+      cur = attempt;
+    } else {
+      lines.push(cur);
+      cur = word;
+      if (lines.length === 2) break;
+    }
+  }
+  if (lines.length < 2 && cur) lines.push(cur);
+  else if (cur && lines.length === 2) {
+    let last = lines[1];
+    while (measure.measureText(last + "…").width > W - 16 && last.length > 1) last = last.slice(0, -1);
+    lines[1] = last + "…";
+  }
+
+  const LINE_H = 25;
+  const H = 10 + lines.length * LINE_H + 24; // title block + duration line
+  const c = document.createElement("canvas");
+  c.width = W * scale;
+  c.height = H * scale;
   const g = c.getContext("2d")!;
   g.scale(scale, scale);
   g.textAlign = "center";
-  g.font = "600 15px 'Hanken Grotesk', 'Avenir Next', sans-serif";
-  g.fillStyle = "rgba(250,250,248,0.92)";
-  g.fillText(title, 170, 22);
-  g.font = "11px 'Space Mono', ui-monospace, monospace";
+  g.font = TITLE_FONT;
+  g.fillStyle = "rgba(250,250,248,0.94)";
+  lines.forEach((line, i) => g.fillText(line, W / 2, 24 + i * LINE_H));
+  g.font = "13.5px 'Space Mono', ui-monospace, monospace";
   g.fillStyle = color;
-  g.fillText(sub, 170, 44);
+  g.fillText(sub, W / 2, 10 + lines.length * LINE_H + 16);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+  return { tex, aspect: H / W };
 }
 
 export class CareerMapScene {
@@ -171,6 +205,9 @@ export class CareerMapScene {
   private bgResources: { geometry?: THREE.BufferGeometry; material: THREE.Material }[] = [];
 
   private hoveredId: string | null = null;
+  /** Carousel focus: order (root first) + current index. */
+  private focusOrder: string[] = [];
+  private focusIndex = 0;
   /** Node currently growing new branches — pulses as a beacon until cleared. */
   private discoveringId: string | null = null;
   private mode: "map" | "diving" | "detail" | "returning" = "map";
@@ -204,14 +241,11 @@ export class CareerMapScene {
     this.controls.autoRotateSpeed = 0.45;
     this.controls.minDistance = 140;
     this.controls.maxDistance = 1400;
-    // free navigation: drag-pan (right mouse / two-finger touch) + arrow keys,
-    // so far-flung nodes can be brought close instead of orbited around
+    // free navigation: drag-pan (right mouse / two-finger touch). Arrow keys
+    // are reserved for the focus carousel (focusPrev/focusNext), not panning.
     this.controls.enablePan = true;
     this.controls.screenSpacePanning = true;
     this.controls.panSpeed = 0.9;
-    this.controls.keyPanSpeed = 22;
-    this.controls.keys = { LEFT: "ArrowLeft", UP: "ArrowUp", RIGHT: "ArrowRight", BOTTOM: "ArrowDown" };
-    this.controls.listenToKeyEvents(window);
 
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
@@ -227,6 +261,7 @@ export class CareerMapScene {
     this.renderer.domElement.addEventListener("pointermove", this.onPointerMove);
     this.renderer.domElement.addEventListener("click", this.onClick);
     this.renderer.domElement.addEventListener("dblclick", this.onDblClick);
+    window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("resize", this.onResize);
     this.tick();
   }
@@ -428,13 +463,15 @@ export class CareerMapScene {
       }
 
       // label sprite (distance-compensated in tick so far nodes stay readable)
+      const labelTex = makeLabelTexture(node.title, isRoot ? "you are here" : node.duration, hex);
       const label = new THREE.Sprite(withBaseOpacity(new THREE.SpriteMaterial({
-        map: makeLabelTexture(node.title, isRoot ? "you are here" : node.duration, hex),
-        transparent: true, depthWrite: false,
+        map: labelTex.tex, transparent: true, depthWrite: false,
       })));
-      const baseLabelScale = { x: 110, y: 20.7 };
+      // width fixed; height follows the texture's aspect so wrapped titles
+      // don't stretch. Sprites anchor at center, so offset by half the height.
+      const baseLabelScale = { x: 110, y: 110 * labelTex.aspect };
       label.scale.set(baseLabelScale.x, baseLabelScale.y, 1);
-      label.position.y = -(coreR + 22);
+      label.position.y = -(coreR + 10 + baseLabelScale.y / 2);
       group.add(label);
 
       this.nodesGroup.add(group);
@@ -460,6 +497,15 @@ export class CareerMapScene {
       this.edgesGroup.add(line);
       this.edgeLines.push({ line, source: e.source, target: e.target });
     }
+
+    // focus carousel order: root first, then build order; reset to the root
+    const rootId = map.nodes.find((n) => n.kind === "current")?.id;
+    const allIds = [...this.visuals.keys()];
+    this.focusOrder = rootId && this.visuals.has(rootId)
+      ? [rootId, ...allIds.filter((i) => i !== rootId)]
+      : allIds;
+    this.focusIndex = 0;
+    this.emitFocus(false);
 
     // spawn animation: full stagger on fresh build, pop-in for new nodes only
     let born = 0;
@@ -535,7 +581,13 @@ export class CareerMapScene {
    * highlighted path reads clearly against the dimmed rest of the map.
    */
   private applyHighlight() {
-    const route = this.hoveredId ? this.routeSet(this.hoveredId) : null;
+    // hover wins; otherwise the carousel focus lights its route. A focused
+    // root is treated as "no focus" — its route is the whole map anyway, and
+    // this keeps the resting look calm.
+    const focused = this.focusedId ? this.visuals.get(this.focusedId) : null;
+    const focusId = focused && focused.node.kind !== "current" ? focused.node.id : null;
+    const activeId = this.hoveredId ?? focusId;
+    const route = activeId ? this.routeSet(activeId) : null;
     const dur = this.opts.reducedMotion ? 0 : 0.25;
     const DIM = 0.08;
     for (const [id, v] of this.visuals) {
@@ -567,6 +619,60 @@ export class CareerMapScene {
   private onDblClick = () => {
     if (this.mode !== "map" || this.hoveredId) return;
     this.recenter(); // double-click on empty space brings the map home
+  };
+
+  /* ── focus carousel: ‹ node › stepping with camera fly-to ── */
+
+  private get focusedId(): string | null {
+    return this.focusOrder[this.focusIndex] ?? null;
+  }
+
+  private emitFocus(fly: boolean) {
+    const id = this.focusedId;
+    const v = id ? this.visuals.get(id) : null;
+    if (!v) return;
+    this.cb.onFocus(v.node, this.focusIndex + 1, this.focusOrder.length);
+    this.applyHighlight();
+    if (!fly) return;
+    // glide the orbit target onto the node, keeping the current view direction
+    const p = v.group.position;
+    const dir = this.camera.position.clone().sub(this.controls.target).normalize();
+    const dist = THREE.MathUtils.clamp(this.camera.position.distanceTo(this.controls.target), 240, 420);
+    const dest = p.clone().add(dir.multiplyScalar(dist));
+    const dur = this.opts.reducedMotion ? 0 : 0.7;
+    gsap.to(this.controls.target, { x: p.x, y: p.y, z: p.z, duration: dur, ease: "power2.inOut", overwrite: "auto" });
+    gsap.to(this.camera.position, { x: dest.x, y: dest.y, z: dest.z, duration: dur, ease: "power2.inOut", overwrite: "auto" });
+  }
+
+  focusNext() {
+    if (this.mode !== "map" || !this.focusOrder.length) return;
+    this.focusIndex = (this.focusIndex + 1) % this.focusOrder.length;
+    this.emitFocus(true);
+  }
+
+  focusPrev() {
+    if (this.mode !== "map" || !this.focusOrder.length) return;
+    this.focusIndex = (this.focusIndex - 1 + this.focusOrder.length) % this.focusOrder.length;
+    this.emitFocus(true);
+  }
+
+  /** Dive into whichever node the carousel is focused on. */
+  diveFocused() {
+    if (this.focusedId) this.diveInto(this.focusedId);
+  }
+
+  private onKeyDown = (e: KeyboardEvent) => {
+    if (this.mode !== "map") return;
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      this.focusNext();
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      this.focusPrev();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      this.diveFocused();
+    }
   };
 
   /**
@@ -730,8 +836,8 @@ export class CareerMapScene {
     this.renderer.domElement.removeEventListener("pointermove", this.onPointerMove);
     this.renderer.domElement.removeEventListener("click", this.onClick);
     this.renderer.domElement.removeEventListener("dblclick", this.onDblClick);
+    window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("resize", this.onResize);
-    this.controls.stopListenToKeyEvents();
     this.controls.dispose();
     // kill in-flight tweens targeting this scene's materials/transforms so none
     // fire onComplete callbacks (e.g. mode transitions) against disposed state,

@@ -14,6 +14,13 @@ const LEGEND: { color: string; label: string }[] = [
   { color: "#7fd6b2", label: "skill-adjacent" },
 ];
 
+const KIND_HEX: Record<CareerMapNode["kind"], string> = {
+  current: "#fafaf8",
+  progression: "#8f7dff",
+  pivot: "#ffb98f",
+  wildcard: "#7fd6b2",
+};
+
 /** Playful loading chatter while the LLM charts the map (~1-2 min first time). */
 const PLAYFUL = [
   "warming up the telescope…",
@@ -37,6 +44,7 @@ export default function CareerMapPage() {
 
   const [selected, setSelected] = useState<CareerMapNode | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [focus, setFocus] = useState<{ title: string; kind: CareerMapNode["kind"]; index: number; total: number } | null>(null);
   const [spawn, setSpawn] = useState<{ born: number; total: number } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [playIdx, setPlayIdx] = useState(0);
@@ -62,6 +70,7 @@ export default function CareerMapPage() {
           setDetailOpen(true);
         },
         onSpawn: (born, total) => setSpawn({ born, total }),
+        onFocus: (node, index, total) => setFocus({ title: node.title, kind: node.kind, index, total }),
       },
       { reducedMotion }
     );
@@ -258,18 +267,49 @@ export default function CareerMapPage() {
         </div>
       )}
 
-      <div className="mono" style={{ position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", fontSize: 10.5, letterSpacing: "0.14em", color: "rgba(250,250,248,0.45)", textTransform: "uppercase", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 6 }}>
-        drag to orbit · arrows to pan · scroll to zoom · double-click to recenter
+      {/* focus carousel: ‹ node › — arrows step, enter/click dives */}
+      {focus && !generating && (
+        <div className="cmap-carousel mono" style={{ position: "absolute", bottom: 46, left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: 14, background: "rgba(20,24,48,0.6)", border: "1px solid rgba(250,250,248,0.16)", borderRadius: 99, padding: "7px 16px", backdropFilter: "blur(8px)", zIndex: 6 }}>
+          <button
+            onClick={() => sceneRef.current?.focusPrev()}
+            aria-label="Focus previous node"
+            style={{ background: "none", border: "none", color: "rgba(250,250,248,0.6)", fontSize: 16, cursor: "pointer", padding: "0 4px", lineHeight: 1 }}
+          >
+            ‹
+          </button>
+          <button
+            onClick={() => sceneRef.current?.diveFocused()}
+            title="Dive into this node (Enter)"
+            style={{ background: "none", border: "none", cursor: "pointer", color: KIND_HEX[focus.kind], fontSize: 12, letterSpacing: "0.12em", textTransform: "uppercase", whiteSpace: "nowrap", maxWidth: "40vw", overflow: "hidden", textOverflow: "ellipsis", padding: 0 }}
+            className="mono"
+          >
+            {focus.title}
+          </button>
+          <span className="mono" style={{ fontSize: 9.5, color: "rgba(250,250,248,0.35)", letterSpacing: "0.1em" }}>
+            {focus.index}/{focus.total}
+          </span>
+          <button
+            onClick={() => sceneRef.current?.focusNext()}
+            aria-label="Focus next node"
+            style={{ background: "none", border: "none", color: "rgba(250,250,248,0.6)", fontSize: 16, cursor: "pointer", padding: "0 4px", lineHeight: 1 }}
+          >
+            ›
+          </button>
+        </div>
+      )}
+
+      <div className="mono" style={{ position: "absolute", bottom: 18, left: "50%", transform: "translateX(-50%)", fontSize: 10, letterSpacing: "0.14em", color: "rgba(250,250,248,0.4)", textTransform: "uppercase", whiteSpace: "nowrap", pointerEvents: "none", zIndex: 6 }}>
+        ← → focus · enter dives · drag orbits · scroll zooms · double-click recenters
       </div>
 
       {discoveringTitle && (
-        <div className="mono" role="status" style={{ position: "absolute", bottom: 54, left: "50%", transform: "translateX(-50%)", background: "rgba(20,24,48,0.92)", border: "1px solid rgba(191,234,216,0.35)", color: "#bfead8", fontSize: 11.5, padding: "8px 16px", borderRadius: 99, zIndex: 6, animation: "cmap-pulse-soft 1.6s ease-in-out infinite" }}>
+        <div className="mono" role="status" style={{ position: "absolute", bottom: 96, left: "50%", transform: "translateX(-50%)", background: "rgba(20,24,48,0.92)", border: "1px solid rgba(191,234,216,0.35)", color: "#bfead8", fontSize: 11.5, padding: "8px 16px", borderRadius: 99, zIndex: 6, animation: "cmap-pulse-soft 1.6s ease-in-out infinite" }}>
           ✦ discovering new branches beyond {discoveringTitle}…
         </div>
       )}
 
       {toast && !discoveringTitle && (
-        <div className="mono" style={{ position: "absolute", bottom: 54, left: "50%", transform: "translateX(-50%)", background: "rgba(20,24,48,0.92)", border: "1px solid rgba(199,185,255,0.35)", color: "#c7b9ff", fontSize: 11.5, padding: "8px 16px", borderRadius: 99, zIndex: 6 }}>
+        <div className="mono" style={{ position: "absolute", bottom: 96, left: "50%", transform: "translateX(-50%)", background: "rgba(20,24,48,0.92)", border: "1px solid rgba(199,185,255,0.35)", color: "#c7b9ff", fontSize: 11.5, padding: "8px 16px", borderRadius: 99, zIndex: 6 }}>
           {toast}
         </div>
       )}

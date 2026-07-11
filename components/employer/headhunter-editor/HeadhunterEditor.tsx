@@ -1,24 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  jobs,
   headhunterInitials,
   headhunterStatusChipClass,
   type HeadhunterStatus,
 } from "@/app/employer/data";
+import {
+  employerApi,
+  type EmployerHeadhunter,
+  type EmployerJob,
+} from "@/lib/employerApi";
 import SectionHeader from "@/components/employer/job-editor/SectionHeader";
 import jobEditorStyles from "@/components/employer/job-editor/JobEditor.module.css";
 import styles from "./HeadhunterEditor.module.css";
-
-export type HeadhunterSeed = {
-  id?: string;
-  name?: string;
-  persona?: string;
-  status?: HeadhunterStatus;
-  focusAreas?: string[];
-};
 
 const statusOptions: HeadhunterStatus[] = ["Draft", "Active", "Paused"];
 
@@ -30,28 +26,42 @@ const statusHints: Record<HeadhunterStatus, string> = {
 
 export default function HeadhunterEditor({
   mode,
-  initialHeadhunter = {},
+  initialHeadhunter,
 }: {
   mode: "create" | "edit";
-  initialHeadhunter?: HeadhunterSeed;
+  initialHeadhunter?: EmployerHeadhunter;
 }) {
   const router = useRouter();
-  const [name, setName] = useState(initialHeadhunter.name ?? "");
+  const [name, setName] = useState(initialHeadhunter?.name ?? "");
   const avatarMark = headhunterInitials(name);
-  const [persona, setPersona] = useState(initialHeadhunter.persona ?? "");
+  const [persona, setPersona] = useState(initialHeadhunter?.persona ?? "");
   const [focusAreas, setFocusAreas] = useState<string[]>(
-    initialHeadhunter.focusAreas ?? [],
+    initialHeadhunter?.focus_areas ?? [],
   );
   const [focusDraft, setFocusDraft] = useState("");
-  const [assignedJobIds, setAssignedJobIds] = useState<string[]>(() =>
-    jobs
-      .filter((job) => job.headhunterIds.includes(initialHeadhunter.id ?? ""))
-      .map((job) => job.id),
+  const [jobs, setJobs] = useState<EmployerJob[]>([]);
+  const [assignedJobIds, setAssignedJobIds] = useState<string[]>(
+    initialHeadhunter?.job_ids ?? [],
   );
   const [status, setStatus] = useState<HeadhunterStatus>(
-    initialHeadhunter.status ?? "Draft",
+    initialHeadhunter?.status ?? "Draft",
   );
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    employerApi
+      .listJobs()
+      .then((data) => {
+        if (!cancelled) setJobs(data);
+      })
+      .catch((err) => console.error("Failed to load jobs:", err));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function addFocusArea() {
     const value = focusDraft.trim();
@@ -71,9 +81,28 @@ export default function HeadhunterEditor({
     );
   }
 
-  function save() {
-    setSaved(true);
-    window.setTimeout(() => router.push("/employer/headhunters"), 650);
+  async function save() {
+    setSaving(true);
+    setError(null);
+    const payload = {
+      name: name.trim(),
+      persona,
+      status,
+      focus_areas: focusAreas,
+    };
+    try {
+      const headhunter =
+        mode === "create"
+          ? await employerApi.createHeadhunter(payload)
+          : await employerApi.updateHeadhunter(initialHeadhunter!.id, payload);
+      await employerApi.setHeadhunterJobs(headhunter.id, assignedJobIds);
+      setSaved(true);
+      window.setTimeout(() => router.push("/employer/headhunters"), 650);
+    } catch (err) {
+      console.error("Failed to save headhunter:", err);
+      setError(err instanceof Error ? err.message : "Failed to save");
+      setSaving(false);
+    }
   }
 
   return (
@@ -86,7 +115,7 @@ export default function HeadhunterEditor({
           <h1>
             {mode === "create"
               ? "Create a headhunter"
-              : `Edit ${initialHeadhunter.name}`}
+              : `Edit ${initialHeadhunter?.name}`}
           </h1>
           <p>
             Configure how this AI agent sources and evaluates candidates,
@@ -102,17 +131,21 @@ export default function HeadhunterEditor({
           </button>
           <button
             className="btn btn-primary"
-            disabled={!name.trim()}
+            disabled={!name.trim() || saving}
             onClick={save}
           >
             {saved
               ? "Saved ✓"
-              : mode === "create"
-                ? "Create headhunter"
-                : "Save changes"}
+              : saving
+                ? "Saving…"
+                : mode === "create"
+                  ? "Create headhunter"
+                  : "Save changes"}
           </button>
         </div>
       </div>
+
+      {error && <p className="notice notice-error">{error}</p>}
 
       <div className={jobEditorStyles.layout}>
         <main>
@@ -222,7 +255,7 @@ export default function HeadhunterEditor({
                           </span>
                         </div>
                         <small>
-                          {job.team} · {job.location}
+                          {job.team ?? "—"} · {job.location ?? "—"}
                         </small>
                       </div>
                     </label>

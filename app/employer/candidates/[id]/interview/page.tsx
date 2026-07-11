@@ -1,12 +1,15 @@
+"use client";
+
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
+import { Loader } from "@/components/ui/loader";
+import { interviewEvaluationPriorities } from "../../../data";
 import {
-  candidates,
-  interviewEvaluationPriorities,
-  interviewEvaluations,
-  jobs,
-} from "../../../data";
+  employerApi,
+  type CandidateDetail,
+  type CandidateRow,
+} from "@/lib/employerApi";
 import styles from "./InterviewEvaluation.module.css";
 
 function scoreTone(score: number) {
@@ -16,54 +19,103 @@ function scoreTone(score: number) {
   return styles.weak;
 }
 
-export default async function CandidateInterviewEvaluationPage({
+export default function CandidateInterviewEvaluationPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
-  const candidate = candidates.find((item) => item.id === id);
-  const evaluation = interviewEvaluations[id];
+  const { id } = use(params);
+  const [detail, setDetail] = useState<CandidateDetail | null>(null);
+  const [failed, setFailed] = useState(false);
 
-  if (!candidate || !candidate.interviewAttempted || !evaluation) notFound();
+  useEffect(() => {
+    let cancelled = false;
+    employerApi
+      .getCandidate(id)
+      .then((data) => {
+        if (!cancelled) setDetail(data);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
-  const job = jobs.find((item) => item.id === candidate.jobId);
-  const totalPriority = interviewEvaluationPriorities.reduce(
+  if (failed)
+    return (
+      <div className="employer-page">
+        <div className="empty-state panel">
+          <h3>Candidate not found</h3>
+        </div>
+      </div>
+    );
+  if (!detail)
+    return (
+      <div className="employer-page">
+        <Loader label="Loading interview evaluation…" />
+      </div>
+    );
+
+  const row: CandidateRow | undefined = detail.rows.find(
+    (r) => r.evaluation?.interview_evaluation,
+  );
+  const evaluation = row?.evaluation?.interview_evaluation;
+  const name = detail.full_name ?? detail.email ?? "Candidate";
+
+  if (!row || !evaluation)
+    return (
+      <div className="employer-page">
+        <Link href={`/employer/candidates/${id}`} className="back-link">
+          ← Candidate evaluation
+        </Link>
+        <div className="empty-state panel">
+          <h3>No interview evaluation yet</h3>
+          <p>{name} hasn&apos;t attempted the mock interview for your roles.</p>
+        </div>
+      </div>
+    );
+
+  const scores = evaluation.scores ?? {};
+  const scoredPriorities = interviewEvaluationPriorities.filter(
+    (metric) => scores[metric.key] != null,
+  );
+  const totalPriority = scoredPriorities.reduce(
     (total, metric) => total + metric.priority,
     0,
   );
-  const finalScore = Math.round(
-    interviewEvaluationPriorities.reduce(
-      (total, metric) =>
-        total + evaluation.scores[metric.key] * metric.priority,
-      0,
-    ) / totalPriority,
-  );
+  const finalScore = totalPriority
+    ? Math.round(
+        scoredPriorities.reduce(
+          (total, metric) => total + (scores[metric.key] ?? 0) * metric.priority,
+          0,
+        ) / totalPriority,
+      )
+    : Math.round(row.evaluation?.interview_score ?? 0);
 
   return (
     <div className="employer-page">
-      <Link href={`/employer/candidates/${candidate.id}`} className="back-link">
+      <Link href={`/employer/candidates/${id}`} className="back-link">
         ← Candidate evaluation
       </Link>
 
       <div className="employer-page-head">
         <div>
           <p className="eyebrow">Mock interview evaluation</p>
-          <h1>{candidate.name}</h1>
+          <h1>{name}</h1>
           <p>
-            {job?.title ?? candidate.role} · Completed {evaluation.completedAt}
+            {row.job_title}
+            {evaluation.completedAt ? ` · Completed ${evaluation.completedAt}` : ""}
           </p>
         </div>
         <div className={styles.headerActions}>
           <Link
             className="btn btn-ghost"
-            href={`/employer/interviews/${candidate.jobId}/customize`}
+            href={`/employer/interviews/${row.job_id}/customize`}
           >
             View interview setup
           </Link>
-          <button className="btn btn-primary" type="button">
-            Share evaluation
-          </button>
         </div>
       </div>
 
@@ -78,17 +130,8 @@ export default async function CandidateInterviewEvaluationPage({
           </div>
           <div>
             <p className="eyebrow">Priority-weighted result</p>
-            <h2>Strong, consistent interview evidence</h2>
+            <h2>Interview evidence</h2>
             <p>{evaluation.summary}</p>
-            <code>
-              {interviewEvaluationPriorities
-                .map(
-                  (metric) =>
-                    `${metric.label} ${evaluation.scores[metric.key]} × ${metric.priority}`,
-                )
-                .join(" + ")}
-              {` ÷ ${totalPriority} = ${finalScore}`}
-            </code>
           </div>
         </section>
 
@@ -97,61 +140,63 @@ export default async function CandidateInterviewEvaluationPage({
           <dl>
             <div>
               <dt>Role</dt>
-              <dd>{job?.title ?? candidate.role}</dd>
+              <dd>{row.job_title}</dd>
             </div>
             <div>
               <dt>Completed</dt>
-              <dd>{evaluation.completedAt}</dd>
+              <dd>{evaluation.completedAt ?? "—"}</dd>
             </div>
             <div>
               <dt>Duration</dt>
-              <dd>{evaluation.duration}</dd>
+              <dd>{evaluation.duration ?? "—"}</dd>
             </div>
             <div>
               <dt>Response mode</dt>
-              <dd>{evaluation.mode}</dd>
+              <dd>{evaluation.mode ?? "—"}</dd>
             </div>
           </dl>
         </section>
       </div>
 
-      <section className="panel employer-section">
-        <div className="employer-section-head">
-          <div>
-            <p className="eyebrow">Interview scoring model</p>
-            <h2>Index priorities</h2>
-            <p>
-              These priorities were configured before the candidate attempted
-              the interview and are read-only here.
-            </p>
+      {scoredPriorities.length > 0 && (
+        <section className="panel employer-section">
+          <div className="employer-section-head">
+            <div>
+              <p className="eyebrow">Interview scoring model</p>
+              <h2>Index priorities</h2>
+              <p>
+                These priorities were configured before the candidate attempted
+                the interview and are read-only here.
+              </p>
+            </div>
+            <Link href={`/employer/interviews/${row.job_id}/customize`}>
+              Customize future interviews →
+            </Link>
           </div>
-          <Link href={`/employer/interviews/${candidate.jobId}/customize`}>
-            Customize future interviews →
-          </Link>
-        </div>
 
-        <div className={styles.indexGrid}>
-          {interviewEvaluationPriorities.map((metric) => {
-            const score = evaluation.scores[metric.key];
-            return (
-              <article className={scoreTone(score)} key={metric.key}>
-                <header>
-                  <span>{metric.label}</span>
-                  <strong>{score}</strong>
-                </header>
-                <p>{metric.description}</p>
-                <div className={styles.scoreMeter}>
-                  <i style={{ width: `${score}%` }} />
-                </div>
-                <footer>
-                  <span>Priority</span>
-                  <b>{metric.priority}/10</b>
-                </footer>
-              </article>
-            );
-          })}
-        </div>
-      </section>
+          <div className={styles.indexGrid}>
+            {scoredPriorities.map((metric) => {
+              const score = scores[metric.key] ?? 0;
+              return (
+                <article className={scoreTone(score)} key={metric.key}>
+                  <header>
+                    <span>{metric.label}</span>
+                    <strong>{score}</strong>
+                  </header>
+                  <p>{metric.description}</p>
+                  <div className={styles.scoreMeter}>
+                    <i style={{ width: `${score}%` }} />
+                  </div>
+                  <footer>
+                    <span>Priority</span>
+                    <b>{metric.priority}/10</b>
+                  </footer>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <div className={styles.contentGrid}>
         <main>
@@ -168,7 +213,7 @@ export default async function CandidateInterviewEvaluationPage({
             </div>
 
             <div className={styles.responseList}>
-              {evaluation.responses.map((response, index) => (
+              {(evaluation.responses ?? []).map((response, index) => (
                 <article key={response.question}>
                   <header>
                     <span>Question {String(index + 1).padStart(2, "0")}</span>
@@ -184,6 +229,11 @@ export default async function CandidateInterviewEvaluationPage({
                   </footer>
                 </article>
               ))}
+              {(evaluation.responses ?? []).length === 0 && (
+                <p style={{ color: "var(--ink-55)" }}>
+                  No per-question transcript recorded for this attempt.
+                </p>
+              )}
             </div>
           </section>
         </main>
@@ -193,9 +243,8 @@ export default async function CandidateInterviewEvaluationPage({
             <p className="eyebrow">Aura observation</p>
             <h3>Response consistency</h3>
             <p className={styles.asideCopy}>
-              Examples remained internally consistent across questions. No
-              material answer-pattern anomalies or contradictory ownership
-              claims were detected.
+              Interview analytics support comparison and review. Evidence is
+              drawn only from the recorded responses above.
             </p>
           </section>
           <section className="panel employer-section">

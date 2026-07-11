@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import gsap from "gsap";
-import { jobs } from "../employer/data";
+import { jobs } from "./mockJobs";
 
 export default function ExploreJobsPage() {
   const root = useRef<HTMLDivElement>(null);

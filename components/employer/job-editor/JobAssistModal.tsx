@@ -98,7 +98,7 @@ export default function JobAssistModal({
           <button className="btn btn-ghost" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn btn-primary" onClick={onClose}>
+          <button className="btn btn-primary" onClick={onClose} title="AI assist is not wired up yet — fill the form manually for now">
             {assist === "aura" ? "Generate job setup" : "Import listing"}
           </button>
         </footer>

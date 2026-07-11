@@ -1,0 +1,114 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem;
+  border: 1px solid var(--ink-06);
+  border-radius: var(--r-s);
+  background: rgba(26, 29, 41, 0.015);
+}
+
+.row .input {
+  flex: 1;
+}
+
+.reorder {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.reorder button {
+  border: 0;
+  background: transparent;
+  color: var(--ink-55);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.7rem;
+}
+
+.reorder button:hover:not(:disabled) {
+  color: var(--iris);
+}
+
+.reorder button:disabled {
+  color: var(--ink-12);
+  cursor: not-allowed;
+}
+
+.swatch {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--ink-12);
+  border-radius: var(--r-s);
+  background: none;
+  cursor: pointer;
+}
+
+.remove {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ink-12);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-55);
+  cursor: pointer;
+  font-size: 0.7rem;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.remove:hover {
+  color: #bc4a2a;
+  border-color: #bc4a2a;
+}
+
+.empty {
+  color: var(--ink-55);
+  font-size: 0.85rem;
+  padding: 0.5rem;
+}
+
+.pinnedRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem;
+  border: 1px dashed var(--ink-12);
+  border-radius: var(--r-s);
+}
+
+.pinnedRow .input {
+  flex: 1;
+}
+
+.pinnedLabel {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+}

@@ -8,8 +8,6 @@ import { api, type Application } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import { scoreColor } from "@/components/ScoreDial";
 import { useAuth } from "@/components/AuthProvider";
-import EmployerPipelineTimeline from "@/components/tracker/EmployerPipelineTimeline";
-
 
 const TRACKER_STATUSES = [
   "Evaluated",
@@ -24,30 +22,6 @@ const TRACKER_STATUSES = [
   "Rejected",
   "Withdrawn"
 ];
-
-/** Four phase groups for the grouped Kanban view. */
-const KANBAN_GROUPS: { label: string; icon: string; color: string; statuses: readonly string[] }[] = [
-  { label: "PREP",       icon: "📋", color: "rgba(100,116,139,0.75)", statuses: ["Evaluated", "Saved"] },
-  { label: "ACTIVE",     icon: "🎯", color: "rgba(59,130,246,0.85)",  statuses: ["Applied", "Phone Screen", "Technical Test"] },
-  { label: "INTERVIEWS", icon: "💬", color: "rgba(139,92,246,0.85)",  statuses: ["First Round", "Second Round", "Final Round"] },
-  { label: "CLOSED",     icon: "✓",    color: "rgba(16,185,129,0.85)",  statuses: ["Offer", "Rejected", "Withdrawn"] },
-];
-
-/** Legacy status aliases kept for backward compat with old tracker entries. */
-const statusMatchesLane = (appStatus: string, laneStatus: string): boolean => {
-  if (laneStatus === "Phone Screen" && (appStatus === "Interview" || appStatus === "Responded")) return true;
-  if (laneStatus === "Withdrawn"    && (appStatus === "Discarded" || appStatus === "SKIP"))      return true;
-  return appStatus === laneStatus;
-};
-
-/** Sub-status dot colour for cards within a group. */
-const laneColor = (status: string): string => {
-  if (status === "Applied")                               return "rgba(59,130,246,0.8)";
-  if (["Phone Screen","First Round","Second Round","Final Round","Technical Test"].includes(status)) return "var(--iris)";
-  if (status === "Offer")                                return "rgba(16,185,129,0.8)";
-  if (status === "Rejected")                             return "rgba(239,68,68,0.8)";
-  return "var(--ink-30)";
-};
 
 const PRIORITIES = ["low", "medium", "high"];
 type ToastTone = "success" | "error" | "info";
@@ -795,327 +769,134 @@ export default function JobTracker() {
             </div>
           )}
 
-          {/* ─── KANBAN BOARD — 4 Phase Groups ─────────────────────────────── */}
+          {/* KANBAN BOARD VIEW */}
           {apps && apps.length > 0 && filteredApps.length > 0 && viewMode === "kanban" && (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: "0.75rem",
-                alignItems: "start",
-              }}
-            >
-              {KANBAN_GROUPS.map((group) => {
-                const groupApps = filteredApps.filter((a) =>
-                  group.statuses.some((s) => statusMatchesLane(a.status, s))
-                );
+            <div className="kanban-scroll-container" style={{ overflowX: "auto", paddingBottom: "1rem" }}>
+              <div className="kanban-board" style={{ display: "flex", gap: "0.75rem", minWidth: "1850px" }}>
+                {TRACKER_STATUSES.map((status) => {
+                  const laneApps = filteredApps.filter((a) => {
+                    if (status === "Phone Screen" && (a.status === "Interview" || a.status === "Responded")) return true;
+                    if (status === "Withdrawn" && (a.status === "Discarded" || a.status === "SKIP")) return true;
+                    return a.status === status;
+                  });
+                  const isOver = draggedOverLane === status;
+                  
+                  // Status Colors map
+                  let badgeColor = "var(--ink-30)";
+                  if (status === "Applied") badgeColor = "rgba(59, 130, 246, 0.65)";
+                  else if (status.includes("Round") || status.includes("Screen") || status.includes("Test")) badgeColor = "var(--iris)";
+                  else if (status === "Offer") badgeColor = "rgba(16, 185, 129, 0.65)";
+                  else if (status === "Rejected") badgeColor = "rgba(239, 68, 68, 0.65)";
+                  else if (status === "Withdrawn") badgeColor = "var(--ink-55)";
 
-                return (
-                  <div
-                    key={group.label}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "0.4rem",
-                      background: "rgba(26,29,41,0.012)",
-                      border: "1.5px solid var(--ink-08)",
-                      borderRadius: "var(--r-s)",
-                      padding: "0.65rem",
-                      minHeight: "200px",
-                    }}
-                  >
-                    {/* ── Group phase header ── */}
-                    <div
+                  return (
+                    <div 
+                      key={status}
+                      className={`kanban-lane-new ${isOver ? "dragover" : ""}`}
                       style={{
+                        flex: "1 0 250px",
+                        background: "rgba(26, 29, 41, 0.015)",
+                        border: isOver ? "2px dashed var(--iris)" : "1.5px dashed var(--ink-12)",
+                        borderRadius: "var(--r-s)",
+                        padding: "0.75rem",
+                        minHeight: "550px",
                         display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        paddingBottom: "0.55rem",
-                        marginBottom: "0.2rem",
-                        borderBottom: `2px solid ${group.color}`,
+                        flexDirection: "column",
+                        gap: "0.75rem",
+                        transition: "all 0.2s ease"
                       }}
+                      onDragOver={(e) => handleDragOver(e, status)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, status)}
                     >
-                      <span
-                        style={{
-                          fontSize: "0.68rem",
-                          fontWeight: 800,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.09em",
-                          color: group.color,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.3rem",
-                        }}
-                      >
-                        {group.icon} {group.label}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "0.62rem",
-                          fontWeight: 700,
-                          background: "rgba(26,29,41,0.07)",
-                          padding: "0.05rem 0.4rem",
-                          borderRadius: "10px",
-                        }}
-                      >
-                        {groupApps.length}
-                      </span>
-                    </div>
+                      {/* Lane Header */}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--ink-12)", paddingBottom: "0.5rem" }}>
+                        <span style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: badgeColor }} />
+                          {status}
+                        </span>
+                        <span style={{ fontSize: "0.68rem", background: "rgba(26,29,41,0.06)", padding: "0.05rem 0.35rem", borderRadius: "10px", fontWeight: 600 }}>
+                          {laneApps.length}
+                        </span>
+                      </div>
 
-                    {/* ── Sub-status lanes inside this group ── */}
-                    {group.statuses.map((status) => {
-                      const laneApps = filteredApps.filter((a) => statusMatchesLane(a.status, status));
-                      const isOver = draggedOverLane === status;
-
-                      return (
-                        <div
-                          key={status}
-                          onDragOver={(e) => handleDragOver(e, status)}
-                          onDragLeave={handleDragLeave}
-                          onDrop={(e) => handleDrop(e, status)}
-                          style={{
-                            borderRadius: "6px",
-                            border: isOver
-                              ? "1.5px dashed var(--iris)"
-                              : "1px dashed var(--ink-10)",
-                            background: isOver ? "rgba(78,63,216,0.04)" : "transparent",
-                            transition: "all 0.15s ease",
-                            overflow: "hidden",
-                          }}
-                        >
-                          {/* Sub-lane header */}
-                          <div
+                      {/* Cards Stack */}
+                      <div 
+                        onDragOver={(e) => handleDragOver(e, status)}
+                        onDrop={(e) => handleDrop(e, status)}
+                        style={{ display: "flex", flexDirection: "column", gap: "0.6rem", flex: 1, minHeight: "450px" }}
+                      >
+                        {laneApps.map((app, cardIdx) => (
+                          <div 
+                            key={app.id || `${app.company}-${app.role}-${cardIdx}`}
+                            draggable={true}
+                            onDragStart={(e) => handleDragStart(e, app.id)}
+                            onClick={() => { setSelectedApp(app); setDrawerOpen(true); }}
+                            className="kanban-card-new panel"
                             style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              padding: "0.28rem 0.5rem",
-                              background: "rgba(26,29,41,0.025)",
-                              borderBottom:
-                                laneApps.length > 0 ? "1px solid var(--ink-06)" : "none",
+                              padding: "0.8rem",
+                              borderRadius: "calc(var(--r-s) - 2px)",
+                              cursor: "grab",
+                              transition: "all 0.2s ease",
+                              boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                              userSelect: "none",
+                              WebkitUserSelect: "none"
                             }}
                           >
-                            <span
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "0.3rem",
-                                fontSize: "0.6rem",
-                                fontWeight: 700,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.04em",
-                                color: "var(--ink-45)",
-                              }}
-                            >
-                              <span
-                                style={{
-                                  width: 5,
-                                  height: 5,
-                                  borderRadius: "50%",
-                                  background: laneColor(status),
-                                  display: "inline-block",
-                                  flexShrink: 0,
-                                }}
-                              />
-                              {status}
-                            </span>
-                            {laneApps.length > 0 && (
-                              <span
-                                style={{
-                                  fontSize: "0.58rem",
-                                  fontWeight: 700,
-                                  color: "var(--ink-55)",
-                                }}
-                              >
-                                {laneApps.length}
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.25rem" }}>
+                              <span style={{ fontSize: "0.65rem", textTransform: "uppercase", fontWeight: 700, color: "var(--ink-40)" }}>
+                                {app.company}
                               </span>
+                              {app.priority === "high" && (
+                                <span style={{ fontSize: "0.55rem", background: "rgba(239,68,68,0.1)", color: "#ef4444", fontWeight: 700, padding: "0.05rem 0.25rem", borderRadius: "3px", textTransform: "uppercase" }}>
+                                  High
+                                </span>
+                              )}
+                            </div>
+                            <h4 style={{ fontSize: "0.85rem", fontWeight: 600, margin: "0 0 0.5rem 0", color: "var(--ink)" }}>
+                              {app.role}
+                            </h4>
+
+                            {/* Tags list */}
+                            {app.tags && app.tags.length > 0 && (
+                              <div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap", marginBottom: "0.6rem" }}>
+                                {app.tags.map((tag, tagIdx) => (
+                                  <span key={`${tag}-${tagIdx}`} style={{ fontSize: "0.6rem", background: "var(--ink-06)", color: "var(--ink-72)", padding: "0.05rem 0.3rem", borderRadius: "3px" }}>
+                                    #{tag}
+                                  </span>
+                                ))}
+                              </div>
                             )}
+
+                            {/* Card Footer badges */}
+                            <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", alignItems: "center", borderTop: "1px solid var(--ink-06)", paddingTop: "0.5rem", marginTop: "0.25rem" }}>
+                              {app.evaluation_id ? (
+                                <span style={{ fontSize: "0.65rem", background: scoreColor(app.score), color: "#fff", fontWeight: 700, padding: "0.05rem 0.35rem", borderRadius: "3px" }}>
+                                  {app.score.toFixed(1)}
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: "0.62rem", color: "var(--ink-40)", fontStyle: "italic" }}>Manual</span>
+                              )}
+                              
+                              {app.interviews && app.interviews.length > 0 && (
+                                <span style={{ fontSize: "0.62rem", color: "var(--iris)", fontWeight: 600 }}>
+                                  🗓️ {app.interviews.length} rounds
+                                </span>
+                              )}
+                              
+                              {app.attachments && app.attachments.length > 0 && (
+                                <span style={{ fontSize: "0.62rem", color: "var(--ink-55)" }}>
+                                  📎 {app.attachments.length}
+                                </span>
+                              )}
+                            </div>
                           </div>
-
-                          {/* Empty drop hint */}
-                          {laneApps.length === 0 && (
-                            <div
-                              style={{
-                                padding: "0.45rem",
-                                textAlign: "center",
-                                fontSize: "0.58rem",
-                                color: isOver ? "var(--iris)" : "var(--ink-20)",
-                                fontStyle: "italic",
-                                transition: "color 0.15s ease",
-                              }}
-                            >
-                              {isOver ? "Drop here" : "empty"}
-                            </div>
-                          )}
-
-                          {/* Cards */}
-                          {laneApps.length > 0 && (
-                            <div
-                              style={{
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "0.35rem",
-                                padding: "0.4rem",
-                              }}
-                            >
-                              {laneApps.map((app, cardIdx) => (
-                                <div
-                                  key={app.id || `${app.company}-${app.role}-${cardIdx}`}
-                                  draggable
-                                  onDragStart={(e) => handleDragStart(e, app.id)}
-                                  onClick={() => { setSelectedApp(app); setDrawerOpen(true); }}
-                                  className="kanban-card-new panel"
-                                  style={{
-                                    padding: "0.7rem",
-                                    borderRadius: "calc(var(--r-s) - 2px)",
-                                    cursor: "grab",
-                                    transition: "all 0.18s ease",
-                                    boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-                                    userSelect: "none",
-                                    WebkitUserSelect: "none",
-                                  }}
-                                >
-                                  {/* Card top row */}
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      justifyContent: "space-between",
-                                      alignItems: "flex-start",
-                                      marginBottom: "0.2rem",
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        fontSize: "0.6rem",
-                                        textTransform: "uppercase",
-                                        fontWeight: 700,
-                                        color: "var(--ink-40)",
-                                        maxWidth: "75%",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                        whiteSpace: "nowrap",
-                                      }}
-                                    >
-                                      {app.company}
-                                    </span>
-                                    {app.priority === "high" && (
-                                      <span
-                                        style={{
-                                          fontSize: "0.52rem",
-                                          background: "rgba(239,68,68,0.1)",
-                                          color: "#ef4444",
-                                          fontWeight: 700,
-                                          padding: "0.05rem 0.22rem",
-                                          borderRadius: "3px",
-                                          textTransform: "uppercase",
-                                          flexShrink: 0,
-                                        }}
-                                      >
-                                        High
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  <h4
-                                    style={{
-                                      fontSize: "0.82rem",
-                                      fontWeight: 600,
-                                      margin: "0 0 0.35rem 0",
-                                      color: "var(--ink)",
-                                      lineHeight: 1.3,
-                                    }}
-                                  >
-                                    {app.role}
-                                  </h4>
-
-                                  {/* Tags — max 2 shown */}
-                                  {app.tags && app.tags.length > 0 && (
-                                    <div
-                                      style={{
-                                        display: "flex",
-                                        gap: "0.18rem",
-                                        flexWrap: "wrap",
-                                        marginBottom: "0.4rem",
-                                      }}
-                                    >
-                                      {app.tags.slice(0, 2).map((tag, tIdx) => (
-                                        <span
-                                          key={`${tag}-${tIdx}`}
-                                          style={{
-                                            fontSize: "0.57rem",
-                                            background: "var(--ink-06)",
-                                            color: "var(--ink-65)",
-                                            padding: "0.03rem 0.22rem",
-                                            borderRadius: "3px",
-                                          }}
-                                        >
-                                          #{tag}
-                                        </span>
-                                      ))}
-                                      {app.tags.length > 2 && (
-                                        <span style={{ fontSize: "0.57rem", color: "var(--ink-35)" }}>
-                                          +{app.tags.length - 2}
-                                        </span>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {/* Footer badges */}
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      gap: "0.28rem",
-                                      flexWrap: "wrap",
-                                      alignItems: "center",
-                                      borderTop: "1px solid var(--ink-06)",
-                                      paddingTop: "0.35rem",
-                                    }}
-                                  >
-                                    {app.evaluation_id ? (
-                                      <span
-                                        style={{
-                                          fontSize: "0.6rem",
-                                          background: scoreColor(app.score),
-                                          color: "#fff",
-                                          fontWeight: 700,
-                                          padding: "0.05rem 0.28rem",
-                                          borderRadius: "3px",
-                                        }}
-                                      >
-                                        {app.score.toFixed(1)}
-                                      </span>
-                                    ) : (
-                                      <span
-                                        style={{
-                                          fontSize: "0.58rem",
-                                          color: "var(--ink-35)",
-                                          fontStyle: "italic",
-                                        }}
-                                      >
-                                        Manual
-                                      </span>
-                                    )}
-                                    {app.interviews && app.interviews.length > 0 && (
-                                      <span style={{ fontSize: "0.58rem", color: "var(--iris)", fontWeight: 600 }}>
-                                        🗓 {app.interviews.length}
-                                      </span>
-                                    )}
-                                    {app.attachments && app.attachments.length > 0 && (
-                                      <span style={{ fontSize: "0.58rem", color: "var(--ink-50)" }}>
-                                        📎{app.attachments.length}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -1668,9 +1449,6 @@ export default function JobTracker() {
                   }}
                 />
               </div>
-
-              {/* Employer-Driven Pipeline Timeline */}
-              <EmployerPipelineTimeline applicationId={selectedApp.id} />
 
               {/* Visual Audit Trail Timeline */}
               <div>

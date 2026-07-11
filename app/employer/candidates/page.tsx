@@ -1,44 +1,16 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { candidates as mockCandidates } from "../data";
-import { api, EMPLOYER_LIST_STAGE } from "@/lib/api";
+import { candidates } from "../data";
 
 export default function CandidatesPage() {
-  const [realCandidates, setRealCandidates] = useState<any[]>([]);
-
-  useEffect(() => {
-    api.getAllApplications().then((apps) => {
-      // Map real applications into the employer dashboard format
-      const mapped = apps.map((app) => ({
-        id: app.id,
-        name: `Candidate ${app.id.substring(0, 4)}`, // Fallback anonymous name
-        initials: "C",
-        location: "Remote",
-        role: app.role,
-        skills: app.tags || ["General"],
-        stage: EMPLOYER_LIST_STAGE[app.status] ?? "New",
-        applied: true,
-        interviewAttempted: app.mock_interview_done,
-        resume: app.score || 75,
-        interview: app.mock_interview_done ? 90 : 0,
-        score: Math.round(((app.score || 75) * 0.5) + ((app.mock_interview_done ? 90 : 60) * 0.5)),
-        isReal: true,
-        realApp: app,
-      }));
-      setRealCandidates(mapped);
-    }).catch(err => console.error("Failed to load real candidates", err));
-  }, []);
-
-  const allCandidates = useMemo(() => [...realCandidates, ...mockCandidates], [realCandidates]);
-
   const [query, setQuery] = useState("");
   const [stage, setStage] = useState("All stages");
   const [activity, setActivity] = useState("All activity");
   const filtered = useMemo(
     () =>
-      allCandidates.filter((candidate) => {
+      candidates.filter((candidate) => {
         const matchesQuery =
           `${candidate.name} ${candidate.role} ${candidate.skills.join(" ")}`
             .toLowerCase()
@@ -57,7 +29,7 @@ export default function CandidatesPage() {
           (stage === "All stages" || candidate.stage === stage)
         );
       }),
-    [query, stage, activity, allCandidates],
+    [query, stage, activity],
   );
 
   return (
@@ -138,10 +110,7 @@ export default function CandidatesPage() {
                       {candidate.initials}
                     </span>
                     <div>
-                      <strong>
-                        {candidate.isReal && <span style={{ fontSize: "0.55rem", background: "var(--iris)", color: "#fff", padding: "0.1rem 0.3rem", borderRadius: "3px", marginRight: "0.4rem", verticalAlign: "middle" }}>LIVE</span>}
-                        {candidate.name}
-                      </strong>
+                      <strong>{candidate.name}</strong>
                       <small>
                         {candidate.role} · {candidate.location}
                       </small>
@@ -177,26 +146,29 @@ export default function CandidatesPage() {
                 <td>
                   <div className="match-cell">
                     <b>{candidate.score}%</b>
-                    <div className="match-bar">
-                      <div
-                        className="match-fill"
-                        style={{ width: `${candidate.score}%` }}
-                      ></div>
-                    </div>
+                    <span>
+                      <i style={{ width: `${candidate.score}%` }} />
+                    </span>
                   </div>
                 </td>
                 <td>
                   <Link
                     href={`/employer/candidates/${candidate.id}`}
-                    className="btn btn-ghost"
+                    className="table-action"
                   >
-                    View profile
+                    Review →
                   </Link>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        {filtered.length === 0 && (
+          <div className="empty-state">
+            <h3>No candidates found</h3>
+            <p>Try a broader search or another pipeline stage.</p>
+          </div>
+        )}
       </div>
     </div>
   );

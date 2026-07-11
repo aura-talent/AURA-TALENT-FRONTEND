@@ -1,0 +1,111 @@
+.field {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.field:last-child {
+  margin-bottom: 0;
+}
+
+.field > span {
+  color: var(--ink-72);
+  font-size: 0.74rem;
+  font-weight: 650;
+}
+
+.identityRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.identityFields {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.statusOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+}
+
+.statusOption {
+  cursor: pointer;
+}
+
+.statusHint {
+  color: var(--ink-55);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.previewHead {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.9rem;
+}
+
+.previewHead > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.previewHead strong {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.95rem;
+}
+
+.previewPersona {
+  color: var(--ink-55);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  margin-bottom: 0.8rem;
+}
+
+.previewStat {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--ink-06);
+}
+
+.previewStat strong {
+  font:
+    700 1.1rem var(--font-mono),
+    monospace;
+  color: var(--iris-deep);
+}
+
+.previewStat span {
+  color: var(--ink-55);
+  font-size: 0.72rem;
+}
+
+.previewNote {
+  margin-top: 0.7rem;
+  color: var(--ink-55);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+@media (max-width: 800px) {
+  .identityRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

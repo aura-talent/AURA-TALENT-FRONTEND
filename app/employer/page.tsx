@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
 import { candidates, jobs } from "./data";
+import StageChip from "@/components/employer/StageChip";
+import HiringPipelineBoard from "@/components/employer/HiringPipelineBoard";
 
 const metrics = [
   { label: "Open roles", value: "4", note: "+1 this month", tone: "iris" },
@@ -74,37 +76,18 @@ export default function EmployerOverview() {
         ))}
       </div>
 
-      <div className="employer-dashboard-grid">
-        <section className="panel employer-section employer-span-2">
-          <div className="employer-section-head">
-            <div>
-              <h2>Hiring pipeline</h2>
-              <p>Candidate movement across all active roles</p>
-            </div>
-            <Link href="/employer/candidates">View candidates →</Link>
+      <section className="panel employer-section">
+        <div className="employer-section-head">
+          <div>
+            <h2>Hiring pipeline</h2>
+            <p>Every open role, moving through your hiring process</p>
           </div>
-          <div className="pipeline">
-            {[
-              { label: "Applied", value: 91 },
-              { label: "AI screened", value: 54 },
-              { label: "Interview", value: 21 },
-              { label: "Final review", value: 8 },
-              { label: "Offer", value: 3 },
-            ].map((step, index) => (
-              <div className="pipeline-step" key={step.label}>
-                <div
-                  className="pipeline-bar"
-                  style={{ height: `${42 + step.value * 0.75}px` }}
-                >
-                  <span>{step.value}</span>
-                </div>
-                <p>{step.label}</p>
-                {index < 4 && <span className="pipeline-arrow">→</span>}
-              </div>
-            ))}
-          </div>
-        </section>
+          <Link href="/employer/jobs">Manage jobs →</Link>
+        </div>
+        <HiringPipelineBoard />
+      </section>
 
+      <div className="employer-dashboard-grid">
         <section className="panel employer-section">
           <div className="employer-section-head">
             <div>
@@ -159,7 +142,7 @@ export default function EmployerOverview() {
                   <strong>{candidate.name}</strong>
                   <p>{candidate.role}</p>
                 </div>
-                <span className="chip">{candidate.stage}</span>
+                <StageChip stage={candidate.stage} />
                 <span className="candidate-score">
                   <b>{candidate.score}</b>
                   <small>match</small>

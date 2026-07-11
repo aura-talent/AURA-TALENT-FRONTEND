@@ -8,6 +8,7 @@ import { api, type Application } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import { scoreColor } from "@/components/ScoreDial";
 import { useAuth } from "@/components/AuthProvider";
+import KanbanBoard, { type KanbanColumn } from "@/components/kanban";
 
 const TRACKER_STATUSES = [
   "Evaluated",
@@ -22,6 +23,29 @@ const TRACKER_STATUSES = [
   "Rejected",
   "Withdrawn"
 ];
+
+// Column color per status — same rule the inline kanban board used to
+// compute per-render (status.includes("Round"/"Screen"/"Test") -> iris),
+// lifted out to a static table since TRACKER_STATUSES never changes.
+const TRACKER_KANBAN_COLUMNS: KanbanColumn[] = TRACKER_STATUSES.map((status) => {
+  let color = "var(--ink-30)";
+  if (status === "Applied") color = "rgba(59, 130, 246, 0.65)";
+  else if (status.includes("Round") || status.includes("Screen") || status.includes("Test")) color = "var(--iris)";
+  else if (status === "Offer") color = "rgba(16, 185, 129, 0.65)";
+  else if (status === "Rejected") color = "rgba(239, 68, 68, 0.65)";
+  else if (status === "Withdrawn") color = "var(--ink-55)";
+  return { id: status, label: status, color };
+});
+
+// Which kanban lane an application currently belongs to — a lane also
+// catches a couple of legacy backend status values so nothing falls through:
+// "Phone Screen" also shows Interview/Responded, "Withdrawn" also shows
+// Discarded/SKIP. Everything else is an exact status match.
+function trackerColumnFor(app: Application): string {
+  if (app.status === "Interview" || app.status === "Responded") return "Phone Screen";
+  if (app.status === "Discarded" || app.status === "SKIP") return "Withdrawn";
+  return app.status;
+}
 
 const PRIORITIES = ["low", "medium", "high"];
 type ToastTone = "success" | "error" | "info";
@@ -84,11 +108,6 @@ export default function JobTracker() {
   // Custom Timeline Milestone state
   const [customMilestoneTitle, setCustomMilestoneTitle] = useState("");
   const [customMilestoneDesc, setCustomMilestoneDesc] = useState("");
-
-  // Drag & drop lane highlighting
-  const [draggedOverLane, setDraggedOverLane] = useState<string | null>(null);
-  // Use a ref (not state) for the dragged app ID — state causes stale closure in handleDrop
-  const draggedAppIdRef = useRef<string | null>(null);
 
   // Helper formatting for Notion-style editor
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -159,29 +178,9 @@ export default function JobTracker() {
     return matchesSearch && matchesPriority && matchesTag;
   });
 
-  // Drag and drop handlers
-  const handleDragStart = (e: React.DragEvent, appId: string) => {
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", appId);
-    draggedAppIdRef.current = appId; // use ref — always fresh, no stale closure
-  };
-
-  const handleDragOver = (e: React.DragEvent, laneId: string) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    setDraggedOverLane(laneId);
-  };
-
-  const handleDragLeave = () => {
-    setDraggedOverLane(null);
-  };
-
-  const handleDrop = async (e: React.DragEvent, targetStatus: string) => {
-    e.preventDefault();
-    setDraggedOverLane(null);
-    const appId = e.dataTransfer.getData("text/plain") || draggedAppIdRef.current;
-    draggedAppIdRef.current = null;
-    if (!appId || !apps) return;
+  // Kanban move handler — invoked by the shared <KanbanBoard> on drop.
+  const handleKanbanMove = async (appId: string, targetStatus: string) => {
+    if (!apps) return;
 
     const matchedApp = apps.find((a) => a.id === appId);
     if (!matchedApp || matchedApp.status === targetStatus) return;
@@ -229,6 +228,60 @@ export default function JobTracker() {
       setApps((prev) => (prev ? prev.map((a) => (a.id === appId ? matchedApp : a)) : null));
     }
   };
+
+  // Kanban card body for one application — rendered inside <KanbanBoard>'s
+  // generic draggable/clickable card shell.
+  function renderTrackerCard(app: Application) {
+    return (
+      <>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.25rem" }}>
+          <span style={{ fontSize: "0.65rem", textTransform: "uppercase", fontWeight: 700, color: "var(--ink-40)" }}>
+            {app.company}
+          </span>
+          {app.priority === "high" && (
+            <span style={{ fontSize: "0.55rem", background: "rgba(239,68,68,0.1)", color: "#ef4444", fontWeight: 700, padding: "0.05rem 0.25rem", borderRadius: "3px", textTransform: "uppercase" }}>
+              High
+            </span>
+          )}
+        </div>
+        <h4 style={{ fontSize: "0.85rem", fontWeight: 600, margin: "0 0 0.5rem 0", color: "var(--ink)" }}>
+          {app.role}
+        </h4>
+
+        {app.tags && app.tags.length > 0 && (
+          <div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap", marginBottom: "0.6rem" }}>
+            {app.tags.map((tag, tagIdx) => (
+              <span key={`${tag}-${tagIdx}`} style={{ fontSize: "0.6rem", background: "var(--ink-06)", color: "var(--ink-72)", padding: "0.05rem 0.3rem", borderRadius: "3px" }}>
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", alignItems: "center", borderTop: "1px solid var(--ink-06)", paddingTop: "0.5rem", marginTop: "0.25rem" }}>
+          {app.evaluation_id ? (
+            <span style={{ fontSize: "0.65rem", background: scoreColor(app.score), color: "#fff", fontWeight: 700, padding: "0.05rem 0.35rem", borderRadius: "3px" }}>
+              {app.score.toFixed(1)}
+            </span>
+          ) : (
+            <span style={{ fontSize: "0.62rem", color: "var(--ink-40)", fontStyle: "italic" }}>Manual</span>
+          )}
+
+          {app.interviews && app.interviews.length > 0 && (
+            <span style={{ fontSize: "0.62rem", color: "var(--iris)", fontWeight: 600 }}>
+              🗓️ {app.interviews.length} rounds
+            </span>
+          )}
+
+          {app.attachments && app.attachments.length > 0 && (
+            <span style={{ fontSize: "0.62rem", color: "var(--ink-55)" }}>
+              📎 {app.attachments.length}
+            </span>
+          )}
+        </div>
+      </>
+    );
+  }
 
   const saveApplicationDetails = async (updatedApp: Application) => {
     // Guard: bail out early if id is missing (prevents "undefined" in URL)
@@ -771,133 +824,15 @@ export default function JobTracker() {
 
           {/* KANBAN BOARD VIEW */}
           {apps && apps.length > 0 && filteredApps.length > 0 && viewMode === "kanban" && (
-            <div className="kanban-scroll-container" style={{ overflowX: "auto", paddingBottom: "1rem" }}>
-              <div className="kanban-board" style={{ display: "flex", gap: "0.75rem", minWidth: "1850px" }}>
-                {TRACKER_STATUSES.map((status) => {
-                  const laneApps = filteredApps.filter((a) => {
-                    if (status === "Phone Screen" && (a.status === "Interview" || a.status === "Responded")) return true;
-                    if (status === "Withdrawn" && (a.status === "Discarded" || a.status === "SKIP")) return true;
-                    return a.status === status;
-                  });
-                  const isOver = draggedOverLane === status;
-                  
-                  // Status Colors map
-                  let badgeColor = "var(--ink-30)";
-                  if (status === "Applied") badgeColor = "rgba(59, 130, 246, 0.65)";
-                  else if (status.includes("Round") || status.includes("Screen") || status.includes("Test")) badgeColor = "var(--iris)";
-                  else if (status === "Offer") badgeColor = "rgba(16, 185, 129, 0.65)";
-                  else if (status === "Rejected") badgeColor = "rgba(239, 68, 68, 0.65)";
-                  else if (status === "Withdrawn") badgeColor = "var(--ink-55)";
-
-                  return (
-                    <div 
-                      key={status}
-                      className={`kanban-lane-new ${isOver ? "dragover" : ""}`}
-                      style={{
-                        flex: "1 0 250px",
-                        background: "rgba(26, 29, 41, 0.015)",
-                        border: isOver ? "2px dashed var(--iris)" : "1.5px dashed var(--ink-12)",
-                        borderRadius: "var(--r-s)",
-                        padding: "0.75rem",
-                        minHeight: "550px",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "0.75rem",
-                        transition: "all 0.2s ease"
-                      }}
-                      onDragOver={(e) => handleDragOver(e, status)}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, status)}
-                    >
-                      {/* Lane Header */}
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--ink-12)", paddingBottom: "0.5rem" }}>
-                        <span style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: badgeColor }} />
-                          {status}
-                        </span>
-                        <span style={{ fontSize: "0.68rem", background: "rgba(26,29,41,0.06)", padding: "0.05rem 0.35rem", borderRadius: "10px", fontWeight: 600 }}>
-                          {laneApps.length}
-                        </span>
-                      </div>
-
-                      {/* Cards Stack */}
-                      <div 
-                        onDragOver={(e) => handleDragOver(e, status)}
-                        onDrop={(e) => handleDrop(e, status)}
-                        style={{ display: "flex", flexDirection: "column", gap: "0.6rem", flex: 1, minHeight: "450px" }}
-                      >
-                        {laneApps.map((app, cardIdx) => (
-                          <div 
-                            key={app.id || `${app.company}-${app.role}-${cardIdx}`}
-                            draggable={true}
-                            onDragStart={(e) => handleDragStart(e, app.id)}
-                            onClick={() => { setSelectedApp(app); setDrawerOpen(true); }}
-                            className="kanban-card-new panel"
-                            style={{
-                              padding: "0.8rem",
-                              borderRadius: "calc(var(--r-s) - 2px)",
-                              cursor: "grab",
-                              transition: "all 0.2s ease",
-                              boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-                              userSelect: "none",
-                              WebkitUserSelect: "none"
-                            }}
-                          >
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.25rem" }}>
-                              <span style={{ fontSize: "0.65rem", textTransform: "uppercase", fontWeight: 700, color: "var(--ink-40)" }}>
-                                {app.company}
-                              </span>
-                              {app.priority === "high" && (
-                                <span style={{ fontSize: "0.55rem", background: "rgba(239,68,68,0.1)", color: "#ef4444", fontWeight: 700, padding: "0.05rem 0.25rem", borderRadius: "3px", textTransform: "uppercase" }}>
-                                  High
-                                </span>
-                              )}
-                            </div>
-                            <h4 style={{ fontSize: "0.85rem", fontWeight: 600, margin: "0 0 0.5rem 0", color: "var(--ink)" }}>
-                              {app.role}
-                            </h4>
-
-                            {/* Tags list */}
-                            {app.tags && app.tags.length > 0 && (
-                              <div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap", marginBottom: "0.6rem" }}>
-                                {app.tags.map((tag, tagIdx) => (
-                                  <span key={`${tag}-${tagIdx}`} style={{ fontSize: "0.6rem", background: "var(--ink-06)", color: "var(--ink-72)", padding: "0.05rem 0.3rem", borderRadius: "3px" }}>
-                                    #{tag}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Card Footer badges */}
-                            <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", alignItems: "center", borderTop: "1px solid var(--ink-06)", paddingTop: "0.5rem", marginTop: "0.25rem" }}>
-                              {app.evaluation_id ? (
-                                <span style={{ fontSize: "0.65rem", background: scoreColor(app.score), color: "#fff", fontWeight: 700, padding: "0.05rem 0.35rem", borderRadius: "3px" }}>
-                                  {app.score.toFixed(1)}
-                                </span>
-                              ) : (
-                                <span style={{ fontSize: "0.62rem", color: "var(--ink-40)", fontStyle: "italic" }}>Manual</span>
-                              )}
-                              
-                              {app.interviews && app.interviews.length > 0 && (
-                                <span style={{ fontSize: "0.62rem", color: "var(--iris)", fontWeight: 600 }}>
-                                  🗓️ {app.interviews.length} rounds
-                                </span>
-                              )}
-                              
-                              {app.attachments && app.attachments.length > 0 && (
-                                <span style={{ fontSize: "0.62rem", color: "var(--ink-55)" }}>
-                                  📎 {app.attachments.length}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <KanbanBoard
+              columns={TRACKER_KANBAN_COLUMNS}
+              items={filteredApps}
+              getItemId={(app) => app.id}
+              getItemColumnId={trackerColumnFor}
+              renderCard={renderTrackerCard}
+              onCardClick={(app) => { setSelectedApp(app); setDrawerOpen(true); }}
+              onMove={handleKanbanMove}
+            />
           )}
 
           {/* LIST VIEW */}
@@ -1774,37 +1709,6 @@ export default function JobTracker() {
             opacity: 1;
             transform: translateY(0);
           }
-        }
-        .kanban-lane-new {
-          background: rgba(26, 29, 41, 0.015);
-          border: 1.5px dashed var(--ink-12);
-          border-radius: var(--r-s);
-          padding: 0.75rem;
-          min-height: 550px;
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-          transition: all 0.2s ease;
-        }
-        .kanban-lane-new.dragover {
-          background: var(--iris-08) !important;
-          border-color: var(--iris) !important;
-        }
-        .kanban-card-new {
-          background: var(--surface);
-          border: 1px solid var(--ink-12);
-          border-radius: calc(var(--r-s) - 2px);
-          cursor: grab;
-          transition: all 0.2s ease;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-        }
-        .kanban-card-new:hover {
-          border-color: var(--ink-30);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(26,29,41,0.05);
-        }
-        .kanban-card-new:active {
-          cursor: grabbing;
         }
         .input-inline {
           background: transparent;

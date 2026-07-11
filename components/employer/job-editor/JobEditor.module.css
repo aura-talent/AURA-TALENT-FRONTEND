@@ -150,7 +150,8 @@
   font-size: 0.65rem;
 }
 
-.interviewEnable input:checked + .check {
+.interviewEnable input:checked + .check,
+.headhunterRow input:checked + .check {
   border-color: var(--iris);
   background: var(--iris);
   color: #fff;
@@ -173,6 +174,51 @@
 .notice {
   margin: 1rem 0 0;
   font-size: 0.78rem;
+}
+
+.headhunterList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.headhunterRow {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 0.7rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--ink-12);
+  border-radius: var(--r-s);
+  background: var(--porcelain);
+  cursor: pointer;
+}
+
+.headhunterRow:has(input:checked) {
+  border-color: var(--iris-12);
+  background: var(--iris-08);
+}
+
+.headhunterRow input {
+  position: absolute;
+  opacity: 0;
+}
+
+.headhunterRowHead {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.headhunterRowHead strong {
+  font-size: 0.82rem;
+}
+
+.headhunterRow small {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--ink-55);
+  font-size: 0.68rem;
 }
 
 .keywordEditor {

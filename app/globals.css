@@ -1443,6 +1443,20 @@ textarea.input {
   background: rgba(188, 74, 42, 0.12);
   color: var(--score-weak);
 }
+/* Per-stage colored label. --stage-c is set inline by <StageChip>. */
+.stage-chip {
+  gap: 0.35rem;
+  background: color-mix(in srgb, var(--stage-c) 12%, transparent);
+  border-color: color-mix(in srgb, var(--stage-c) 30%, transparent);
+  color: var(--stage-c);
+}
+.stage-chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--stage-c);
+}
 
 /* score breakdown bars */
 .bars {
@@ -2246,51 +2260,6 @@ textarea.input {
   text-decoration: none;
   white-space: nowrap;
 }
-.pipeline {
-  height: 200px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  gap: 0.75rem;
-  padding-top: 1rem;
-}
-.pipeline-step {
-  position: relative;
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
-}
-.pipeline-bar {
-  width: min(66px, 80%);
-  min-height: 52px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 0.5rem;
-  border-radius: 9px 9px 3px 3px;
-  background: linear-gradient(180deg, var(--iris-12), var(--iris-08));
-  border: 1px solid var(--iris-12);
-}
-.pipeline-bar span {
-  font:
-    700 0.9rem var(--font-mono),
-    monospace;
-  color: var(--iris-deep);
-}
-.pipeline-step p {
-  color: var(--ink-55);
-  font-size: 0.72rem;
-  text-align: center;
-}
-.pipeline-arrow {
-  position: absolute;
-  right: -0.7rem;
-  top: 45%;
-  color: var(--ink-30);
-  font-size: 0.8rem;
-}
 .attention-list a,
 .candidate-compact-list a {
   display: flex;
@@ -2517,10 +2486,15 @@ textarea.input {
 }
 .candidate-profile-head {
   display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  margin-bottom: 1rem;
+}
+.candidate-profile-top {
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  margin-bottom: 1rem;
 }
 .candidate-profile-person {
   display: flex;
@@ -2955,6 +2929,32 @@ textarea.input {
 }
 .interview-management-card footer .btn {
   padding: 0.55rem 1rem;
+}
+
+/* Generic 4-up stat card row — mirrors .interview-management-* structure.
+   Used by headhunters and workforce planning management pages. */
+.stat-card-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.stat-card-row article {
+  position: relative;
+  padding: 1.2rem 1.35rem;
+}
+.stat-card-row p,
+.stat-card-row span {
+  color: var(--ink-55);
+  font-size: 0.72rem;
+}
+.stat-card-row strong {
+  display: block;
+  margin: 0.2rem 0;
+  font:
+    700 1.8rem var(--font-display),
+    sans-serif;
+  line-height: 1;
 }
 .preview-wave {
   height: 44px;
@@ -3575,45 +3575,287 @@ textarea.input {
 }
 
 /* Talent re-engagement */
-.talent-pool-intro {
+.talent-pool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(225px, 1fr));
+  gap: 0.75rem;
+}
+.talent-pool-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  color: inherit;
+  text-decoration: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 0.15s,
+    border-color 0.15s;
+}
+.talent-pool-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--ink);
+}
+.talent-pool-card header {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
-  margin-bottom: 1rem;
-  padding: 1.1rem 1.25rem;
-  border-color: var(--iris-12);
-  background: linear-gradient(135deg, var(--surface), var(--iris-08));
+  gap: 0.55rem;
+  min-width: 0;
 }
-.talent-pool-intro strong,
-.talent-pool-intro p,
-.talent-pool-outcome strong,
-.talent-pool-outcome small {
+.talent-pool-card .candidate-avatar {
+  width: 30px;
+  height: 30px;
+  font-size: 0.68rem;
+  flex-shrink: 0;
+}
+.talent-pool-card header > div {
+  flex: 1;
+  min-width: 0;
+}
+.talent-pool-card header strong,
+.talent-pool-card header small {
   display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.talent-pool-intro p,
-.talent-pool-outcome small {
+.talent-pool-card header strong {
+  font-size: 0.84rem;
+}
+.talent-pool-card header small {
   color: var(--ink-55);
-  font-size: 0.72rem;
+  font-size: 0.66rem;
 }
-.talent-pool-outcome {
-  min-width: 250px;
-  max-width: 330px;
+.talent-pool-score {
+  font:
+    700 0.85rem var(--font-mono),
+    monospace;
 }
-.talent-pool-outcome strong {
-  font-size: 0.78rem;
+.talent-pool-score.strong {
+  color: var(--score-strong);
 }
+.talent-pool-score.good {
+  color: var(--score-good);
+}
+.talent-pool-score.fair {
+  color: var(--score-fair);
+}
+.talent-pool-score.weak {
+  color: var(--score-weak);
+}
+.talent-pool-bar {
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: var(--ink-06);
+  overflow: hidden;
+}
+.talent-pool-bar i {
+  display: block;
+  height: 100%;
+  background: var(--iris);
+  border-radius: inherit;
+}
+.talent-pool-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.talent-pool-card-meta .chip {
+  font-size: 0.56rem;
+  padding: 0.2rem 0.45rem;
+  white-space: nowrap;
+}
+.talent-pool-card-skills {
+  color: var(--ink-72);
+  font-size: 0.7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Pill-style tag list — used wherever a set of skills/keywords needs to
+   render as separate chips (candidate/headhunter overview modals, the
+   hiring pipeline drawer's job keywords, the headhunter editor's focus
+   areas), not just this talent-pool card's inline skills line above. */
 .talent-pool-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
-  min-width: 180px;
+  min-width: 0;
 }
 .talent-pool-tags span {
-  padding: 0.28rem 0.45rem;
+  padding: 0.22rem 0.4rem;
   border-radius: var(--r-pill);
   background: var(--iris-08);
   color: var(--iris-deep);
   font-size: 0.62rem;
+  white-space: nowrap;
+}
+.talent-pool-flag {
+  margin-left: 0.35rem;
+  color: var(--iris-deep);
+  font-style: normal;
+  cursor: help;
+}
+.talent-pool-card footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: auto;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--ink-06);
+  color: var(--ink-55);
+  font-size: 0.66rem;
+}
+.talent-pool-card footer span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.talent-pool-go {
+  flex-shrink: 0;
+  color: var(--ink-30);
+  font-size: 0.85rem;
+}
+.talent-pool-card:hover .talent-pool-go {
+  color: var(--iris-deep);
+}
+
+/* Headhunter badge — used on spotlight cards and as a compact tag in the
+   regular grid when a candidate was sourced by a headhunter. */
+.headhunter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.5rem;
+  border-radius: var(--r-pill);
+  background: linear-gradient(135deg, var(--iris-12), var(--iris-08));
+  color: var(--iris-deep);
+  font-size: 0.62rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.headhunter-badge-compact {
+  font-size: 0.56rem;
+  padding: 0.18rem 0.4rem;
+}
+
+/* Talent pool — headhunter spotlight section */
+.talent-pool-spotlight {
+  margin-bottom: 1.5rem;
+}
+.talent-pool-spotlight-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+.talent-pool-spotlight-head h2 {
+  font-size: 1.05rem;
+}
+.talent-pool-spotlight-head span {
+  color: var(--ink-55);
+  font-size: 0.78rem;
+}
+.talent-pool-spotlight .talent-pool-grid {
+  padding: 0.9rem;
+  border: 1px solid var(--iris-12);
+  border-radius: var(--r-s);
+  background: linear-gradient(135deg, var(--surface), var(--iris-08));
+}
+
+/* Candidate overview modal reuses .candidate-email-backdrop/-modal/-fields
+   (see CandidateEmailComposer) — no dedicated shell CSS needed here. */
+.headhunter-evaluation {
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--iris-12);
+  border-radius: var(--r-s);
+  background: linear-gradient(135deg, var(--surface), var(--iris-08));
+}
+.headhunter-evaluation-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+.headhunter-evaluation-head > div {
+  flex: 1;
+  min-width: 0;
+}
+.headhunter-evaluation-head strong,
+.headhunter-evaluation-head small {
+  display: block;
+}
+.headhunter-evaluation-head small {
+  color: var(--ink-55);
+  font-size: 0.68rem;
+}
+.headhunter-evaluation-summary {
+  color: var(--ink-72);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  margin-bottom: 0.6rem;
+}
+.headhunter-evaluation-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+  color: var(--ink-55);
+  font-size: 0.68rem;
+}
+/* Aura-generated summary fallback — shown in place of .headhunter-evaluation
+   when a candidate has no headhunter evidence. Distinguished from the
+   headhunter panel with a left accent bar and a sparkle badge, so it reads
+   as "AI take" rather than sourced evidence. */
+.aura-summary {
+  position: relative;
+  padding: 0.9rem 1rem 0.9rem 1.1rem;
+  border: 1px solid var(--iris-12);
+  border-radius: var(--r-s);
+  background: linear-gradient(135deg, var(--iris-08), var(--surface) 60%);
+  overflow: hidden;
+}
+.aura-summary::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--iris-deep), var(--iris));
+}
+.aura-summary-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--iris-deep);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 0.55rem;
+}
+.aura-summary-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--iris-deep), var(--iris));
+  color: #fff;
+  font-size: 0.62rem;
+  line-height: 1;
+}
+.aura-summary p:last-child {
+  color: var(--ink-72);
+  font-size: 0.82rem;
+  line-height: 1.6;
 }
 
 /* Employer job detail */
@@ -4582,7 +4824,7 @@ textarea.input {
   .employer-span-2 {
     grid-column: auto;
   }
-  .candidate-profile-head {
+  .candidate-profile-top {
     align-items: flex-start;
   }
   .candidate-profile-actions {
@@ -4627,13 +4869,6 @@ textarea.input {
   .employer-span-2 {
     grid-column: auto;
   }
-  .pipeline {
-    overflow-x: auto;
-    justify-content: flex-start;
-  }
-  .pipeline-step {
-    min-width: 78px;
-  }
   .candidate-toolbar {
     align-items: stretch;
     flex-direction: column;
@@ -4641,7 +4876,7 @@ textarea.input {
   .candidate-result-count {
     margin-left: 0;
   }
-  .candidate-profile-head,
+  .candidate-profile-top,
   .candidate-profile-person {
     align-items: flex-start;
     flex-direction: column;

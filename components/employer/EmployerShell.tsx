@@ -9,6 +9,7 @@ const links = [
   { href: "/employer/workforce", label: "Workforce plan", icon: "chart" },
   { href: "/employer/candidates", label: "Candidates", icon: "people" },
   { href: "/employer/talent-pool", label: "Talent pool", icon: "archive" },
+  { href: "/employer/headhunters", label: "Headhunters", icon: "scout" },
   { href: "/employer/interviews", label: "Interviews", icon: "spark" },
   { href: "/employer/jobs", label: "Job listings", icon: "briefcase" },
   { href: "/employer/profile", label: "Company profile", icon: "building" },
@@ -58,6 +59,13 @@ function Icon({ name }: { name: string }) {
     building: (
       <>
         <path d="M3 21h18M6 21V4h12v17M9 8h2M13 8h2M9 12h2M13 12h2M10 21v-5h4v5" />
+      </>
+    ),
+    scout: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <circle cx="12" cy="12" r="4" />
+        <circle cx="12" cy="12" r="1" style={{ fill: "currentColor" }} />
       </>
     ),
   };

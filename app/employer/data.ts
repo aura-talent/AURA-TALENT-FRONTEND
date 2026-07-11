@@ -237,6 +237,49 @@ export const interviewEvaluations: Record<string, InterviewEvaluation> = {
   },
 };
 
+export const stagePipeline = [
+  "Application Received",
+  "Under Review",
+  "Shortlisted",
+  "Interview Scheduled",
+  "Assessment",
+  "Offer Extended",
+  "Hired",
+] as const;
+
+export const stageOptions = [...stagePipeline, "Rejected"] as const;
+
+export type Stage = (typeof stageOptions)[number];
+
+// One color per pipeline stage: a cool→warm→green progression that reads as
+// "just arrived → advancing → won", with red reserved for Rejected. Consumed by
+// the shared <StageChip> component (components/employer/StageChip.tsx).
+export const stageColors: Record<Stage, string> = {
+  "Application Received": "#475569",
+  "Under Review": "#2563eb",
+  "Shortlisted": "#4f46e5",
+  "Interview Scheduled": "#7c3aed",
+  "Assessment": "#d97706",
+  "Offer Extended": "#0d9488",
+  "Hired": "#16a34a",
+  "Rejected": "#dc2626",
+};
+
+// Hiring Pipeline phases — the lifecycle a *job listing itself* moves
+// through, from headcount planning to close. Each board card is a job
+// listing (never a candidate); this is unrelated to `stagePipeline` above,
+// which tracks one candidate's application progress within a job.
+export const pipelinePhases = [
+  { id: "planning", label: "Planning", color: "#64748b" },
+  { id: "open-hiring", label: "Open / Active Hiring", color: "#2563eb" },
+  { id: "evaluation", label: "Evaluation", color: "#7c3aed" },
+  { id: "offer-decision", label: "Offer / Decision", color: "#0d9488" },
+  { id: "filled", label: "Filled", color: "#16a34a" },
+  { id: "closed", label: "Closed", color: "#dc2626" },
+] as const;
+
+export type PipelinePhaseId = (typeof pipelinePhases)[number]["id"];
+
 export const candidates = [
   {
     id: "maya-chen",
@@ -249,7 +292,7 @@ export const candidates = [
     applied: true,
     interviewAttempted: true,
     jobId: "senior-product-designer",
-    stage: "Final review",
+    stage: "Shortlisted",
     location: "Kuala Lumpur",
     experience: "7 years",
     skills: ["Product strategy", "Figma", "Design systems"],
@@ -348,7 +391,7 @@ export const candidates = [
     applied: true,
     interviewAttempted: false,
     jobId: "frontend-engineer",
-    stage: "New",
+    stage: "Application Received",
     location: "Penang",
     experience: "4 years",
     skills: ["React", "TypeScript", "Accessibility"],
@@ -379,7 +422,7 @@ export const candidates = [
     applied: false,
     interviewAttempted: false,
     jobId: "frontend-engineer",
-    stage: "Screening",
+    stage: "Under Review",
     location: "Johor Bahru",
     experience: "3 years",
     skills: ["Next.js", "Testing", "CSS"],
@@ -398,6 +441,68 @@ export const candidates = [
       culture: 77,
     },
     matchedKeywords: ["Next.js", "testing", "CSS"],
+  },
+  {
+    id: "elena-cruz",
+    name: "Elena Cruz",
+    initials: "EC",
+    role: "Principal Product Designer",
+    score: 91,
+    resume: 90,
+    interview: null,
+    applied: false,
+    interviewAttempted: false,
+    jobId: "senior-product-designer",
+    stage: "Application Received",
+    location: "Singapore",
+    experience: "9 years",
+    skills: ["Design systems", "0-to-1 product", "Team leadership"],
+    metrics: {
+      reputation: 0,
+      match: 90,
+      northStar: 88,
+      compensation: 84,
+      culture: 86,
+      redFlags: 92,
+    },
+    rubric: {
+      technical: 92,
+      problemSolving: 90,
+      communication: 86,
+      culture: 86,
+    },
+    matchedKeywords: ["design systems", "product strategy", "B2B SaaS"],
+  },
+  {
+    id: "ryan-tanaka",
+    name: "Ryan Tanaka",
+    initials: "RT",
+    role: "Senior Frontend Engineer",
+    score: 85,
+    resume: 83,
+    interview: null,
+    applied: false,
+    interviewAttempted: false,
+    jobId: "frontend-engineer",
+    stage: "Application Received",
+    location: "Remote",
+    experience: "6 years",
+    skills: ["React", "Next.js", "Performance tuning"],
+    metrics: {
+      reputation: 0,
+      match: 85,
+      northStar: 80,
+      compensation: 78,
+      culture: 79,
+      redFlags: 88,
+    },
+    rubric: {
+      technical: 87,
+      problemSolving: 83,
+      communication: 78,
+      culture: 79,
+    },
+    matchedKeywords: ["React", "Next.js", "accessibility"],
   },
 ];
 
@@ -427,6 +532,8 @@ export const jobs = [
     mockInterviewEnabled: true,
     interviewQuestions: 6,
     recommended: true,
+    headhunterIds: ["aura-executive-search"],
+    pipelinePhase: "offer-decision",
   },
   {
     id: "frontend-engineer",
@@ -447,6 +554,8 @@ export const jobs = [
     mockInterviewEnabled: true,
     interviewQuestions: 5,
     recommended: true,
+    headhunterIds: ["aura-technical-sourcer"],
+    pipelinePhase: "evaluation",
   },
   {
     id: "ai-product-manager",
@@ -467,6 +576,8 @@ export const jobs = [
     mockInterviewEnabled: true,
     interviewQuestions: 7,
     recommended: false,
+    headhunterIds: [],
+    pipelinePhase: "open-hiring",
   },
   {
     id: "people-operations-lead",
@@ -491,8 +602,117 @@ export const jobs = [
     mockInterviewEnabled: false,
     interviewQuestions: 0,
     recommended: false,
+    headhunterIds: [],
+    pipelinePhase: "planning",
   },
 ];
+
+// Per-job workforce plan — every job listing owns its own headcount and
+// budget plan, instead of one shared department-wide plan. This is the
+// source of truth the "Planning" phase in `pipelinePhases` above points to.
+export type PlanStatus = "Draft" | "Approved" | "Published";
+
+export function planStatusChipClass(status: PlanStatus) {
+  if (status === "Published") return "chip-tier-high";
+  if (status === "Approved") return "chip-tier-caution";
+  return "";
+}
+
+export type JobPlan = {
+  status: PlanStatus;
+  priority: "High" | "Medium" | "Low";
+  backfill: boolean;
+  openings: number;
+  baselineHeadcount: number;
+  budget: number;
+  hiringManager: string;
+  targetStartDate: string;
+  targetFillDate: string;
+  justification: string;
+  demandSignal: {
+    reason: string;
+    risk: "High" | "Medium" | "Covered";
+  };
+  lastUpdated: string;
+};
+
+// Keyed by job id. A job created through "Create job" won't have an entry
+// here until its plan is first saved — JobPlanEditor seeds sensible
+// defaults for that case.
+export const jobPlans: Record<string, JobPlan> = {
+  "senior-product-designer": {
+    status: "Published",
+    priority: "High",
+    backfill: false,
+    openings: 1,
+    baselineHeadcount: 8,
+    budget: 192000,
+    hiringManager: "Wei Ling Tan",
+    targetStartDate: "Apr 2026",
+    targetFillDate: "Jul 2026",
+    justification:
+      "Design org is short a senior IC to own the B2B platform's design system ahead of two Q3 launches.",
+    demandSignal: {
+      reason: "Two product launches planned in Q3 need dedicated systems ownership",
+      risk: "High",
+    },
+    lastUpdated: "2 days ago",
+  },
+  "frontend-engineer": {
+    status: "Published",
+    priority: "High",
+    backfill: true,
+    openings: 2,
+    baselineHeadcount: 14,
+    budget: 264000,
+    hiringManager: "Farid Hassan",
+    targetStartDate: "May 2026",
+    targetFillDate: "Aug 2026",
+    justification:
+      "Two additional frontend engineers needed to keep pace with the platform roadmap and cover attrition risk on the current team.",
+    demandSignal: {
+      reason: "Platform roadmap and attrition risk are raising frontend capacity needs",
+      risk: "High",
+    },
+    lastUpdated: "5 days ago",
+  },
+  "ai-product-manager": {
+    status: "Approved",
+    priority: "Medium",
+    backfill: false,
+    openings: 1,
+    baselineHeadcount: 5,
+    budget: 216000,
+    hiringManager: "Grace Lim",
+    targetStartDate: "Jun 2026",
+    targetFillDate: "Sep 2026",
+    justification:
+      "New PM needed to own the AI product roadmap as adoption scales beyond pilot customers.",
+    demandSignal: {
+      reason: "Two launches planned in Q3 need dedicated product ownership",
+      risk: "Medium",
+    },
+    lastUpdated: "1 week ago",
+  },
+  "people-operations-lead": {
+    status: "Draft",
+    priority: "Medium",
+    backfill: false,
+    openings: 1,
+    baselineHeadcount: 3,
+    budget: 132000,
+    hiringManager: "Aisha Rahman",
+    targetStartDate: "TBD",
+    targetFillDate: "TBD",
+    justification:
+      "Scaling regional team requires dedicated people operations leadership; pending budget approval.",
+    demandSignal: {
+      reason: "Existing capacity is sufficient through Q4, but a new region launch may change this",
+      risk: "Covered",
+    },
+    lastUpdated: "Today",
+  },
+};
 
 export const talentPoolProfiles: Record<
   string,
@@ -503,7 +723,6 @@ export const talentPoolProfiles: Record<
     preferredLocations: string[];
     availableFrom: string;
     lastContacted: string;
-    consent: "Granted" | "Pending";
   }
 > = {
   "daniel-kim": {
@@ -513,7 +732,6 @@ export const talentPoolProfiles: Record<
     preferredLocations: ["Singapore", "Remote"],
     availableFrom: "Now",
     lastContacted: "4 months ago",
-    consent: "Granted",
   },
   "priya-nair": {
     previousOutcome: "Assessment · AI Product Manager",
@@ -522,13 +740,100 @@ export const talentPoolProfiles: Record<
     preferredLocations: ["Remote", "Kuala Lumpur"],
     availableFrom: "July 2026",
     lastContacted: "2 months ago",
-    consent: "Granted",
   },
 };
 
-export const talentPoolCandidates = candidates.filter(
-  (candidate) =>
-    candidate.stage === "Rejected" &&
-    candidate.score >= 80 &&
-    candidate.id in talentPoolProfiles,
-);
+export type HeadhunterStatus = "Draft" | "Active" | "Paused";
+
+export function headhunterStatusChipClass(status: HeadhunterStatus) {
+  if (status === "Active") return "chip-tier-high";
+  if (status === "Paused") return "chip-tier-caution";
+  return "";
+}
+
+export type Headhunter = {
+  id: string;
+  name: string;
+  persona: string;
+  status: HeadhunterStatus;
+  focusAreas: string[];
+  stats: {
+    candidatesSourced: number;
+    avgMatchScore: number;
+    lastActiveAt: string;
+  };
+};
+
+// Avatar marks are always derived from the name, never separately configured.
+// Uses the last two words' initials (e.g. "Aura Technical Sourcer" -> "TS")
+// so the shared "Aura ___" naming convention still differentiates agents.
+export function headhunterInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  const secondLast = parts[parts.length - 2];
+  const last = parts[parts.length - 1];
+  return (secondLast[0] + last[0]).toUpperCase();
+}
+
+export const headhunters: Headhunter[] = [
+  {
+    id: "aura-technical-sourcer",
+    name: "Aura Technical Sourcer",
+    persona: "Scouts engineering talent from GitHub activity and open-source contributions.",
+    status: "Active",
+    focusAreas: ["React", "TypeScript", "Frontend performance"],
+    stats: { candidatesSourced: 6, avgMatchScore: 84, lastActiveAt: "5 hours ago" },
+  },
+  {
+    id: "aura-executive-search",
+    name: "Aura Executive Search",
+    persona: "Finds senior design and product leaders open to a confidential move.",
+    status: "Active",
+    focusAreas: ["Product design leadership", "Design systems", "0-to-1"],
+    stats: { candidatesSourced: 3, avgMatchScore: 90, lastActiveAt: "2 days ago" },
+  },
+  {
+    id: "aura-growth-scout",
+    name: "Aura Growth Scout",
+    persona: "Sources AI product and growth talent from founder networks.",
+    status: "Draft",
+    focusAreas: ["AI products", "Growth", "Experimentation"],
+    stats: { candidatesSourced: 0, avgMatchScore: 0, lastActiveAt: "Never" },
+  },
+];
+
+export type HeadhunterSuggestion = {
+  headhunterId: string;
+  jobId: string;
+  matchScore: number;
+  summary: string;
+  sourcedFrom: string;
+  sourcedAt: string;
+  keyStrengths: string[];
+};
+
+// Keyed by candidate id, mirroring talentPoolProfiles' shape. A candidate
+// has at most one headhunter suggestion in this mock model.
+export const headhunterSuggestions: Record<string, HeadhunterSuggestion> = {
+  "elena-cruz": {
+    headhunterId: "aura-executive-search",
+    jobId: "senior-product-designer",
+    matchScore: 91,
+    summary:
+      "Led design systems for two Series C SaaS products; open to a confidential move for the right scope.",
+    sourcedFrom: "LinkedIn · Passive candidate",
+    sourcedAt: "2 days ago",
+    keyStrengths: ["Design systems", "0-to-1 product", "Team leadership"],
+  },
+  "ryan-tanaka": {
+    headhunterId: "aura-technical-sourcer",
+    jobId: "frontend-engineer",
+    matchScore: 85,
+    summary:
+      "Maintains a popular React performance-tooling library; strong signal on production-grade frontend work.",
+    sourcedFrom: "GitHub · Open-source contributions",
+    sourcedAt: "5 hours ago",
+    keyStrengths: ["React", "Next.js", "Performance tuning"],
+  },
+};

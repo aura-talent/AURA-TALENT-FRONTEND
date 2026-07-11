@@ -9,6 +9,7 @@ import {
   type EvaluationMetricKey,
   type ScoringDimensionKey,
 } from "@/app/employer/data";
+import HeadhunterSection from "./HeadhunterSection";
 import JobAssistModal from "./JobAssistModal";
 import JobDetailsSection from "./JobDetailsSection";
 import KeywordsSection from "./KeywordsSection";
@@ -56,6 +57,9 @@ export default function JobEditor({
   const [customCriteria, setCustomCriteria] = useState<CustomCriterion[]>([
     { id: 1, name: "Portfolio evidence", priority: 8 },
   ]);
+  const [headhunterIds, setHeadhunterIds] = useState<string[]>(
+    initialJob.headhunterIds ?? [],
+  );
   const [saved, setSaved] = useState(false);
 
   const totalPriority = useMemo(
@@ -196,6 +200,16 @@ export default function JobEditor({
               value: number,
             ) =>
               setDimensionWeights((current) => ({ ...current, [key]: value }))
+            }
+          />
+          <HeadhunterSection
+            headhunterIds={headhunterIds}
+            onToggle={(headhunterId, enabled) =>
+              setHeadhunterIds((current) =>
+                enabled
+                  ? [...current, headhunterId]
+                  : current.filter((id) => id !== headhunterId),
+              )
             }
           />
         </main>

@@ -49,7 +49,6 @@ export default async function CandidateDetail({
             <div>
               <div className="candidate-name-row">
                 <h1>{candidate.name}</h1>
-                <span className="chip chip-tier-high">High confidence</span>
               </div>
               <p>
                 {candidate.role} · {candidate.location} · {candidate.experience}

@@ -1,27 +1,65 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { candidates, jobs } from "../../../data";
+"use client";
 
-export default async function JobApplicantsPage({
+import { use, useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  candidateInitials,
+  employerApi,
+  type CandidateRow,
+  type EmployerJob,
+} from "@/lib/employerApi";
+import { Loader } from "@/components/ui/loader";
+
+export default function JobApplicantsPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ activity?: string | string[] }>;
 }) {
-  const { id } = await params;
-  const { activity } = await searchParams;
+  const { id } = use(params);
+  const { activity } = use(searchParams);
   const interviewOnly = activity === "interview";
-  const job = jobs.find((item) => item.id === id);
-  if (!job) notFound();
-  const allPeople = candidates.filter(
-    (candidate) =>
-      candidate.jobId === id &&
-      (candidate.applied || candidate.interviewAttempted),
-  );
-  const people = interviewOnly
-    ? allPeople.filter((candidate) => candidate.interviewAttempted)
-    : allPeople;
+
+  const [job, setJob] = useState<EmployerJob | null>(null);
+  const [rows, setRows] = useState<CandidateRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.allSettled([
+      employerApi.getJob(id),
+      employerApi.listCandidates(id),
+    ]).then(([jobRes, rowsRes]) => {
+      if (cancelled) return;
+      if (jobRes.status === "fulfilled") setJob(jobRes.value);
+      if (rowsRes.status === "fulfilled") setRows(rowsRes.value);
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  if (loading)
+    return (
+      <div className="employer-page">
+        <Loader label="Loading applicants…" />
+      </div>
+    );
+  if (!job)
+    return (
+      <div className="employer-page">
+        <div className="empty-state panel">
+          <h3>Job not found</h3>
+        </div>
+      </div>
+    );
+
+  const interviewAttempted = (row: CandidateRow) =>
+    Boolean(row.evaluation?.interview_evaluation || row.evaluation?.interview_score != null);
+  const allPeople = rows.filter((row) => row.application || interviewAttempted(row));
+  const people = interviewOnly ? allPeople.filter(interviewAttempted) : allPeople;
 
   return (
     <div className="employer-page">
@@ -35,49 +73,43 @@ export default async function JobApplicantsPage({
               ? "Mock interview attempts"
               : "Applicants and interview attempts"}
           </p>
-          <h1>{job.title}</h1>
+          <h1>{job?.title ?? "…"}</h1>
           <p>
             {interviewOnly
               ? "Review candidates who attempted this role's mock interview and open their interview evaluation."
               : "Review candidates who applied, attempted the mock interview, or completed both paths."}
           </p>
         </div>
-        <Link className="btn btn-ghost" href={`/employer/jobs/${job.id}/edit`}>
+        <Link className="btn btn-ghost" href={`/employer/jobs/${id}/edit`}>
           Edit job setup
         </Link>
       </div>
       <div className="candidate-view-tabs" aria-label="Candidate activity view">
         <Link
           className={!interviewOnly ? "active" : ""}
-          href={`/employer/jobs/${job.id}/applicants`}
+          href={`/employer/jobs/${id}/applicants`}
         >
           All activity
         </Link>
         <Link
           className={interviewOnly ? "active" : ""}
-          href={`/employer/jobs/${job.id}/applicants?activity=interview`}
+          href={`/employer/jobs/${id}/applicants?activity=interview`}
         >
           Interview attempts
         </Link>
       </div>
       <div className="applicant-summary">
         <span>
-          <strong>{allPeople.filter((person) => person.applied).length}</strong>
+          <strong>{allPeople.filter((row) => row.application).length}</strong>
           Applied
         </span>
         <span>
-          <strong>
-            {allPeople.filter((person) => person.interviewAttempted).length}
-          </strong>
+          <strong>{allPeople.filter(interviewAttempted).length}</strong>
           Interview attempted
         </span>
         <span>
           <strong>
-            {
-              allPeople.filter(
-                (person) => person.applied && person.interviewAttempted,
-              ).length
-            }
+            {allPeople.filter((row) => row.application && interviewAttempted(row)).length}
           </strong>
           Completed both
         </span>
@@ -95,75 +127,76 @@ export default async function JobApplicantsPage({
             </tr>
           </thead>
           <tbody>
-            {people.map((candidate) => (
-              <tr key={candidate.id}>
-                <td>
-                  <div className="candidate-cell">
-                    <span className="candidate-avatar">
-                      {candidate.initials}
-                    </span>
-                    <div>
-                      <strong>{candidate.name}</strong>
-                      <small>
-                        {candidate.location} · {candidate.experience}
-                      </small>
+            {people.map((row) => {
+              const score = row.evaluation?.wlc_score;
+              return (
+                <tr key={row.candidate_user_id}>
+                  <td>
+                    <div className="candidate-cell">
+                      <span className="candidate-avatar">
+                        {candidateInitials(row.full_name)}
+                      </span>
+                      <div>
+                        <strong>{row.full_name ?? row.email ?? "Candidate"}</strong>
+                        <small>{row.email}</small>
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td>
-                  <div className="candidate-activity">
-                    {candidate.applied && (
-                      <span className="chip chip-tier-high">Applied</span>
+                  </td>
+                  <td>
+                    <div className="candidate-activity">
+                      {row.application && (
+                        <span className="chip chip-tier-high">Applied</span>
+                      )}
+                      {interviewAttempted(row) && (
+                        <span className="chip">Interview attempted</span>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    {row.application ? (
+                      <span className="completion-check">{row.application.stage}</span>
+                    ) : (
+                      <span className="signal-missing">Not applied</span>
                     )}
-                    {candidate.interviewAttempted && (
-                      <span className="chip">Interview attempted</span>
+                  </td>
+                  <td>
+                    {interviewAttempted(row) ? (
+                      <Link
+                        className="completion-check"
+                        href={`/employer/candidates/${row.candidate_user_id}/interview`}
+                      >
+                        {Math.round(row.evaluation?.interview_score ?? 0)}/100
+                      </Link>
+                    ) : (
+                      <span className="signal-missing">Optional · pending</span>
                     )}
-                  </div>
-                </td>
-                <td>
-                  {candidate.applied ? (
-                    <span className="completion-check">Complete</span>
-                  ) : (
-                    <span className="signal-missing">Not applied</span>
-                  )}
-                </td>
-                <td>
-                  {candidate.interviewAttempted ? (
+                  </td>
+                  <td>
+                    <div className="match-cell">
+                      <b>{score != null ? `${Math.round(score)}%` : "—"}</b>
+                      <span>
+                        <i style={{ width: `${score ?? 0}%` }} />
+                      </span>
+                    </div>
+                  </td>
+                  <td>
                     <Link
-                      className="completion-check"
-                      href={`/employer/candidates/${candidate.id}/interview`}
+                      href={
+                        interviewOnly
+                          ? `/employer/candidates/${row.candidate_user_id}/interview`
+                          : `/employer/candidates/${row.candidate_user_id}`
+                      }
+                      className="table-action"
                     >
-                      {candidate.interview}/100
+                      {interviewOnly ? "View interview →" : "Evaluate →"}
                     </Link>
-                  ) : (
-                    <span className="signal-missing">Optional · pending</span>
-                  )}
-                </td>
-                <td>
-                  <div className="match-cell">
-                    <b>{candidate.score}%</b>
-                    <span>
-                      <i style={{ width: `${candidate.score}%` }} />
-                    </span>
-                  </div>
-                </td>
-                <td>
-                  <Link
-                    href={
-                      interviewOnly
-                        ? `/employer/candidates/${candidate.id}/interview`
-                        : `/employer/candidates/${candidate.id}`
-                    }
-                    className="table-action"
-                  >
-                    {interviewOnly ? "View interview →" : "Evaluate →"}
-                  </Link>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
-        {people.length === 0 && (
+        {!loading && people.length === 0 && (
           <div className="empty-state">
             <h3>No activity yet</h3>
             <p>

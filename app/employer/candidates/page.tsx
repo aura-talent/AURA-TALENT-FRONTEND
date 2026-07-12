@@ -1,36 +1,69 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { candidates, stageOptions } from "../data";
+import {
+  candidateInitials,
+  employerApi,
+  type CandidateRow,
+  type EmployerJob,
+} from "@/lib/employerApi";
 import StageChip from "@/components/employer/StageChip";
+import { Loader } from "@/components/ui/loader";
 
 export default function CandidatesPage() {
+  const [rows, setRows] = useState<CandidateRow[]>([]);
+  const [jobs, setJobs] = useState<EmployerJob[]>([]);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [stage, setStage] = useState("All stages");
   const [activity, setActivity] = useState("All activity");
+  const [jobFilter, setJobFilter] = useState("All roles");
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.allSettled([employerApi.listCandidates(), employerApi.listJobs()]).then(
+      ([rowsRes, jobsRes]) => {
+        if (cancelled) return;
+        if (rowsRes.status === "fulfilled") setRows(rowsRes.value);
+        if (jobsRes.status === "fulfilled") setJobs(jobsRes.value);
+        setLoading(false);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const stageOptions = useMemo(
+    () => [...new Set(rows.map((row) => row.application?.stage).filter(Boolean))] as string[],
+    [rows],
+  );
+
+  const interviewAttempted = (row: CandidateRow) =>
+    Boolean(row.evaluation?.interview_evaluation || row.evaluation?.interview_score != null);
+
   const filtered = useMemo(
     () =>
-      candidates.filter((candidate) => {
-        const matchesQuery =
-          `${candidate.name} ${candidate.role} ${candidate.skills.join(" ")}`
-            .toLowerCase()
-            .includes(query.toLowerCase());
+      rows.filter((row) => {
+        const matchesQuery = `${row.full_name ?? ""} ${row.email ?? ""} ${row.job_title}`
+          .toLowerCase()
+          .includes(query.toLowerCase());
+        const applied = Boolean(row.application);
         const matchesActivity =
           activity === "All activity" ||
-          (activity === "Applied" && candidate.applied) ||
-          (activity === "Interview attempted" &&
-            candidate.interviewAttempted) ||
-          (activity === "Both" &&
-            candidate.applied &&
-            candidate.interviewAttempted);
+          (activity === "Applied" && applied) ||
+          (activity === "Interview attempted" && interviewAttempted(row)) ||
+          (activity === "Both" && applied && interviewAttempted(row));
+        const matchesJob = jobFilter === "All roles" || row.job_id === jobFilter;
         return (
           matchesQuery &&
           matchesActivity &&
-          (stage === "All stages" || candidate.stage === stage)
+          matchesJob &&
+          (stage === "All stages" || row.application?.stage === stage)
         );
       }),
-    [query, stage, activity],
+    [rows, query, stage, activity, jobFilter],
   );
 
   return (
@@ -44,7 +77,9 @@ export default function CandidatesPage() {
             interview performance.
           </p>
         </div>
-        <button className="btn btn-primary">Invite candidate</button>
+        <Link href="/employer/talent-pool" className="btn btn-primary">
+          Browse talent pool
+        </Link>
       </div>
       <div className="candidate-toolbar panel">
         <label className="search-field">
@@ -52,7 +87,7 @@ export default function CandidatesPage() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search candidates or skills"
+            placeholder="Search candidates or roles"
             aria-label="Search candidates"
           />
         </label>
@@ -76,17 +111,27 @@ export default function CandidatesPage() {
           <option>Interview attempted</option>
           <option>Both</option>
         </select>
-        <select className="select" aria-label="Filter by role">
-          <option>All roles</option>
-          <option>Senior Product Designer</option>
-          <option>Frontend Engineer</option>
-          <option>AI Product Manager</option>
+        <select
+          className="select"
+          aria-label="Filter by role"
+          value={jobFilter}
+          onChange={(event) => setJobFilter(event.target.value)}
+        >
+          <option value="All roles">All roles</option>
+          {jobs.map((job) => (
+            <option key={job.id} value={job.id}>
+              {job.title}
+            </option>
+          ))}
         </select>
         <span className="candidate-result-count">
           {filtered.length} candidates
         </span>
       </div>
       <div className="panel candidate-table-wrap">
+        {loading ? (
+          <Loader label="Loading candidates…" />
+        ) : (
         <table className="table employer-table">
           <thead>
             <tr>
@@ -100,68 +145,85 @@ export default function CandidatesPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((candidate) => (
-              <tr key={candidate.id}>
-                <td>
-                  <div className="candidate-cell">
-                    <span className="candidate-avatar">
-                      {candidate.initials}
-                    </span>
-                    <div>
-                      <strong>{candidate.name}</strong>
-                      <small>
-                        {candidate.role} · {candidate.location}
-                      </small>
+            {filtered.map((row) => {
+              const score = row.evaluation?.wlc_score;
+              return (
+                <tr key={`${row.job_id}-${row.candidate_user_id}`}>
+                  <td>
+                    <div className="candidate-cell">
+                      <span className="candidate-avatar">
+                        {candidateInitials(row.full_name)}
+                      </span>
+                      <div>
+                        <strong>{row.full_name ?? row.email ?? "Candidate"}</strong>
+                        <small>{row.job_title}</small>
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td>
-                  <div className="candidate-activity">
-                    {candidate.applied && (
-                      <span className="chip chip-tier-high">Applied</span>
+                  </td>
+                  <td>
+                    <div className="candidate-activity">
+                      {row.application && (
+                        <span className="chip chip-tier-high">Applied</span>
+                      )}
+                      {interviewAttempted(row) && (
+                        <span className="chip">Interview</span>
+                      )}
+                      {!row.application && !interviewAttempted(row) && (
+                        <span className="chip">Profile match</span>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    {row.application ? (
+                      <StageChip
+                        stage={row.application.stage}
+                        stages={row.job_application_stages}
+                      />
+                    ) : (
+                      <span className="signal-missing">—</span>
                     )}
-                    {candidate.interviewAttempted && (
-                      <span className="chip">Interview</span>
+                  </td>
+                  <td>
+                    {row.evaluation?.resume_score != null ? (
+                      <span className="signal-score">
+                        {Math.round(row.evaluation.resume_score)}
+                      </span>
+                    ) : (
+                      <span className="signal-missing">Not scored</span>
                     )}
-                    {!candidate.applied && !candidate.interviewAttempted && (
-                      <span className="chip">Profile match</span>
+                  </td>
+                  <td>
+                    {row.evaluation?.interview_score != null ? (
+                      <span className="signal-score">
+                        {Math.round(row.evaluation.interview_score)}
+                      </span>
+                    ) : (
+                      <span className="signal-missing">Not attempted</span>
                     )}
-                  </div>
-                </td>
-                <td>
-                  <StageChip stage={candidate.stage} />
-                </td>
-                <td>
-                  <span className="signal-score">{candidate.resume}</span>
-                </td>
-                <td>
-                  {candidate.interviewAttempted ? (
-                    <span className="signal-score">{candidate.interview}</span>
-                  ) : (
-                    <span className="signal-missing">Not attempted</span>
-                  )}
-                </td>
-                <td>
-                  <div className="match-cell">
-                    <b>{candidate.score}%</b>
-                    <span>
-                      <i style={{ width: `${candidate.score}%` }} />
-                    </span>
-                  </div>
-                </td>
-                <td>
-                  <Link
-                    href={`/employer/candidates/${candidate.id}`}
-                    className="table-action"
-                  >
-                    Review →
-                  </Link>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td>
+                    <div className="match-cell">
+                      <b>{score != null ? `${Math.round(score)}%` : "—"}</b>
+                      <span>
+                        <i style={{ width: `${score ?? 0}%` }} />
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <Link
+                      href={`/employer/candidates/${row.candidate_user_id}`}
+                      className="table-action"
+                    >
+                      Review →
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
-        {filtered.length === 0 && (
+        )}
+        {!loading && filtered.length === 0 && (
           <div className="empty-state">
             <h3>No candidates found</h3>
             <p>Try a broader search or another pipeline stage.</p>

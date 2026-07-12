@@ -1,12 +1,15 @@
 import Link from "next/link";
 import SectionHeader from "./SectionHeader";
-import { headhunters, headhunterStatusChipClass } from "@/app/employer/data";
+import { headhunterStatusChipClass } from "@/app/employer/data";
+import type { EmployerHeadhunter } from "@/lib/employerApi";
 import styles from "./JobEditor.module.css";
 
 export default function HeadhunterSection({
+  headhunters,
   headhunterIds,
   onToggle,
 }: {
+  headhunters: EmployerHeadhunter[];
   headhunterIds: string[];
   onToggle: (headhunterId: string, enabled: boolean) => void;
 }) {

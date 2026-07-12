@@ -1,54 +1,105 @@
+"use client";
+
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import PdfReader from "@/components/pdf-reader";
-import { candidates, jobs } from "../../../data";
+import ReportView from "@/components/ReportView";
+import { Loader } from "@/components/ui/loader";
+import {
+  employerApi,
+  type CandidateDetail,
+  type CandidateRow,
+} from "@/lib/employerApi";
 import styles from "./Resume.module.css";
 
-export default async function CandidateResumePage({
+export default function CandidateResumePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
-  const candidate = candidates.find((item) => item.id === id);
-  if (!candidate || !candidate.applied) notFound();
+  const { id } = use(params);
+  const [detail, setDetail] = useState<CandidateDetail | null>(null);
+  const [failed, setFailed] = useState(false);
 
-  const job = jobs.find((item) => item.id === candidate.jobId);
-  const resumeUrl = "/employer/candidates/sample-resume.pdf";
+  useEffect(() => {
+    let cancelled = false;
+    employerApi
+      .getCandidate(id)
+      .then((data) => {
+        if (!cancelled) setDetail(data);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  if (failed)
+    return (
+      <div className="employer-page">
+        <div className="empty-state panel">
+          <h3>Candidate not found</h3>
+        </div>
+      </div>
+    );
+  if (!detail)
+    return (
+      <div className="employer-page">
+        <Loader label="Loading resume…" />
+      </div>
+    );
+
+  const name = detail.full_name ?? detail.email ?? "Candidate";
+  const row: CandidateRow | undefined =
+    detail.rows.find((r) => r.evaluation) ?? detail.rows[0];
+  const evaluation = row?.evaluation ?? null;
+
+  if (!detail.resume_markdown)
+    return (
+      <div className="employer-page">
+        <Link href={`/employer/candidates/${id}`} className="back-link">
+          ← Candidate evaluation
+        </Link>
+        <div className="empty-state panel">
+          <h3>No resume on file</h3>
+          <p>{name} hasn&apos;t uploaded a resume yet.</p>
+        </div>
+      </div>
+    );
 
   return (
     <div className="employer-page">
-      <Link href={`/employer/candidates/${candidate.id}`} className="back-link">
+      <Link href={`/employer/candidates/${id}`} className="back-link">
         ← Candidate evaluation
       </Link>
 
       <div className="employer-page-head">
         <div>
           <p className="eyebrow">Submitted application</p>
-          <h1>{candidate.name}&apos;s resume</h1>
+          <h1>{name}&apos;s resume</h1>
           <p>
-            Resume submitted for {job?.title ?? candidate.role} and analyzed by
-            Aura against the role requirements.
+            {row
+              ? `Resume analyzed by Aura against ${row.job_title}.`
+              : "Resume from the shared talent pool."}
           </p>
         </div>
-        <a className="btn btn-ghost" href={resumeUrl} download>
-          Download PDF
-        </a>
       </div>
 
       <div className={styles.layout}>
         <main className={`panel ${styles.viewerPanel}`}>
-          <PdfReader
-            file={resumeUrl}
-            title={`${candidate.name}'s submitted resume`}
-          />
+          <ReportView markdown={detail.resume_markdown} />
         </main>
 
         <aside>
           <section className="panel employer-section">
             <p className="eyebrow">ATS analysis</p>
             <div className={styles.matchScore}>
-              <strong>{candidate.metrics.match}%</strong>
+              <strong>
+                {evaluation?.metrics?.match != null
+                  ? `${Math.round(evaluation.metrics.match)}%`
+                  : "—"}
+              </strong>
               <span>Role match</span>
             </div>
             <p className={styles.note}>
@@ -59,13 +110,16 @@ export default async function CandidateResumePage({
           <section className="panel employer-section">
             <h3>Matched evidence</h3>
             <div className={styles.matchedEvidence}>
-              {candidate.matchedKeywords.map((keyword, index) => (
+              {(evaluation?.matched_keywords ?? []).map((keyword, index) => (
                 <span key={keyword}>
                   <i>{index < 3 ? "Priority" : "Matched"}</i>
                   {keyword}
                   <b>✓</b>
                 </span>
               ))}
+              {(evaluation?.matched_keywords ?? []).length === 0 && (
+                <span>No evaluation yet</span>
+              )}
             </div>
           </section>
         </aside>

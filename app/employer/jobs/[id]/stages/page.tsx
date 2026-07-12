@@ -1,11 +1,11 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import JobEditor from "@/components/employer/job-editor";
+import JobStageEditor from "@/components/employer/JobStageEditor";
 import { Loader } from "@/components/ui/loader";
 import { employerApi, type EmployerJob } from "@/lib/employerApi";
 
-export default function EditJobPage({
+export default function JobStagesPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -45,5 +45,5 @@ export default function EditJobPage({
       </div>
     );
 
-  return <JobEditor mode="edit" initialJob={job} />;
+  return <JobStageEditor job={job} />;
 }

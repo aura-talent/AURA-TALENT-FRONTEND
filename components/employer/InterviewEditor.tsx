@@ -2,13 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-
-const initialQuestions = [
-  "Walk me through a product decision where user needs and business goals were in tension.",
-  "Tell me about a time research changed the direction of your work.",
-  "How do you bring engineers and product managers into the design process?",
-  "Describe a project that did not land as expected. What did you learn?",
-];
+import { useRouter } from "next/navigation";
+import { employerApi, type EmployerJob } from "@/lib/employerApi";
 
 const interviewMetrics = [
   {
@@ -35,13 +30,13 @@ const interviewMetrics = [
 
 type MetricKey = (typeof interviewMetrics)[number]["key"];
 
-export default function InterviewEditor({
-  initialRole,
-}: {
-  initialRole: string;
-}) {
-  const [role, setRole] = useState(initialRole);
-  const [questions, setQuestions] = useState(initialQuestions);
+export default function InterviewEditor({ job }: { job: EmployerJob }) {
+  const router = useRouter();
+  const [questions, setQuestions] = useState<string[]>(
+    job.interview_questions.length
+      ? job.interview_questions.map(String)
+      : [""],
+  );
   const [metricPriorities, setMetricPriorities] = useState<
     Record<MetricKey, number>
   >({
@@ -50,7 +45,28 @@ export default function InterviewEditor({
     confidence: 7,
     bodyLanguage: 5,
   });
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    setSaving(true);
+    setError(null);
+    const cleaned = questions.map((q) => q.trim()).filter(Boolean);
+    try {
+      await employerApi.updateJob(job.id, {
+        interview_questions: cleaned,
+        mock_interview_enabled: true,
+      });
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 2200);
+    } catch (err) {
+      console.error("Failed to save interview:", err);
+      setError(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="employer-page">
@@ -68,30 +84,17 @@ export default function InterviewEditor({
           </p>
         </div>
         <div className="interview-header-actions flex">
-          <div className="pr-2">
-            <button
-              className="btn btn-ghost"
-              onClick={() =>
-                setQuestions([
-                  ...initialQuestions,
-                  "How would you improve an established product without disrupting the current customer base?",
-                ])
-              }
-            >
-              ✦ Generate with Aura
-            </button>
-          </div>
           <button
             className="btn btn-primary"
-            onClick={() => {
-              setSaved(true);
-              setTimeout(() => setSaved(false), 2200);
-            }}
+            onClick={save}
+            disabled={saving}
           >
-            {saved ? "Saved ✓" : "Save"}
+            {saved ? "Saved ✓" : saving ? "Saving…" : "Save"}
           </button>
         </div>
       </div>
+
+      {error && <p className="notice notice-error">{error}</p>}
 
       <div className="interview-builder-grid">
         <div>
@@ -102,9 +105,8 @@ export default function InterviewEditor({
                 <input
                   id="interview-role"
                   className="input"
-                  value={role}
-                  onChange={(event) => setRole(event.target.value)}
-                  placeholder="e.g. Senior Product Designer"
+                  value={job.title}
+                  readOnly
                 />
               </div>
               <div className="field">
@@ -161,15 +163,12 @@ export default function InterviewEditor({
             <div className="employer-section-head">
               <div>
                 <h2>Interview questions</h2>
-                <p>
-                  {questions.length} questions · drag to reorder in the
-                  connected version
-                </p>
+                <p>{questions.length} questions</p>
               </div>
             </div>
             <div className="question-list">
               {questions.map((question, index) => (
-                <div key={`${question}-${index}`}>
+                <div key={index}>
                   <span className="question-handle">⠿</span>
                   <span className="question-number">
                     {String(index + 1).padStart(2, "0")}
@@ -214,7 +213,7 @@ export default function InterviewEditor({
               <div className="aura-glow" />
             </div>
             <span className="mono">Question 1 of {questions.length}</span>
-            <h2>{questions[0]}</h2>
+            <h2>{questions[0] || "Add your first question"}</h2>
             <p>
               Candidates can answer by video, voice, or text. Follow-up prompts
               adapt to their response.
@@ -228,7 +227,6 @@ export default function InterviewEditor({
               <i />
               <i />
             </div>
-            <button className="btn btn-primary">Start preview</button>
           </section>
           <section className="notice notice-info">
             <strong>Evaluation priorities ready.</strong>

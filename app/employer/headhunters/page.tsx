@@ -1,25 +1,52 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  headhunters,
   headhunterInitials,
   headhunterStatusChipClass,
-  headhunterSuggestions,
-  jobs,
 } from "../data";
+import {
+  employerApi,
+  timeAgo,
+  type EmployerHeadhunter,
+  type EmployerJob,
+} from "@/lib/employerApi";
+import { Loader } from "@/components/ui/loader";
 
 export default function HeadhuntersPage() {
+  const [headhunters, setHeadhunters] = useState<EmployerHeadhunter[]>([]);
+  const [jobs, setJobs] = useState<EmployerJob[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.allSettled([employerApi.listHeadhunters(), employerApi.listJobs()]).then(
+      ([hhRes, jobsRes]) => {
+        if (cancelled) return;
+        if (hhRes.status === "fulfilled") setHeadhunters(hhRes.value);
+        if (jobsRes.status === "fulfilled") setJobs(jobsRes.value);
+        setLoading(false);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const jobTitle = (id: string) => jobs.find((job) => job.id === id)?.title;
+
   const activeCount = headhunters.filter((h) => h.status === "Active").length;
   const totalSourced = headhunters.reduce(
-    (total, h) => total + h.stats.candidatesSourced,
+    (total, h) => total + (h.stats.candidates_sourced ?? 0),
     0,
   );
-  const suggestionScores = Object.values(headhunterSuggestions).map(
-    (s) => s.matchScore,
-  );
-  const avgMatch = suggestionScores.length
+  const matchScores = headhunters
+    .map((h) => h.stats.avg_match_score)
+    .filter((score): score is number => score != null);
+  const avgMatch = matchScores.length
     ? Math.round(
-        suggestionScores.reduce((total, score) => total + score, 0) /
-          suggestionScores.length,
+        matchScores.reduce((total, score) => total + score, 0) / matchScores.length,
       )
     : 0;
 
@@ -62,7 +89,11 @@ export default function HeadhuntersPage() {
         </article>
       </div>
 
-      {headhunters.length === 0 ? (
+      {loading ? (
+        <div className="panel">
+          <Loader label="Loading headhunters…" />
+        </div>
+      ) : headhunters.length === 0 ? (
         <div className="empty-state panel">
           <h3>No headhunters yet</h3>
           <p>Create your first AI sourcing agent to start scouting the talent pool.</p>
@@ -84,9 +115,9 @@ export default function HeadhuntersPage() {
             </thead>
             <tbody>
               {headhunters.map((headhunter) => {
-                const assignedJobs = jobs.filter((job) =>
-                  job.headhunterIds.includes(headhunter.id),
-                );
+                const assignedTitles = headhunter.job_ids
+                  .map(jobTitle)
+                  .filter(Boolean);
                 return (
                   <tr key={headhunter.id}>
                     <td>
@@ -105,27 +136,25 @@ export default function HeadhuntersPage() {
                         {headhunter.status}
                       </span>
                     </td>
-                    <td>{headhunter.focusAreas.join(", ")}</td>
+                    <td>{headhunter.focus_areas.join(", ") || "—"}</td>
                     <td>
-                      {assignedJobs.length === 0
-                        ? "—"
-                        : assignedJobs.map((job) => job.title).join(", ")}
+                      {assignedTitles.length === 0 ? "—" : assignedTitles.join(", ")}
                     </td>
                     <td>
                       <span className="signal-score">
-                        {headhunter.stats.candidatesSourced}
+                        {headhunter.stats.candidates_sourced ?? 0}
                       </span>
                     </td>
                     <td>
-                      {headhunter.stats.avgMatchScore ? (
+                      {headhunter.stats.avg_match_score != null ? (
                         <span className="signal-score">
-                          {headhunter.stats.avgMatchScore}%
+                          {Math.round(headhunter.stats.avg_match_score)}%
                         </span>
                       ) : (
                         <span className="signal-missing">—</span>
                       )}
                     </td>
-                    <td>{headhunter.stats.lastActiveAt}</td>
+                    <td>{timeAgo(headhunter.stats.last_active_at)}</td>
                     <td>
                       <Link
                         href={`/employer/headhunters/${headhunter.id}/edit`}

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { jobs } from "../../../employer/data";
+import { jobs } from "../../mockJobs";
 
 export default async function InterviewHandoffPage({
   params,

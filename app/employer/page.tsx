@@ -1,33 +1,20 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
-import { useRouter } from "next/navigation";
-import { candidates, jobs } from "./data";
+import { defaultPipelinePhases } from "./data";
+import {
+  candidateInitials,
+  employerApi,
+  type CandidateRow,
+  type EmployerJob,
+  type EmployerJobPlan,
+  type PhaseDef,
+} from "@/lib/employerApi";
 import StageChip from "@/components/employer/StageChip";
 import HiringPipelineBoard from "@/components/employer/HiringPipelineBoard";
-
-const metrics = [
-  { label: "Open roles", value: "4", note: "+1 this month", tone: "iris" },
-  {
-    label: "Active candidates",
-    value: "91",
-    note: "18 need review",
-    tone: "peach",
-  },
-  {
-    label: "Avg. time to hire",
-    value: "18d",
-    note: "6 days faster",
-    tone: "mint",
-  },
-  {
-    label: "Interview completion",
-    value: "84%",
-    note: "+9% this quarter",
-    tone: "iris",
-  },
-];
+import { Loader } from "@/components/ui/loader";
 
 function getTodayLabel(): string {
   return new Date().toLocaleDateString("en-GB", {
@@ -46,11 +33,73 @@ function getGreeting(): string {
 
 export default function EmployerOverview() {
   const { user } = useAuth();
-  const router = useRouter();
+  const [jobs, setJobs] = useState<EmployerJob[]>([]);
+  const [phases, setPhases] = useState<PhaseDef[]>(defaultPipelinePhases);
+  const [plans, setPlans] = useState<EmployerJobPlan[]>([]);
+  const [candidates, setCandidates] = useState<CandidateRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.allSettled([
+      employerApi.listJobs(),
+      employerApi.getProfile(),
+      employerApi.listJobPlans(),
+      employerApi.listCandidates(),
+    ]).then(([jobsRes, profileRes, plansRes, candidatesRes]) => {
+      if (cancelled) return;
+      if (jobsRes.status === "fulfilled") setJobs(jobsRes.value);
+      if (profileRes.status === "fulfilled" && profileRes.value.hiring_pipeline_phases?.length)
+        setPhases(profileRes.value.hiring_pipeline_phases);
+      if (plansRes.status === "fulfilled") setPlans(plansRes.value);
+      if (candidatesRes.status === "fulfilled") setCandidates(candidatesRes.value);
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const firstName =
     (user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email ?? "there")
       .split(" ")[0];
+
+  const openRoles = jobs.filter((job) => job.status === "Active").length;
+  const activeCandidates = candidates.filter(
+    (row) => row.application && !row.application.is_rejected,
+  ).length;
+  const needsReview = candidates.filter(
+    (row) => row.application && !row.evaluation,
+  ).length;
+  const interviewsDone = candidates.filter(
+    (row) => row.evaluation?.interview_evaluation,
+  ).length;
+
+  const metrics = [
+    { label: "Open roles", value: `${openRoles}`, note: `${jobs.length} total`, tone: "iris" },
+    {
+      label: "Active candidates",
+      value: `${activeCandidates}`,
+      note: needsReview ? `${needsReview} need review` : "All reviewed",
+      tone: "peach",
+    },
+    {
+      label: "Evaluations",
+      value: `${candidates.filter((row) => row.evaluation).length}`,
+      note: "Scored by Aura",
+      tone: "mint",
+    },
+    {
+      label: "Interviews completed",
+      value: `${interviewsDone}`,
+      note: "Mock interview evidence",
+      tone: "iris",
+    },
+  ];
+
+  const topCandidates = candidates
+    .filter((row) => row.evaluation?.wlc_score != null)
+    .slice(0, 3);
 
   return (
     <div className="employer-page">
@@ -70,7 +119,7 @@ export default function EmployerOverview() {
           <article className="employer-metric" key={metric.label}>
             <span className={`metric-dot ${metric.tone}`} />
             <p>{metric.label}</p>
-            <strong>{metric.value}</strong>
+            <strong>{loading ? "…" : metric.value}</strong>
             <small>{metric.note}</small>
           </article>
         ))}
@@ -82,9 +131,14 @@ export default function EmployerOverview() {
             <h2>Hiring pipeline</h2>
             <p>Every open role, moving through your hiring process</p>
           </div>
-          <Link href="/employer/jobs">Manage jobs →</Link>
+          <div className="section-head-actions">
+            <Link href="/employer/pipeline-settings" title="Configure pipeline phases">
+              ⚙ Configure phases
+            </Link>
+            <Link href="/employer/jobs">Manage jobs →</Link>
+          </div>
         </div>
-        <HiringPipelineBoard />
+        <HiringPipelineBoard jobs={jobs} phases={phases} plans={plans} />
       </section>
 
       <div className="employer-dashboard-grid">
@@ -97,15 +151,15 @@ export default function EmployerOverview() {
           </div>
           <div className="attention-list">
             <Link href="/employer/candidates">
-              <span className="attention-icon">18</span>
+              <span className="attention-icon">{needsReview}</span>
               <div>
                 <strong>Candidates ready to review</strong>
-                <p>7 are high-confidence matches</p>
+                <p>Applications without an evaluation yet</p>
               </div>
               <b>→</b>
             </Link>
             <Link href="/employer/interviews">
-              <span className="attention-icon warm">4</span>
+              <span className="attention-icon warm">{interviewsDone}</span>
               <div>
                 <strong>Interviews completed</strong>
                 <p>Scorecards are ready</p>
@@ -113,10 +167,12 @@ export default function EmployerOverview() {
               <b>→</b>
             </Link>
             <Link href="/employer/workforce">
-              <span className="attention-icon green">1</span>
+              <span className="attention-icon green">
+                {jobs.filter((job) => !plans.some((plan) => plan.job_id === job.id)).length}
+              </span>
               <div>
-                <strong>Hiring risk detected</strong>
-                <p>Engineering demand is rising</p>
+                <strong>Jobs without a plan</strong>
+                <p>Set headcount and budget</p>
               </div>
               <b>→</b>
             </Link>
@@ -132,23 +188,31 @@ export default function EmployerOverview() {
             <Link href="/employer/candidates">See all →</Link>
           </div>
           <div className="candidate-compact-list">
-            {candidates.slice(0, 3).map((candidate) => (
+            {loading && <Loader label="Loading candidates…" />}
+            {topCandidates.map((row) => (
               <Link
-                href={`/employer/candidates/${candidate.id}`}
-                key={candidate.id}
+                href={`/employer/candidates/${row.candidate_user_id}`}
+                key={`${row.job_id}-${row.candidate_user_id}`}
               >
-                <span className="candidate-avatar">{candidate.initials}</span>
+                <span className="candidate-avatar">{candidateInitials(row.full_name)}</span>
                 <div>
-                  <strong>{candidate.name}</strong>
-                  <p>{candidate.role}</p>
+                  <strong>{row.full_name ?? row.email ?? "Candidate"}</strong>
+                  <p>{row.job_title}</p>
                 </div>
-                <StageChip stage={candidate.stage} />
+                {row.application && (
+                  <StageChip stage={row.application.stage} stages={row.job_application_stages} />
+                )}
                 <span className="candidate-score">
-                  <b>{candidate.score}</b>
+                  <b>{Math.round(row.evaluation!.wlc_score!)}</b>
                   <small>match</small>
                 </span>
               </Link>
             ))}
+            {!loading && topCandidates.length === 0 && (
+              <p style={{ color: "var(--ink-55)", fontSize: "0.85rem" }}>
+                No evaluated candidates yet.
+              </p>
+            )}
           </div>
         </section>
 
@@ -161,13 +225,13 @@ export default function EmployerOverview() {
             <Link href="/employer/jobs">Manage →</Link>
           </div>
           <div className="role-health-list">
-            {jobs.slice(0, 3).map((job) => (
-              <div key={job.title}>
+            {jobs.filter((job) => job.status === "Active").slice(0, 3).map((job) => (
+              <div key={job.id}>
                 <span>
                   <strong>{job.title}</strong>
-                  <small>{job.candidates} candidates</small>
+                  <small>{job.stats?.applicant_count ?? 0} candidates</small>
                 </span>
-                <b>{job.fit}%</b>
+                <b>{job.stats?.interview_count ?? 0} 🎙</b>
               </div>
             ))}
           </div>

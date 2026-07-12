@@ -1,10 +1,44 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { candidates, jobs } from "../data";
+import {
+  employerApi,
+  type CandidateRow,
+  type EmployerJob,
+} from "@/lib/employerApi";
+import { Loader } from "@/components/ui/loader";
 
 export default function InterviewsPage() {
+  const [jobs, setJobs] = useState<EmployerJob[]>([]);
+  const [rows, setRows] = useState<CandidateRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.allSettled([employerApi.listJobs(), employerApi.listCandidates()]).then(
+      ([jobsRes, rowsRes]) => {
+        if (cancelled) return;
+        if (jobsRes.status === "fulfilled") setJobs(jobsRes.value);
+        if (rowsRes.status === "fulfilled") setRows(rowsRes.value);
+        setLoading(false);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const managedInterviews = jobs.filter(
-    (job) => job.status === "Active" && job.mockInterviewEnabled,
+    (job) => job.status === "Active" && job.mock_interview_enabled,
   );
+  const attempted = (jobId: string) =>
+    rows.filter(
+      (row) => row.job_id === jobId && row.evaluation?.interview_evaluation,
+    );
+  const totalAttempts = rows.filter(
+    (row) => row.evaluation?.interview_evaluation,
+  ).length;
 
   return (
     <div className="employer-page">
@@ -27,36 +61,35 @@ export default function InterviewsPage() {
         </article>
         <article className="panel">
           <p>Total attempts</p>
-          <strong>
-            {
-              candidates.filter((candidate) => candidate.interviewAttempted)
-                .length
-            }
-          </strong>
+          <strong>{totalAttempts}</strong>
           <span>Candidate submissions</span>
         </article>
         <article className="panel">
-          <p>Completion rate</p>
-          <strong>84%</strong>
-          <span>Up 9% this quarter</span>
+          <p>Roles with interviews</p>
+          <strong>{jobs.filter((job) => job.mock_interview_enabled).length}</strong>
+          <span>Mock interview enabled</span>
         </article>
       </div>
 
+      {loading && (
+        <div className="panel">
+          <Loader label="Loading interviews…" />
+        </div>
+      )}
+
       <div className="interview-management-grid">
-        {managedInterviews.map((job) => {
-          const roleCandidates = candidates.filter(
-            (candidate) => candidate.jobId === job.id,
-          );
-          const attempted = roleCandidates.filter(
-            (candidate) => candidate.interviewAttempted,
-          ).length;
+        {!loading && managedInterviews.map((job) => {
+          const roleRows = rows.filter((row) => row.job_id === job.id);
+          const attemptCount = attempted(job.id).length;
 
           return (
             <article className="panel interview-management-card" key={job.id}>
               <header>
-                <div className="job-company-mark">N</div>
+                <div className="job-company-mark">
+                  {job.title.slice(0, 1).toUpperCase()}
+                </div>
                 <div>
-                  <span>{job.team}</span>
+                  <span>{job.team ?? "—"}</span>
                   <small>Active role</small>
                 </div>
                 <span className="chip chip-tier-high">Live</span>
@@ -64,22 +97,22 @@ export default function InterviewsPage() {
 
               <h2>{job.title}</h2>
               <p>
-                {job.interviewQuestions} adaptive questions · video, voice, or
-                text response
+                {job.interview_questions.length} adaptive questions · video,
+                voice, or text response
               </p>
 
               <div className="interview-card-stats">
                 <span>
-                  <strong>{attempted}</strong>
+                  <strong>{attemptCount}</strong>
                   Attempts
                 </span>
                 <span>
-                  <strong>{roleCandidates.length}</strong>
+                  <strong>{roleRows.length}</strong>
                   Candidates
                 </span>
                 <span>
-                  <strong>{attempted ? "88" : "—"}</strong>
-                  Avg. score
+                  <strong>{job.stats?.interview_count ?? 0}</strong>
+                  Evaluated
                 </span>
               </div>
 
@@ -100,6 +133,12 @@ export default function InterviewsPage() {
             </article>
           );
         })}
+        {!loading && managedInterviews.length === 0 && (
+          <div className="empty-state panel">
+            <h3>No active mock interviews</h3>
+            <p>Enable a mock interview on an active job to manage it here.</p>
+          </div>
+        )}
       </div>
     </div>
   );

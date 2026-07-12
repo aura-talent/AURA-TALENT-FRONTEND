@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import JobActions from "@/components/jobs/JobActions";
-import { jobs } from "../../employer/data";
+import { jobs } from "../mockJobs";
 
 export default async function CandidateJobDetail({
   params,

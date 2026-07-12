@@ -1,28 +1,47 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
-import { stageColors, stagePipeline, type Stage } from "@/app/employer/data";
+import type { StageDef } from "@/lib/employerApi";
 import styles from "./StageTracker.module.css";
 
+/** Clickable stepper over a job's configured stage list. Non-rejected
+ * stages form the sequence; the (first) is_rejected stage renders as the
+ * terminal branch. onStageChange persists the move — the tracker updates
+ * optimistically and reverts if the callback throws. */
 export default function StageTracker({
   initialStage,
+  stages,
+  onStageChange,
 }: {
   initialStage: string;
+  stages: StageDef[];
+  onStageChange?: (stage: string) => Promise<void> | void;
 }) {
-  const [stage, setStage] = useState<Stage>(initialStage as Stage);
-  const isRejected = stage === "Rejected";
-  const currentIndex = stagePipeline.indexOf(
-    stage as (typeof stagePipeline)[number],
-  );
+  const [stage, setStage] = useState(initialStage);
+  const steps = stages.filter((s) => !s.is_rejected);
+  const rejected = stages.find((s) => s.is_rejected);
+  const isRejected = stage === rejected?.label;
+  const currentIndex = steps.findIndex((step) => step.label === stage);
+
+  async function select(label: string) {
+    const previous = stage;
+    setStage(label);
+    try {
+      await onStageChange?.(label);
+    } catch (err) {
+      console.error("Failed to move stage:", err);
+      setStage(previous);
+    }
+  }
 
   return (
     <div className={styles.tracker} role="group" aria-label="Application stage">
       <ol className={styles.steps}>
-        {stagePipeline.map((step, index) => {
+        {steps.map((step, index) => {
           const done = !isRejected && index <= currentIndex;
           const isCurrent = !isRejected && index === currentIndex;
           return (
-            <li className={styles.stepWrap} key={step}>
+            <li className={styles.stepWrap} key={step.label}>
               {index > 0 && (
                 <span
                   className={`${styles.connector} ${!isRejected && index <= currentIndex ? styles.connectorDone : ""}`}
@@ -31,13 +50,13 @@ export default function StageTracker({
               <button
                 type="button"
                 className={`${styles.step} ${isCurrent ? styles.stepCurrent : ""}`}
-                style={{ "--step-c": stageColors[step] } as CSSProperties}
-                onClick={() => setStage(step)}
+                style={{ "--step-c": step.color } as CSSProperties}
+                onClick={() => select(step.label)}
                 aria-current={isCurrent ? "step" : undefined}
               >
                 <span className={`${styles.dot} ${done ? styles.dotDone : ""}`} />
                 <span className={`${styles.label} ${done ? styles.labelDone : ""}`}>
-                  {step}
+                  {step.label}
                 </span>
               </button>
             </li>
@@ -45,16 +64,19 @@ export default function StageTracker({
         })}
       </ol>
 
-      <span className={styles.divider} aria-hidden="true" />
-
-      <button
-        type="button"
-        className={`${styles.rejected} ${isRejected ? styles.rejectedActive : ""}`}
-        style={{ "--step-c": stageColors.Rejected } as CSSProperties}
-        onClick={() => setStage("Rejected")}
-      >
-        ✕ Rejected
-      </button>
+      {rejected && (
+        <>
+          <span className={styles.divider} aria-hidden="true" />
+          <button
+            type="button"
+            className={`${styles.rejected} ${isRejected ? styles.rejectedActive : ""}`}
+            style={{ "--step-c": rejected.color } as CSSProperties}
+            onClick={() => select(rejected.label)}
+          >
+            ✕ {rejected.label}
+          </button>
+        </>
+      )}
     </div>
   );
 }

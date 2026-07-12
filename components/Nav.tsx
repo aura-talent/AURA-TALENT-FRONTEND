@@ -11,6 +11,7 @@ const APP_LINKS = [
   { href: "/tracker", label: "JOB_TRACKER" },
   { href: "/evaluate", label: "EVALUATE" },
   { href: "/worth", label: "YOUR_WORTH" },
+  { href: "/insights", label: "INSIGHTS" },
   { href: "/jobs", label: "FIND_JOBS" },
   { href: "/compare", label: "COMPARE" },
   { href: "/scan", label: "SCAN_JOBS" },

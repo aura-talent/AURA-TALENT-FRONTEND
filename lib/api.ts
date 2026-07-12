@@ -251,10 +251,79 @@ export interface CareerPathIn {
   horizon?: string;
 }
 
+/* ── Employability statistics (curated dataset, no LLM) ── */
+
+export interface EmployabilitySalaryBand {
+  p25: number;
+  /** Median — null where the published guide gives only a range. */
+  p50: number | null;
+  p75: number;
+  currency: string;
+  period: string;
+  source_ids?: string[];
+  basis?: string;
+}
+
+export interface EmployabilityDegree {
+  field: string;
+  employment_rate_pct: number | null;
+  salary: EmployabilitySalaryBand;
+  source_ids: string[];
+}
+
+export interface EmployabilityUniversity {
+  id: string;
+  name: string;
+  country: "MY" | "SG";
+  employment_rate_pct: number | null;
+  rate_basis: string;
+  source_ids: string[];
+  degrees: EmployabilityDegree[];
+  survey_year: number | null;
+  respondents: number | null;
+}
+
+/** Role salary: a tight current-market range plus junior/senior career anchors. */
+export interface EmployabilityRoleBand {
+  typical: { lo: number; hi: number };
+  junior: number | null;
+  senior: number | null;
+  currency: string;
+  period: string;
+  source_ids?: string[];
+  basis?: string;
+  typical_basis?: string;
+  anchor_basis?: string;
+}
+
+export interface EmployabilityRole {
+  id: string;
+  title: string;
+  salary: Partial<Record<"MY" | "SG", EmployabilityRoleBand>>;
+  demand_note?: string;
+}
+
+export interface EmployabilityBenchmark {
+  employment_rate_pct: number;
+  label: string;
+  source_ids: string[];
+}
+
+export interface EmployabilityDataset {
+  updated: string;
+  sources: { id: string; label: string; url: string }[];
+  universities: EmployabilityUniversity[];
+  roles: EmployabilityRole[];
+  benchmarks?: Partial<Record<"MY" | "SG", EmployabilityBenchmark>>;
+}
+
 /* ── Endpoints ── */
 
 export const api = {
   getResume: () => request<ResumeData>(`resume/${getUserId()}`),
+
+  employabilityDataset: () =>
+    request<EmployabilityDataset>("stats/employability/dataset"),
 
   uploadResume: (file: File) => {
     const form = new FormData();

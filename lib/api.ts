@@ -52,8 +52,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     let detail = `Request failed (${resp.status})`;
     try {
       const data = await resp.json();
-      if (data.detail) detail = typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail);
-    } catch { /* non-JSON error body */ }
+      if (data.detail)
+        detail =
+          typeof data.detail === "string"
+            ? data.detail
+            : JSON.stringify(data.detail);
+    } catch {
+      /* non-JSON error body */
+    }
     throw new ApiError(resp.status, detail);
   }
   return resp.json();
@@ -173,7 +179,12 @@ export interface Application {
   interview_type: "virtual" | "physical" | "none";
   mock_interview_done: boolean;
   notes: string;
-  attachments: { name: string; url: string; type: "file" | "link"; category?: string }[];
+  attachments: {
+    name: string;
+    url: string;
+    type: "file" | "link";
+    category?: string;
+  }[];
   priority: "low" | "medium" | "high";
   tags: string[];
   interviews: {
@@ -251,10 +262,115 @@ export interface CareerPathIn {
   horizon?: string;
 }
 
+/* ── Employability statistics (curated dataset, no LLM) ── */
+
+export interface EmployabilitySalaryBand {
+  p25: number;
+  /** Median — null where the published guide gives only a range. */
+  p50: number | null;
+  p75: number;
+  currency: string;
+  period: string;
+  source_ids?: string[];
+  basis?: string;
+}
+
+export interface EmployabilityDegree {
+  field: string;
+  employment_rate_pct: number | null;
+  salary: EmployabilitySalaryBand;
+  source_ids: string[];
+}
+
+export interface EmployabilityUniversity {
+  id: string;
+  name: string;
+  country: "MY" | "SG";
+  employment_rate_pct: number | null;
+  rate_basis: string;
+  source_ids: string[];
+  degrees: EmployabilityDegree[];
+  survey_year: number | null;
+  respondents: number | null;
+}
+
+/** Role salary: a tight current-market range plus junior/senior career anchors. */
+export interface EmployabilityRoleBand {
+  typical: { lo: number; hi: number };
+  junior: number | null;
+  senior: number | null;
+  currency: string;
+  period: string;
+  source_ids?: string[];
+  basis?: string;
+  typical_basis?: string;
+  anchor_basis?: string;
+}
+
+export interface EmployabilityRole {
+  id: string;
+  title: string;
+  salary: Partial<Record<"MY" | "SG", EmployabilityRoleBand>>;
+  demand_note?: string;
+}
+
+export interface EmployabilityBenchmark {
+  employment_rate_pct: number;
+  label: string;
+  source_ids: string[];
+}
+
+export interface EmployabilityDataset {
+  updated: string;
+  sources: { id: string; label: string; url: string }[];
+  universities: EmployabilityUniversity[];
+  roles: EmployabilityRole[];
+  benchmarks?: Partial<Record<"MY" | "SG", EmployabilityBenchmark>>;
+}
+
+/* ── Career map ── */
+
+export type CareerMapNodeKind =
+  | "current"
+  | "progression"
+  | "pivot"
+  | "wildcard";
+
+export interface CareerMapNode {
+  id: string;
+  title: string;
+  kind: CareerMapNodeKind;
+  duration: string;
+  fit: number;
+  salary_hint: string;
+  why: string;
+  skill_gaps: string[];
+  moves: CareerMove[];
+  expandable: boolean;
+}
+
+export interface CareerMapEdge {
+  source: string;
+  target: string;
+  kind: Exclude<CareerMapNodeKind, "current">;
+}
+
+export interface CareerMapOut {
+  user_id: string;
+  current_assessment: string;
+  nodes: CareerMapNode[];
+  edges: CareerMapEdge[];
+  recommended_node_id: string;
+  generated_at: string;
+}
+
 /* ── Endpoints ── */
 
 export const api = {
   getResume: () => request<ResumeData>(`resume/${getUserId()}`),
+
+  employabilityDataset: () =>
+    request<EmployabilityDataset>("stats/employability/dataset"),
 
   uploadResume: (file: File) => {
     const form = new FormData();
@@ -275,8 +391,23 @@ export const api = {
       evaluation_ids,
     }),
 
+  careerMap: (force_refresh = false) =>
+    postJson<CareerMapOut>("career/map", {
+      user_id: getUserId(),
+      force_refresh,
+    }),
+
+  careerMapExpand: (node_id: string) =>
+    postJson<CareerMapOut>("career/map/expand", {
+      user_id: getUserId(),
+      node_id,
+    }),
+
   selfWorth: (input: { location?: string; currency?: string } = {}) =>
-    postJson<SelfWorthEstimate>("salary/self", { user_id: getUserId(), ...input }),
+    postJson<SelfWorthEstimate>("salary/self", {
+      user_id: getUserId(),
+      ...input,
+    }),
 
   suggestions: (input: { jd_text?: string; jd_url?: string }) =>
     postJson<{ suggestions_markdown: string }>("resume/suggestions", {
@@ -284,15 +415,23 @@ export const api = {
       ...input,
     }),
 
-  scan: (input: { companies?: string[]; title_keywords?: string[]; location_keywords?: string[] } = {}) =>
-    postJson<{ total: number; jobs: JobPosting[]; errors: string[] }>("scan", input),
-
+  scan: (
+    input: {
+      companies?: string[];
+      title_keywords?: string[];
+      location_keywords?: string[];
+    } = {},
+  ) =>
+    postJson<{ total: number; jobs: JobPosting[]; errors: string[] }>(
+      "scan",
+      input,
+    ),
 
   listApplications: () => request<Application[]>(`applications/${getUserId()}`),
 
   getReport: (id: number) =>
     request<{ evaluation_id: number; report_markdown: string }>(
-      `applications/${getUserId()}/${id}/report`
+      `applications/${getUserId()}/${id}/report`,
     ),
 
   updateStatus: (id: string | number, status: string, notes?: string) =>
@@ -302,8 +441,16 @@ export const api = {
       body: JSON.stringify({ status, notes }),
     }),
 
-  createManualApplication: (company: string, role: string, status = "Applied") =>
-    postJson<Application>(`applications/${getUserId()}`, { company, role, status }),
+  createManualApplication: (
+    company: string,
+    role: string,
+    status = "Applied",
+  ) =>
+    postJson<Application>(`applications/${getUserId()}`, {
+      company,
+      role,
+      status,
+    }),
 
   updateApplicationDetails: (
     applicationId: string,
@@ -317,24 +464,38 @@ export const api = {
       tags: string[];
       interviews: Application["interviews"];
       timeline: Application["timeline"];
-    }
+    },
   ) =>
-    request<{ ok: boolean }>(`applications/${getUserId()}/${applicationId}/details`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updatePayload),
-    }),
+    request<{ ok: boolean }>(
+      `applications/${getUserId()}/${applicationId}/details`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatePayload),
+      },
+    ),
 
   deleteApplication: (applicationId: string) =>
     request<{ ok: boolean }>(`applications/${getUserId()}/${applicationId}`, {
       method: "DELETE",
     }),
 
-  saveUser: (input: { id: string; email: string | null; full_name: string | null; avatar_url: string | null; role?: string | null }) =>
-    postJson<{ ok: boolean }>("users", input),
+  saveUser: (input: {
+    id: string;
+    email: string | null;
+    full_name: string | null;
+    avatar_url: string | null;
+    role?: string | null;
+  }) => postJson<{ ok: boolean }>("users", input),
 
   getUserProfile: (userId: string) =>
-    request<{ id: string; email: string | null; full_name: string | null; avatar_url: string | null; role: string }>(`users/${userId}`),
+    request<{
+      id: string;
+      email: string | null;
+      full_name: string | null;
+      avatar_url: string | null;
+      role: string;
+    }>(`users/${userId}`),
 
   migrateUser: (input: { anon_id: string; auth_id: string }) =>
     postJson<{ ok: boolean }>("users/migrate", input),
@@ -342,33 +503,62 @@ export const api = {
   getPipelineUpdates: () =>
     request<PipelineStageUpdate[]>(`applications/${getUserId()}/pipeline`),
 
-  getAllApplications: () =>
-    request<Application[]>("applications/all"),
+  getAllApplications: () => request<Application[]>("applications/all"),
 
   computeWLC: (userId: string, applicationId: string) =>
     request<{
-      rubric: { technical: number; problem: number; communication: number; culture: number };
-      metrics: { match: number; depth: number; tenure: number; craft: number; reputation: number; behavioral: number };
+      rubric: {
+        technical: number;
+        problem: number;
+        communication: number;
+        culture: number;
+      };
+      metrics: {
+        match: number;
+        depth: number;
+        tenure: number;
+        craft: number;
+        reputation: number;
+        behavioral: number;
+      };
       wlc_score: number;
-      raw_scores: { match_cv: number; alignment: number; comp: number; culture: number; red_flags: number; global_score: number };
+      raw_scores: {
+        match_cv: number;
+        alignment: number;
+        comp: number;
+        culture: number;
+        red_flags: number;
+        global_score: number;
+      };
       recommendation: string;
     }>(`applications/${userId}/${applicationId}/wlc`, { method: "POST" }),
 
   /** Employer posts a pipeline stage update for a real candidate. */
   postPipelineUpdate: (candidateUserId: string, payload: PipelineUpdateIn) =>
-    postJson<PipelineStageUpdate>(`applications/${candidateUserId || "employer-demo"}/pipeline`, payload),
+    postJson<PipelineStageUpdate>(
+      `applications/${candidateUserId || "employer-demo"}/pipeline`,
+      payload,
+    ),
 
   /**
    * Update a candidate's tracker status from the employer side.
    * Uses the candidate's user_id (not the logged-in employer) so the
    * backend's per-user row lookup succeeds.
    */
-  updateCandidateTrackerStatus: (candidateUserId: string, applicationId: string, status: string, notes?: string) =>
-    request<{ ok: boolean }>(`applications/${candidateUserId}/${applicationId}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, notes }),
-    }),
+  updateCandidateTrackerStatus: (
+    candidateUserId: string,
+    applicationId: string,
+    status: string,
+    notes?: string,
+  ) =>
+    request<{ ok: boolean }>(
+      `applications/${candidateUserId}/${applicationId}/status`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, notes }),
+      },
+    ),
 
   listTemplates: (role?: string) =>
     request<any[]>(role ? `templates?role=${encodeURIComponent(role)}` : "templates"),
@@ -407,10 +597,15 @@ export const api = {
     request<string[]>("templates/popular"),
 };
 
-
 export const STATUSES = [
-  "Evaluated", "Applied", "Responded", "Interview",
-  "Offer", "Rejected", "Discarded", "SKIP",
+  "Evaluated",
+  "Applied",
+  "Responded",
+  "Interview",
+  "Offer",
+  "Rejected",
+  "Discarded",
+  "SKIP",
 ] as const;
 
 export interface PipelineStageUpdate {
@@ -439,15 +634,19 @@ export interface PipelineUpdateIn {
 
 export const PIPELINE_STAGES = [
   { label: "Application Received", icon: "📥", color: "#3b82f6" },
-  { label: "Under Review",          icon: "🔍", color: "#6366f1" },
-  { label: "Shortlisted",           icon: "⭐", color: "#8b5cf6" },
-  { label: "Interview Scheduled",   icon: "📅", color: "#a855f7" },
-  { label: "Assessment",            icon: "📝", color: "#f59e0b" },
-  { label: "Offer Extended",        icon: "🎯", color: "#10b981" },
-  { label: "Hired",                 icon: "✅", color: "#22c55e" },
+  { label: "Under Review", icon: "🔍", color: "#6366f1" },
+  { label: "Shortlisted", icon: "⭐", color: "#8b5cf6" },
+  { label: "Interview Scheduled", icon: "📅", color: "#a855f7" },
+  { label: "Assessment", icon: "📝", color: "#f59e0b" },
+  { label: "Offer Extended", icon: "🎯", color: "#10b981" },
+  { label: "Hired", icon: "✅", color: "#22c55e" },
 ] as const;
 
-export const PIPELINE_REJECTED = { label: "Rejected", icon: "✗", color: "#ef4444" };
+export const PIPELINE_REJECTED = {
+  label: "Rejected",
+  icon: "✗",
+  color: "#ef4444",
+};
 
 /**
  * Canonical bidirectional mapping between employer pipeline stages and
@@ -455,37 +654,40 @@ export const PIPELINE_REJECTED = { label: "Rejected", icon: "✗", color: "#ef44
  */
 export const EMPLOYER_STAGE_TO_CANDIDATE_STATUS: Record<string, string> = {
   "Application Received": "Applied",
-  "Under Review":          "Phone Screen",
-  "Shortlisted":           "Final Round",
-  "Interview Scheduled":   "First Round",
-  "Assessment":            "Technical Test",
-  "Offer Extended":        "Offer",
-  "Hired":                 "Offer",
-  "Rejected":              "Rejected",
+  "Under Review": "Phone Screen",
+  Shortlisted: "Final Round",
+  "Interview Scheduled": "First Round",
+  Assessment: "Technical Test",
+  "Offer Extended": "Offer",
+  Hired: "Offer",
+  Rejected: "Rejected",
 };
 
-export const CANDIDATE_STATUS_TO_EMPLOYER_STAGE: Record<string, { stage: string; stage_index: number }> = {
-  "Applied":        { stage: "Application Received", stage_index: 0 },
-  "Phone Screen":   { stage: "Under Review",          stage_index: 1 },
-  "Technical Test": { stage: "Assessment",            stage_index: 4 },
-  "First Round":    { stage: "Interview Scheduled",   stage_index: 3 },
-  "Second Round":   { stage: "Interview Scheduled",   stage_index: 3 },
-  "Final Round":    { stage: "Shortlisted",           stage_index: 2 },
-  "Offer":          { stage: "Offer Extended",        stage_index: 5 },
-  "Rejected":       { stage: "Rejected",              stage_index: -1 },
+export const CANDIDATE_STATUS_TO_EMPLOYER_STAGE: Record<
+  string,
+  { stage: string; stage_index: number }
+> = {
+  Applied: { stage: "Application Received", stage_index: 0 },
+  "Phone Screen": { stage: "Under Review", stage_index: 1 },
+  "Technical Test": { stage: "Assessment", stage_index: 4 },
+  "First Round": { stage: "Interview Scheduled", stage_index: 3 },
+  "Second Round": { stage: "Interview Scheduled", stage_index: 3 },
+  "Final Round": { stage: "Shortlisted", stage_index: 2 },
+  Offer: { stage: "Offer Extended", stage_index: 5 },
+  Rejected: { stage: "Rejected", stage_index: -1 },
 };
 
 /** Employer candidate list stage-label mapping (for the candidates table). */
 export const EMPLOYER_LIST_STAGE: Record<string, string> = {
-  "Applied":        "New",
-  "Phone Screen":   "Screening",
+  Applied: "New",
+  "Phone Screen": "Screening",
   "Technical Test": "Assessment",
-  "First Round":    "Interview",
-  "Second Round":   "Interview",
-  "Final Round":    "Final review",
-  "Offer":          "Final review",
-  "Rejected":       "Rejected",
-  "Withdrawn":      "Rejected",
+  "First Round": "Interview",
+  "Second Round": "Interview",
+  "Final Round": "Final review",
+  Offer: "Final review",
+  Rejected: "Rejected",
+  Withdrawn: "Rejected",
 };
 
 /** Kanban groups for the candidate tracker board — 4 phase columns. */

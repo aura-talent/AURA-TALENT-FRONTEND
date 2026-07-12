@@ -1044,6 +1044,9 @@ button {
   position: absolute;
   top: 1rem;
   right: clamp(1.5rem, 4vw, 3rem);
+  /* .nav-menu-inner is a later-DOM full-bleed positioned box; below --maxw it
+     covers this button and steals its clicks unless we stack above it */
+  z-index: 1;
   background: transparent;
   border: none;
   color: var(--porcelain);

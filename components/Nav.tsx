@@ -11,6 +11,7 @@ const APP_LINKS = [
   { href: "/tracker", label: "JOB_TRACKER" },
   { href: "/evaluate", label: "EVALUATE" },
   { href: "/worth", label: "YOUR_WORTH" },
+  { href: "/insights", label: "INSIGHTS" },
   { href: "/jobs", label: "FIND_JOBS" },
   { href: "/compare", label: "COMPARE" },
   { href: "/scan", label: "SCAN_JOBS" },
@@ -72,6 +73,9 @@ export default function Nav() {
       window.removeEventListener("keydown", onKey);
     };
   }, [menuOpen]);
+
+  // the career map is a fullscreen immersive space with its own themed bar
+  if (pathname.startsWith("/career-map")) return null;
 
   return (
     <header className="nav nav-blueprint">

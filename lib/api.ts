@@ -251,6 +251,38 @@ export interface CareerPathIn {
   horizon?: string;
 }
 
+/* ── Career map ── */
+
+export type CareerMapNodeKind = "current" | "progression" | "pivot" | "wildcard";
+
+export interface CareerMapNode {
+  id: string;
+  title: string;
+  kind: CareerMapNodeKind;
+  duration: string;
+  fit: number;
+  salary_hint: string;
+  why: string;
+  skill_gaps: string[];
+  moves: CareerMove[];
+  expandable: boolean;
+}
+
+export interface CareerMapEdge {
+  source: string;
+  target: string;
+  kind: Exclude<CareerMapNodeKind, "current">;
+}
+
+export interface CareerMapOut {
+  user_id: string;
+  current_assessment: string;
+  nodes: CareerMapNode[];
+  edges: CareerMapEdge[];
+  recommended_node_id: string;
+  generated_at: string;
+}
+
 /* ── Endpoints ── */
 
 export const api = {
@@ -274,6 +306,12 @@ export const api = {
       user_id: getUserId(),
       evaluation_ids,
     }),
+
+  careerMap: (force_refresh = false) =>
+    postJson<CareerMapOut>("career/map", { user_id: getUserId(), force_refresh }),
+
+  careerMapExpand: (node_id: string) =>
+    postJson<CareerMapOut>("career/map/expand", { user_id: getUserId(), node_id }),
 
   selfWorth: (input: { location?: string; currency?: string } = {}) =>
     postJson<SelfWorthEstimate>("salary/self", { user_id: getUserId(), ...input }),

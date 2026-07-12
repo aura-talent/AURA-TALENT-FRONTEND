@@ -702,6 +702,25 @@ export class CareerMapScene {
       x: CAM_HOME.target.x, y: CAM_HOME.target.y, z: CAM_HOME.target.z,
       duration: dur, ease: "power3.inOut", overwrite: "auto",
     });
+    // home framing = home focus: carousel snaps back to the root
+    this.focusIndex = 0;
+    this.emitFocus(false);
+  }
+
+  /** The carousel's node order (root first) — for the full-list picker. */
+  focusList(): CareerMapNode[] {
+    return this.focusOrder
+      .map((id) => this.visuals.get(id)?.node)
+      .filter((n): n is CareerMapNode => !!n);
+  }
+
+  /** Jump the carousel to a specific node and fly the camera onto it. */
+  focusTo(nodeId: string) {
+    if (this.mode !== "map") return;
+    const idx = this.focusOrder.indexOf(nodeId);
+    if (idx === -1) return;
+    this.focusIndex = idx;
+    this.emitFocus(true);
   }
 
   diveInto(nodeId: string) {
@@ -813,15 +832,18 @@ export class CareerMapScene {
           v.ring.scale.set(s, s, 1);
         }
       }
-      // discovery beacon: breathe the expanding node's halo. Written every
-      // frame so highlight/return tweens can't strand it mid-pulse.
+      // discovery beacon: a slow, gentle breathe on the expanding node's halo.
+      // Yield to any active tween on the material (hover dim/undim etc.) —
+      // two writers per frame is what reads as "blinking".
       if (this.discoveringId) {
         const v = this.visuals.get(this.discoveringId);
         if (v) {
           const mat = asOpacityMaterial(v.halo.material);
-          mat.opacity = this.opts.reducedMotion
-            ? 0.3
-            : 0.12 + 0.22 * (0.5 + 0.5 * Math.sin(now / 280));
+          if (!gsap.isTweening(mat)) {
+            mat.opacity = this.opts.reducedMotion
+              ? 0.2
+              : 0.14 + 0.08 * (0.5 + 0.5 * Math.sin(now / 700));
+          }
         }
       }
     }

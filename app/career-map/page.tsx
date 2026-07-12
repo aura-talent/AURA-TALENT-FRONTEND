@@ -44,7 +44,9 @@ export default function CareerMapPage() {
 
   const [selected, setSelected] = useState<CareerMapNode | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [focus, setFocus] = useState<{ title: string; kind: CareerMapNode["kind"]; index: number; total: number } | null>(null);
+  const [focus, setFocus] = useState<{ id: string; title: string; kind: CareerMapNode["kind"]; index: number; total: number } | null>(null);
+  const [listOpen, setListOpen] = useState(false);
+  const [focusList, setFocusList] = useState<CareerMapNode[]>([]);
   const [spawn, setSpawn] = useState<{ born: number; total: number } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [playIdx, setPlayIdx] = useState(0);
@@ -70,7 +72,7 @@ export default function CareerMapPage() {
           setDetailOpen(true);
         },
         onSpawn: (born, total) => setSpawn({ born, total }),
-        onFocus: (node, index, total) => setFocus({ title: node.title, kind: node.kind, index, total }),
+        onFocus: (node, index, total) => setFocus({ id: node.id, title: node.title, kind: node.kind, index, total }),
       },
       { reducedMotion }
     );
@@ -102,6 +104,20 @@ export default function CareerMapPage() {
   useEffect(() => {
     sceneRef.current?.setDiscovering(expanding);
   }, [expanding]);
+
+  // keep the open node list in sync when the map is rebuilt (expand/regenerate)
+  useEffect(() => {
+    if (!listOpen || !map) return;
+    setFocusList(sceneRef.current?.focusList() ?? []);
+  }, [map, listOpen]);
+
+  // Escape closes the node list (NodeDetail handles its own Escape)
+  useEffect(() => {
+    if (!listOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setListOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [listOpen]);
 
   const closeDetail = useCallback(() => {
     setDetailOpen(false);
@@ -267,6 +283,34 @@ export default function CareerMapPage() {
         </div>
       )}
 
+      {/* full node list — opened from the carousel, click to center */}
+      {listOpen && focus && !generating && (
+        <div className="mono" style={{ position: "absolute", bottom: 92, left: "50%", transform: "translateX(-50%)", width: "min(340px, 86vw)", maxHeight: "46vh", overflowY: "auto", background: "rgba(15,18,38,0.94)", border: "1px solid rgba(250,250,248,0.16)", borderRadius: 14, padding: 6, backdropFilter: "blur(10px)", zIndex: 7 }}>
+          {focusList.map((n) => (
+            <button
+              key={n.id}
+              onClick={() => {
+                sceneRef.current?.focusTo(n.id);
+                setListOpen(false);
+              }}
+              style={{
+                display: "flex", alignItems: "center", gap: 10, width: "100%",
+                background: n.id === focus.id ? "rgba(250,250,248,0.08)" : "transparent",
+                border: "none", borderRadius: 9, padding: "8px 10px", cursor: "pointer",
+                color: "rgba(250,250,248,0.85)", fontSize: 11.5, letterSpacing: "0.06em", textAlign: "left",
+              }}
+              className="mono"
+            >
+              <i style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: KIND_HEX[n.kind], boxShadow: `0 0 8px ${KIND_HEX[n.kind]}` }} />
+              <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.title}</span>
+              <span style={{ fontSize: 9.5, color: "rgba(250,250,248,0.4)", flexShrink: 0 }}>
+                {n.kind === "current" ? "now" : n.duration}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* focus carousel: ‹ node › — arrows step, enter/click dives */}
       {focus && !generating && (
         <div className="cmap-carousel mono" style={{ position: "absolute", bottom: 46, left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: 14, background: "rgba(20,24,48,0.6)", border: "1px solid rgba(250,250,248,0.16)", borderRadius: 99, padding: "7px 16px", backdropFilter: "blur(8px)", zIndex: 6 }}>
@@ -285,9 +329,19 @@ export default function CareerMapPage() {
           >
             {focus.title}
           </button>
-          <span className="mono" style={{ fontSize: 9.5, color: "rgba(250,250,248,0.35)", letterSpacing: "0.1em" }}>
+          <button
+            onClick={() => {
+              if (!listOpen) setFocusList(sceneRef.current?.focusList() ?? []);
+              setListOpen((o) => !o);
+            }}
+            aria-expanded={listOpen}
+            aria-label="Show all nodes"
+            className="mono"
+            style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(250,250,248,0.35)", fontSize: 9.5, letterSpacing: "0.1em", display: "flex", alignItems: "center", gap: 5, padding: 0 }}
+          >
             {focus.index}/{focus.total}
-          </span>
+            <span aria-hidden="true" style={{ display: "inline-block", transition: "transform 0.2s", transform: listOpen ? "rotate(180deg)" : "none", fontSize: 8 }}>▲</span>
+          </button>
           <button
             onClick={() => sceneRef.current?.focusNext()}
             aria-label="Focus next node"

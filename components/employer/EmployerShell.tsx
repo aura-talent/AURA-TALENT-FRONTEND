@@ -12,6 +12,7 @@ const links = [
   { href: "/employer/headhunters", label: "Headhunters", icon: "scout" },
   { href: "/employer/interviews", label: "Interviews", icon: "spark" },
   { href: "/employer/jobs", label: "Job listings", icon: "briefcase" },
+  { href: "/employer/templates", label: "Communication templates", icon: "mail" },
   { href: "/employer/profile", label: "Company profile", icon: "building" },
 ];
 
@@ -66,6 +67,13 @@ function Icon({ name }: { name: string }) {
         <circle cx="12" cy="12" r="9" />
         <circle cx="12" cy="12" r="4" />
         <circle cx="12" cy="12" r="1" style={{ fill: "currentColor" }} />
+      </>
+    ),
+    mail: (
+      <>
+        <rect x="3" y="4" width="18" height="16" rx="2" stroke="none" />
+        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" strokeWidth="2" />
       </>
     ),
   };

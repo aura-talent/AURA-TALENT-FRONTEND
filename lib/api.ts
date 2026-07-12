@@ -559,6 +559,42 @@ export const api = {
         body: JSON.stringify({ status, notes }),
       },
     ),
+
+  listTemplates: (role?: string) =>
+    request<any[]>(role ? `templates?role=${encodeURIComponent(role)}` : "templates"),
+
+  generateTemplate: (input: {
+    prompt: string;
+    template_id?: string;
+    role: string;
+    tone?: string;
+    length?: string;
+    language?: string;
+    placeholders?: Record<string, string>;
+  }) => postJson<{ subject: string; body: string }>("templates/generate", input),
+
+  populatePlaceholders: (input: {
+    placeholders: string[];
+    role: string;
+    candidate_user_id?: string;
+    job_id?: string;
+  }) => postJson<{ populated: Record<string, string> }>("templates/populate", input),
+
+  getFavorites: () =>
+    request<{ status: string; favorites: string[] }>(`templates/favorites?user_id=${getUserId()}`),
+
+  toggleFavorite: (templateId: string, isFavorite: boolean) =>
+    postJson<{ status: string }>("templates/favorite", {
+      user_id: getUserId(),
+      template_id: templateId,
+      is_favorite: isFavorite,
+    }),
+
+  trackUsage: (templateId: string) =>
+    request<{ status: string; use_count: number; source?: string }>(`templates/track-usage?template_id=${encodeURIComponent(templateId)}`, { method: "POST" }),
+
+  getPopularTemplates: () =>
+    request<string[]>("templates/popular"),
 };
 
 export const STATUSES = [

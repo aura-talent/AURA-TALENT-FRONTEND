@@ -15,6 +15,7 @@ const APP_LINKS = [
   { href: "/compare", label: "COMPARE" },
   { href: "/scan", label: "SCAN_JOBS" },
   { href: "/mock-interview", label: "MOCK_INTERVIEW" },
+  { href: "/templates", label: "COMMS_ASSISTANT" },
 ];
 
 const EMPLOYER_LINKS = [
@@ -22,6 +23,7 @@ const EMPLOYER_LINKS = [
   { href: '/employer/candidates', label: 'CANDIDATES' },
   { href: '/employer/jobs', label: 'JOBS' },
   { href: '/employer/interviews', label: 'INTERVIEWS' },
+  { href: '/employer/templates', label: 'TEMPLATES' },
 ];
 
 export default function Nav() {

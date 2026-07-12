@@ -1,14 +1,16 @@
 import { useState } from "react";
-import type { JobPlan } from "@/app/employer/data";
+import type { JobPlanPayload } from "@/lib/employerApi";
 import styles from "./WorkforcePlanner.module.css";
 
+/** Local drafting helper — fills the plan form from the prompt text. No
+ * backend/agent call in this pass. */
 export default function PlanAuraModal({
   jobTitle,
   onGenerate,
   onClose,
 }: {
   jobTitle: string;
-  onGenerate: (patch: Partial<JobPlan>) => void;
+  onGenerate: (patch: Partial<JobPlanPayload>) => void;
   onClose: () => void;
 }) {
   const [prompt, setPrompt] = useState("");
@@ -24,10 +26,8 @@ export default function PlanAuraModal({
           `Aura recommends growing this role based on current pipeline velocity and team capacity for ${jobTitle}.`,
         ...(includePrediction
           ? {
-              demandSignal: {
-                reason: `Aura detected rising demand pressure on ${jobTitle} from recent hiring velocity and open pipeline volume.`,
-                risk: "High" as const,
-              },
+              demand_signal_reason: `Aura detected rising demand pressure on ${jobTitle} from recent hiring velocity and open pipeline volume.`,
+              demand_signal_risk: "High",
             }
           : {}),
       });

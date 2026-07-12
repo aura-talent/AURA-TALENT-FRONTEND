@@ -1,10 +1,11 @@
-import type { JobPlan } from "@/app/employer/data";
+import type { JobPlanPayload } from "@/lib/employerApi";
 import styles from "./WorkforcePlanner.module.css";
 
 const months = ["M1", "M2", "M3", "M4", "M5", "M6"];
 
-export default function PlanForecast({ plan }: { plan: JobPlan }) {
-  const target = plan.baselineHeadcount + plan.openings;
+export default function PlanForecast({ plan }: { plan: JobPlanPayload }) {
+  const baseline = plan.baseline_headcount ?? 0;
+  const target = baseline + plan.openings;
   const scaleMax = Math.max(target, 1);
 
   return (
@@ -21,9 +22,7 @@ export default function PlanForecast({ plan }: { plan: JobPlan }) {
         <div className={styles.chartArea}>
           {months.map((month, index) => {
             const progress = (index + 1) / months.length;
-            const projected = Math.round(
-              plan.baselineHeadcount + plan.openings * progress,
-            );
+            const projected = Math.round(baseline + plan.openings * progress);
 
             return (
               <div className={styles.chartColumn} key={month}>
@@ -31,9 +30,9 @@ export default function PlanForecast({ plan }: { plan: JobPlan }) {
                   <span
                     className={styles.actualBar}
                     style={{
-                      height: `${Math.max((plan.baselineHeadcount / scaleMax) * 170, 8)}px`,
+                      height: `${Math.max((baseline / scaleMax) * 170, 8)}px`,
                     }}
-                    title={`${plan.baselineHeadcount} baseline headcount`}
+                    title={`${baseline} baseline headcount`}
                   />
                   <span
                     className={styles.plannedBar}
@@ -52,7 +51,7 @@ export default function PlanForecast({ plan }: { plan: JobPlan }) {
 
       <div className={styles.chartLegend}>
         <span>
-          <i className={styles.actualLegend} /> Baseline ({plan.baselineHeadcount})
+          <i className={styles.actualLegend} /> Baseline ({baseline})
         </span>
         <span>
           <i className={styles.plannedLegend} /> Target ({target})

@@ -1,16 +1,49 @@
-import { notFound } from "next/navigation";
-import InterviewEditor from "@/components/employer/InterviewEditor";
-import { jobs } from "../../../data";
+"use client";
 
-export default async function CustomizeInterviewPage({
+import { use, useEffect, useState } from "react";
+import InterviewEditor from "@/components/employer/InterviewEditor";
+import { Loader } from "@/components/ui/loader";
+import { employerApi, type EmployerJob } from "@/lib/employerApi";
+
+export default function CustomizeInterviewPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
-  const job = jobs.find((item) => item.id === id);
+  const { id } = use(params);
+  const [job, setJob] = useState<EmployerJob | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!job) notFound();
+  useEffect(() => {
+    let cancelled = false;
+    employerApi
+      .getJob(id)
+      .then((data) => {
+        if (!cancelled) setJob(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Job not found");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
-  return <InterviewEditor initialRole={job.title} />;
+  if (error)
+    return (
+      <div className="employer-page">
+        <div className="empty-state panel">
+          <h3>Job not found</h3>
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  if (!job)
+    return (
+      <div className="employer-page">
+        <Loader label="Loading interview setup…" />
+      </div>
+    );
+
+  return <InterviewEditor job={job} />;
 }

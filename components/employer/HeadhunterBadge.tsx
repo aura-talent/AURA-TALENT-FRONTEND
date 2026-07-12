@@ -1,18 +1,13 @@
-import { headhunters } from "@/app/employer/data";
-
 export default function HeadhunterBadge({
-  headhunterId,
+  name,
   compact = false,
 }: {
-  headhunterId: string;
+  name: string;
   compact?: boolean;
 }) {
-  const headhunter = headhunters.find((item) => item.id === headhunterId);
-  if (!headhunter) return null;
-
   return (
     <span className={`headhunter-badge ${compact ? "headhunter-badge-compact" : ""}`.trim()}>
-      ✦ Sourced by {headhunter.name}
+      ✦ Sourced by {name}
     </span>
   );
 }

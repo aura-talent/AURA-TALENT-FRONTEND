@@ -1044,6 +1044,9 @@ button {
   position: absolute;
   top: 1rem;
   right: clamp(1.5rem, 4vw, 3rem);
+  /* .nav-menu-inner is a later-DOM full-bleed positioned box; below --maxw it
+     covers this button and steals its clicks unless we stack above it */
+  z-index: 1;
   background: transparent;
   border: none;
   color: var(--porcelain);
@@ -2260,6 +2263,22 @@ textarea.input {
   text-decoration: none;
   white-space: nowrap;
 }
+.section-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-shrink: 0;
+}
+.section-head-actions a {
+  color: var(--iris);
+  font-size: 0.8rem;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
 .attention-list a,
 .candidate-compact-list a {
   display: flex;
@@ -2500,6 +2519,16 @@ textarea.input {
   display: flex;
   align-items: center;
   gap: 1.2rem;
+}
+.candidate-profile-stage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.candidate-profile-stage-row .table-action {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .candidate-avatar-large {
   width: 66px;

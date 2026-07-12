@@ -6,18 +6,16 @@ import type {
 export type JobEditorMode = "create" | "edit";
 export type CreationAssist = "aura" | "url";
 
-export type JobSeed = {
-  id?: string;
-  title?: string;
-  team?: string;
-  location?: string;
-  employmentType?: string;
-  salary?: string;
-  description?: string;
-  keywords?: string[];
-  mockInterviewEnabled?: boolean;
-  interviewQuestions?: number;
-  headhunterIds?: string[];
+/** Controlled form state for the job-details section. */
+export type JobDetails = {
+  title: string;
+  team: string;
+  location: string;
+  employmentType: string;
+  salaryLow: number | null;
+  salaryHigh: number | null;
+  salaryCurrency: string;
+  description: string;
 };
 
 export type CustomCriterion = {

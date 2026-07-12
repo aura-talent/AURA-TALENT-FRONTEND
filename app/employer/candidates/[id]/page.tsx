@@ -1,12 +1,20 @@
+"use client";
+
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { Loader } from "@/components/ui/loader";
 import {
-  candidates,
-  defaultMetricPriorities,
+  defaultApplicationStages,
   evaluationMetrics,
   scoringDimensions,
-  weightedScore,
 } from "../../data";
+import {
+  candidateInitials,
+  employerApi,
+  timeAgo,
+  type CandidateDetail,
+  type CandidateRow,
+} from "@/lib/employerApi";
 import CandidateEmailComposer from "@/components/employer/CandidateEmailComposer";
 import StageTracker from "@/components/employer/StageTracker";
 
@@ -24,16 +32,63 @@ function scoreColor(score: number) {
   return "var(--score-weak)";
 }
 
-export default async function CandidateDetail({
+export default function CandidateDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
-  const candidate = candidates.find((item) => item.id === id);
-  if (!candidate) notFound();
+  const { id } = use(params);
+  const [detail, setDetail] = useState<CandidateDetail | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
-  const wlcScore = weightedScore(candidate.rubric);
+  useEffect(() => {
+    let cancelled = false;
+    employerApi
+      .getCandidate(id)
+      .then((data) => {
+        if (!cancelled) setDetail(data);
+      })
+      .catch(() => {
+        if (!cancelled) setNotFound(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  if (notFound)
+    return (
+      <div className="employer-page">
+        <div className="empty-state panel">
+          <h3>Candidate not found</h3>
+        </div>
+      </div>
+    );
+  if (!detail)
+    return (
+      <div className="employer-page">
+        <Loader label="Loading candidate…" />
+      </div>
+    );
+
+  // Prefer the row with an application (the active pipeline context);
+  // fall back to the best-scored evaluation row.
+  const row: CandidateRow | undefined =
+    detail.rows.find((r) => r.application) ?? detail.rows[0];
+  const evaluation = row?.evaluation ?? null;
+  const application = row?.application ?? null;
+  const stages = row?.job_application_stages?.length
+    ? row.job_application_stages
+    : defaultApplicationStages;
+  const interviewAttempted = Boolean(
+    evaluation?.interview_evaluation || evaluation?.interview_score != null,
+  );
+
+  const name = detail.full_name ?? detail.email ?? "Candidate";
+  const wlcScore = evaluation?.wlc_score != null ? Math.round(evaluation.wlc_score) : null;
+  const rubric = evaluation?.rubric ?? null;
+  const metrics = evaluation?.metrics ?? null;
+  const weights = Object.fromEntries(scoringDimensions.map((d) => [d.key, d.weight]));
 
   return (
     <div className="employer-page">
@@ -44,17 +99,18 @@ export default async function CandidateDetail({
         <div className="candidate-profile-top">
           <div className="candidate-profile-person">
             <span className="candidate-avatar candidate-avatar-large">
-              {candidate.initials}
+              {candidateInitials(detail.full_name)}
             </span>
             <div>
               <div className="candidate-name-row">
-                <h1>{candidate.name}</h1>
+                <h1>{name}</h1>
               </div>
               <p>
-                {candidate.role} · {candidate.location} · {candidate.experience}
+                {row ? row.job_title : "No role context yet"}
+                {detail.email ? ` · ${detail.email}` : ""}
               </p>
               <div className="candidate-skill-row">
-                {candidate.skills.map((skill) => (
+                {(evaluation?.matched_keywords ?? []).slice(0, 5).map((skill) => (
                   <span className="chip" key={skill}>
                     {skill}
                   </span>
@@ -63,224 +119,229 @@ export default async function CandidateDetail({
             </div>
           </div>
           <div className="candidate-profile-actions">
-            {candidate.applied ? (
+            {detail.resume_markdown ? (
               <Link
                 className="btn btn-ghost"
-                href={`/employer/candidates/${candidate.id}/resume`}
+                href={`/employer/candidates/${id}/resume`}
               >
                 View resume
               </Link>
             ) : (
-              <span className="resume-unavailable">
-                {candidate.interviewAttempted
-                  ? "Resume not submitted · interview attempt only"
-                  : "Resume not submitted"}
-              </span>
+              <span className="resume-unavailable">Resume not submitted</span>
             )}
             <CandidateEmailComposer
-              candidateName={candidate.name}
-              role={candidate.role}
-              score={wlcScore}
+              candidateName={name}
+              role={row?.job_title ?? "your application"}
+              score={wlcScore ?? 0}
             />
           </div>
         </div>
-        <StageTracker initialStage={candidate.stage} />
+        {application && (
+          <div className="candidate-profile-stage-row">
+            <StageTracker
+              initialStage={application.stage}
+              stages={stages}
+              onStageChange={(stage) =>
+                employerApi.moveStage(application.id, stage).then(() => undefined)
+              }
+            />
+            <Link
+              href={`/employer/jobs/${row!.job_id}/stages`}
+              className="table-action"
+            >
+              Configure stages →
+            </Link>
+          </div>
+        )}
       </div>
 
       <div className="candidate-evaluation-summary">
         <section className="panel candidate-wlc-hero">
-          <div
-            className={`evaluation-score-ring ${scoreTone(wlcScore)}`}
-            style={{
-              background: `radial-gradient(circle, var(--surface) 59%, transparent 60%), conic-gradient(${scoreColor(wlcScore)} 0 ${wlcScore}%, var(--ink-06) ${wlcScore}% 100%)`,
-            }}
-          >
-            <strong>{wlcScore}</strong>
-            <span>
-              {candidate.interviewAttempted ? "WLC score" : "Provisional"}
-            </span>
-          </div>
+          {wlcScore != null ? (
+            <div
+              className={`evaluation-score-ring ${scoreTone(wlcScore)}`}
+              style={{
+                background: `radial-gradient(circle, var(--surface) 59%, transparent 60%), conic-gradient(${scoreColor(wlcScore)} 0 ${wlcScore}%, var(--ink-06) ${wlcScore}% 100%)`,
+              }}
+            >
+              <strong>{wlcScore}</strong>
+              <span>{interviewAttempted ? "WLC score" : "Provisional"}</span>
+            </div>
+          ) : (
+            <div className="evaluation-score-ring weak">
+              <strong>—</strong>
+              <span>Not scored</span>
+            </div>
+          )}
           <div>
             <p className="eyebrow">Weighted Linear Combination</p>
             <h2>
-              {candidate.interviewAttempted
-                ? "Strong evidence across the full hiring model"
-                : "Application-based evaluation"}
+              {wlcScore == null
+                ? "No evaluation yet"
+                : interviewAttempted
+                  ? "Strong evidence across the full hiring model"
+                  : "Application-based evaluation"}
             </h2>
             <p>
-              {candidate.interviewAttempted
-                ? "Six evaluation metrics supply evidence into four awarded dimensions. Those four weighted scores produce this single final result."
-                : "This score uses available resume, profile, preference, and risk evidence. Interview-derived evidence remains optional and is not treated as zero."}
+              {wlcScore == null
+                ? "This candidate hasn't been evaluated against this role yet."
+                : interviewAttempted
+                  ? "Six evaluation metrics supply evidence into four awarded dimensions. Those four weighted scores produce this single final result."
+                  : "This score uses available resume, profile, preference, and risk evidence. Interview-derived evidence remains optional and is not treated as zero."}
             </p>
-            <code>
-              Technical 38% + Problem solving 25% + Communication 20% +
-              Culture/system 17% = {wlcScore}/100
-            </code>
+            {rubric && (
+              <code>
+                {scoringDimensions
+                  .map((d) => `${d.label.split(" ")[0]} ${weights[d.key]}%`)
+                  .join(" + ")}{" "}
+                = {wlcScore}/100
+              </code>
+            )}
           </div>
         </section>
         <section className="panel evaluation-confidence">
-          <span
-            className={`attention-icon ${candidate.interviewAttempted ? "green" : "warm"}`}
-          >
-            {candidate.interviewAttempted ? "✓" : "!"}
+          <span className={`attention-icon ${interviewAttempted ? "green" : "warm"}`}>
+            {interviewAttempted ? "✓" : "!"}
           </span>
           <div>
             <strong>
-              {candidate.interviewAttempted
+              {interviewAttempted
                 ? "High-confidence evaluation"
                 : "Interview evidence optional"}
             </strong>
             <p>
-              {candidate.interviewAttempted
-                ? "Resume, mock interview, and preference signals are complete. No material contradictions detected."
+              {interviewAttempted
+                ? "Resume, mock interview, and preference signals are complete."
                 : "The candidate has not attempted the mock interview. Review can continue using the evidence currently available."}
             </p>
           </div>
         </section>
       </div>
 
-      <section className="panel employer-section evaluation-metrics-section">
-        <div className="employer-section-head">
-          <div>
-            <p className="eyebrow">Scoring evidence</p>
-            <h2>Evaluation metrics</h2>
-            <p>
-              These findings inform the four dimension scores below; they are
-              not calculated as a second score.
-            </p>
+      {metrics && rubric && (
+        <section className="panel employer-section evaluation-metrics-section">
+          <div className="employer-section-head">
+            <div>
+              <p className="eyebrow">Scoring evidence</p>
+              <h2>Evaluation metrics</h2>
+              <p>
+                These findings inform the four dimension scores below; they are
+                not calculated as a second score.
+              </p>
+            </div>
+            {row && (
+              <Link href={`/employer/jobs/${row.job_id}/edit`}>
+                Configure priorities →
+              </Link>
+            )}
           </div>
-          <Link href="/employer/jobs/senior-product-designer/edit">
-            Configure priorities →
-          </Link>
-        </div>
-        <div className="evaluation-metric-grid">
-          {evaluationMetrics.map((metric) => {
-            const score = candidate.metrics[metric.key];
-            const priority = defaultMetricPriorities[metric.key];
-            if (metric.key === "reputation" && !candidate.interviewAttempted)
+          <div className="evaluation-metric-grid">
+            {evaluationMetrics.map((metric) => {
+              const score = metrics[metric.key];
+              if (score == null)
+                return (
+                  <article
+                    key={metric.key}
+                    className="evaluation-metric-card unavailable"
+                  >
+                    <div>
+                      <span>{metric.label}</span>
+                      <strong>—</strong>
+                    </div>
+                    <p>{metric.description}</p>
+                    <div className="evaluation-meter" />
+                    <footer>
+                      <b>Not available</b>
+                    </footer>
+                  </article>
+                );
               return (
                 <article
                   key={metric.key}
-                  className="evaluation-metric-card unavailable"
+                  className={`evaluation-metric-card ${scoreTone(score)}`}
                 >
                   <div>
                     <span>{metric.label}</span>
-                    <strong>—</strong>
+                    <strong>{Math.round(score)}</strong>
                   </div>
                   <p>{metric.description}</p>
-                  <div className="evaluation-meter" />
+                  <div className="evaluation-meter">
+                    <i style={{ width: `${score}%` }} />
+                  </div>
                   <footer>
-                    <span>Priority {priority}/10</span>
-                    <b>Not available</b>
+                    <span>Evidence input</span>
+                    <b>{metric.key === "redFlags" ? "Inverted" : ""}</b>
                   </footer>
                 </article>
               );
-            return (
-              <article
-                key={metric.key}
-                className={`evaluation-metric-card ${scoreTone(score)}`}
-              >
-                <div>
-                  <span>{metric.label}</span>
-                  <strong>{score}</strong>
-                </div>
-                <p>{metric.description}</p>
-                <div className="evaluation-meter">
-                  <i style={{ width: `${score}%` }} />
-                </div>
-                <footer>
-                  <span>Priority {priority}/10</span>
-                  <b>Evidence input</b>
-                </footer>
-              </article>
-            );
-          })}
-        </div>
-        <div className="evidence-to-score-arrow">
-          <span>Evaluation evidence above</span>
-          <b>↓ awarded into the four dimensions below ↓</b>
-        </div>
-        <div className="final-dimension-grid">
-          {scoringDimensions.map((dimension) => {
-            const score = candidate.rubric[dimension.key];
-            const contribution = ((score * dimension.weight) / 100).toFixed(1);
-            return (
-              <article key={dimension.key}>
-                <header>
-                  <div>
-                    <strong>{dimension.label}</strong>
-                    <p>{dimension.description}</p>
+            })}
+          </div>
+          <div className="evidence-to-score-arrow">
+            <span>Evaluation evidence above</span>
+            <b>↓ awarded into the four dimensions below ↓</b>
+          </div>
+          <div className="final-dimension-grid">
+            {scoringDimensions.map((dimension) => {
+              const score = rubric[dimension.key] ?? 0;
+              const contribution = ((score * weights[dimension.key]) / 100).toFixed(1);
+              return (
+                <article key={dimension.key}>
+                  <header>
+                    <div>
+                      <strong>{dimension.label}</strong>
+                      <p>{dimension.description}</p>
+                    </div>
+                    <span>{Math.round(score)}</span>
+                  </header>
+                  <div className="dimension-meter">
+                    <i style={{ width: `${score}%` }} />
                   </div>
-                  <span>{score}</span>
-                </header>
-                <div className="dimension-meter">
-                  <i style={{ width: `${score}%` }} />
-                </div>
-                <footer>
-                  <b>{dimension.weight}% weight</b>
-                  <span>Contributes {contribution} points</span>
-                </footer>
-              </article>
-            );
-          })}
-        </div>
-        <div className="final-score-equation">
-          <span>Final WLC score</span>
-          <code>
-            {scoringDimensions
-              .map(
-                (dimension) =>
-                  `${candidate.rubric[dimension.key]} × ${dimension.weight}%`,
-              )
-              .join(" + ")}
-          </code>
-          <strong>= {wlcScore}</strong>
-        </div>
-      </section>
+                  <footer>
+                    <b>{weights[dimension.key]}% weight</b>
+                    <span>Contributes {contribution} points</span>
+                  </footer>
+                </article>
+              );
+            })}
+          </div>
+          <div className="final-score-equation">
+            <span>Final WLC score</span>
+            <code>
+              {scoringDimensions
+                .map((d) => `${Math.round(rubric[d.key] ?? 0)} × ${weights[d.key]}%`)
+                .join(" + ")}
+            </code>
+            <strong>= {wlcScore}</strong>
+          </div>
+        </section>
+      )}
 
       <div className="candidate-detail-grid candidate-evaluation-grid">
         <main>
-          <section className="panel employer-section">
-            <div className="employer-section-head">
-              <div>
-                <p className="eyebrow">Aura assessment</p>
-                <h2>Why {candidate.name.split(" ")[0]} stands out</h2>
+          {evaluation && (
+            <section className="panel employer-section">
+              <div className="employer-section-head">
+                <div>
+                  <p className="eyebrow">Aura assessment</p>
+                  <h2>Why {name.split(" ")[0]} stands out</h2>
+                </div>
               </div>
-            </div>
-            <p className="assessment-lede">
-              A strong, evidence-backed match with consistent signals across
-              portfolio depth, role-specific skills, and structured interview
-              responses.
-            </p>
-            <div className="evidence-list">
-              <div>
-                <span>01</span>
-                <p>
-                  <strong>Direct problem-space experience</strong>Led end-to-end
-                  product work in a comparable B2B environment, including
-                  discovery, prototyping, and launch measurement.
-                </p>
+              <p className="assessment-lede">
+                {evaluation.match_summary ??
+                  "Evaluation evidence is available below."}
+              </p>
+              <div className="evidence-list">
+                {evaluation.evidence.slice(0, 5).map((item, index) => (
+                  <div key={index}>
+                    <span>{String(index + 1).padStart(2, "0")}</span>
+                    <p>{item}</p>
+                  </div>
+                ))}
               </div>
-              <div>
-                <span>02</span>
-                <p>
-                  <strong>High interview consistency</strong>Examples were
-                  specific and measurable, with clear ownership and thoughtful
-                  trade-off reasoning.
-                </p>
-              </div>
-              <div>
-                <span>03</span>
-                <p>
-                  <strong>North Star alignment</strong>Career direction, team
-                  preferences, growth expectations, and role outcomes are
-                  closely aligned.
-                </p>
-              </div>
-            </div>
-          </section>
+            </section>
+          )}
 
-          {candidate.interviewAttempted && (
+          {interviewAttempted && (
             <section className="panel employer-section">
               <div className="employer-section-head">
                 <div>
@@ -289,44 +350,47 @@ export default async function CandidateDetail({
                     Feeds reputational score and the relevant scoring dimensions
                   </p>
                 </div>
-                <Link href={`/employer/candidates/${candidate.id}/interview`}>
+                <Link href={`/employer/candidates/${id}/interview`}>
                   View interview evaluation →
                 </Link>
               </div>
               <div className="interview-highlights">
                 <blockquote>
-                  “I measure design quality by whether the team can make better
-                  decisions after the work, not only by whether the interface
-                  looks polished.”
+                  {evaluation?.interview_evaluation?.summary ??
+                    "Interview evaluation available."}
                 </blockquote>
               </div>
             </section>
           )}
 
-          <section className="panel employer-section">
-            <div className="employer-section-head">
-              <div>
-                <h2>ATS resume evidence</h2>
-                <p>Semantic match against employer-prioritized keywords</p>
+          {evaluation && (
+            <section className="panel employer-section">
+              <div className="employer-section-head">
+                <div>
+                  <h2>ATS resume evidence</h2>
+                  <p>Semantic match against employer-prioritized keywords</p>
+                </div>
+                {metrics?.match != null && (
+                  <span className="quality-score">
+                    {Math.round(metrics.match)}% match
+                  </span>
+                )}
               </div>
-              <span className="quality-score">
-                {candidate.metrics.match}% match
-              </span>
-            </div>
-            <div className="ats-keywords">
-              {candidate.matchedKeywords.map((keyword, index) => (
-                <span key={keyword}>
-                  <i>{index < 3 ? "Priority" : "Matched"}</i>
-                  {keyword}
-                  <b>✓</b>
-                </span>
-              ))}
-            </div>
-            <p className="ats-note">
-              Aura matched contextual evidence and related terminology, not only
-              exact keyword repetition.
-            </p>
-          </section>
+              <div className="ats-keywords">
+                {evaluation.matched_keywords.map((keyword, index) => (
+                  <span key={keyword}>
+                    <i>{index < 3 ? "Priority" : "Matched"}</i>
+                    {keyword}
+                    <b>✓</b>
+                  </span>
+                ))}
+              </div>
+              <p className="ats-note">
+                Aura matched contextual evidence and related terminology, not only
+                exact keyword repetition.
+              </p>
+            </section>
+          )}
         </main>
 
         <aside>
@@ -338,66 +402,71 @@ export default async function CandidateDetail({
               </div>
             </div>
             <ol>
-              <li>
-                <i />
-                <div>
-                  <strong>
-                    {candidate.interviewAttempted
-                      ? "WLC score calculated"
-                      : "Provisional score calculated"}
-                  </strong>
-                  <span>Today, 10:42 AM · Aura</span>
-                </div>
-              </li>
-              {candidate.interviewAttempted && (
+              {evaluation && (
+                <li>
+                  <i />
+                  <div>
+                    <strong>
+                      {interviewAttempted
+                        ? "WLC score calculated"
+                        : "Provisional score calculated"}
+                    </strong>
+                    <span>{timeAgo(evaluation.updated_at)} · Aura</span>
+                  </div>
+                </li>
+              )}
+              {interviewAttempted && evaluation && (
                 <li>
                   <i />
                   <div>
                     <strong>Mock interview evaluated</strong>
-                    <span>Today, 10:39 AM · {candidate.interview}/100</span>
+                    <span>
+                      {Math.round(evaluation.interview_score ?? 0)}/100
+                    </span>
                   </div>
                 </li>
               )}
-              <li>
-                <i />
-                <div>
-                  <strong>ATS resume match completed</strong>
-                  <span>
-                    Today, 10:31 AM · {candidate.matchedKeywords.length}{" "}
-                    priority terms
-                  </span>
-                </div>
-              </li>
-              {candidate.applied && (
+              {application && (
                 <li>
                   <i />
                   <div>
                     <strong>Application received</strong>
-                    <span>Yesterday, 4:18 PM</span>
+                    <span>{timeAgo(application.applied_at)}</span>
                   </div>
                 </li>
               )}
             </ol>
           </section>
-          <section className="panel employer-section profile-note">
-            <h3>Compensation alignment</h3>
-            <p>Candidate expectation</p>
-            <strong>RM 13k–15k / month</strong>
-            <small>
-              Within the approved role range. Candidate values learning budget
-              and flexible work.
-            </small>
-          </section>
-          <section className="panel employer-section red-flag-card">
-            <div>
-              <span className="attention-icon green">✓</span>
-              <strong>Low red-flag risk</strong>
-            </div>
-            <p>
-              Employment timeline is consistent. Responses contain specific
-              examples and no detected answer-pattern anomalies.
-            </p>
-          </section>
+          {detail.rows.length > 1 && (
+            <section className="panel employer-section profile-note">
+              <h3>Other roles</h3>
+              {detail.rows
+                .filter((r) => r !== row)
+                .map((r) => (
+                  <p key={r.job_id}>
+                    {r.job_title}
+                    {r.evaluation?.wlc_score != null &&
+                      ` · ${Math.round(r.evaluation.wlc_score)} match`}
+                  </p>
+                ))}
+            </section>
+          )}
+          {evaluation && metrics?.redFlags != null && (
+            <section className="panel employer-section red-flag-card">
+              <div>
+                <span className={`attention-icon ${metrics.redFlags >= 70 ? "green" : "warm"}`}>
+                  {metrics.redFlags >= 70 ? "✓" : "!"}
+                </span>
+                <strong>
+                  {metrics.redFlags >= 70 ? "Low red-flag risk" : "Review red flags"}
+                </strong>
+              </div>
+              <p>
+                Red-flag confidence {Math.round(metrics.redFlags)}/100 — higher
+                means lower observed risk.
+              </p>
+            </section>
+          )}
         </aside>
       </div>
     </div>

@@ -1,21 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  candidates,
-  headhunterSuggestions,
-  jobs,
-  stageOptions,
-  talentPoolProfiles,
-} from "../data";
-import StageChip from "@/components/employer/StageChip";
+  candidateInitials,
+  employerApi,
+  type CandidateEvaluation,
+  type EmployerHeadhunter,
+  type EmployerJob,
+  type TalentPoolEntry,
+} from "@/lib/employerApi";
 import HeadhunterBadge from "@/components/employer/HeadhunterBadge";
 import CandidateOverviewModal from "@/components/employer/CandidateOverviewModal";
+import { Loader } from "@/components/ui/loader";
 
-const sortOptions = ["Top match", "Name A–Z", "Most experienced"] as const;
+const sortOptions = ["Top match", "Name A–Z", "Newest"] as const;
 type SortOption = (typeof sortOptions)[number];
-
-type Candidate = (typeof candidates)[number];
 
 function scoreTone(score: number) {
   if (score >= 90) return "strong";
@@ -24,61 +23,61 @@ function scoreTone(score: number) {
   return "weak";
 }
 
+function bestEvaluation(entry: TalentPoolEntry): CandidateEvaluation | null {
+  const evaluations = entry.evaluations ?? [];
+  if (!evaluations.length) return null;
+  return [...evaluations].sort(
+    (a, b) => (b.wlc_score ?? -1) - (a.wlc_score ?? -1),
+  )[0];
+}
+
 function CandidateCard({
-  candidate,
+  entry,
+  headhunters,
   onSelect,
 }: {
-  candidate: Candidate;
+  entry: TalentPoolEntry;
+  headhunters: EmployerHeadhunter[];
   onSelect: (id: string) => void;
 }) {
-  const profile = talentPoolProfiles[candidate.id];
-  const suggestion = headhunterSuggestions[candidate.id];
+  const evaluation = bestEvaluation(entry);
+  const score = evaluation?.wlc_score != null ? Math.round(evaluation.wlc_score) : null;
+  const headhunter =
+    evaluation?.source === "headhunter" && evaluation.headhunter_id
+      ? headhunters.find((item) => item.id === evaluation.headhunter_id)
+      : undefined;
   return (
     <button
       type="button"
       className="panel talent-pool-card"
-      onClick={() => onSelect(candidate.id)}
+      onClick={() => onSelect(entry.id)}
     >
       <header>
-        <span className="candidate-avatar">{candidate.initials}</span>
+        <span className="candidate-avatar">{candidateInitials(entry.full_name)}</span>
         <div>
-          <strong>
-            {candidate.name}
-            {profile && (
-              <i
-                className="talent-pool-flag"
-                title={`${profile.previousOutcome} — ${profile.reason}`}
-              >
-                ✦
-              </i>
-            )}
-          </strong>
-          <small>{candidate.role}</small>
+          <strong>{entry.full_name ?? entry.email ?? "Candidate"}</strong>
+          <small>{evaluation?.job_title ?? "In talent pool"}</small>
         </div>
-        <span className={`talent-pool-score ${scoreTone(candidate.score)}`}>
-          {candidate.score}%
-        </span>
+        {score != null && (
+          <span className={`talent-pool-score ${scoreTone(score)}`}>{score}%</span>
+        )}
       </header>
       <span className="talent-pool-bar">
-        <i style={{ width: `${candidate.score}%` }} />
+        <i style={{ width: `${score ?? 0}%` }} />
       </span>
       <div className="talent-pool-card-meta">
-        <StageChip stage={candidate.stage} />
-        {candidate.interviewAttempted && (
+        {evaluation?.interview_evaluation && (
           <span className="chip chip-tier-high">✓ Interview</span>
         )}
-        {suggestion && (
-          <HeadhunterBadge headhunterId={suggestion.headhunterId} compact />
-        )}
+        {!evaluation && <span className="chip">Not evaluated</span>}
+        {headhunter && <HeadhunterBadge name={headhunter.name} compact />}
       </div>
       <p className="talent-pool-card-skills">
-        {candidate.skills.slice(0, 3).join(" · ")}
-        {candidate.skills.length > 3 && ` +${candidate.skills.length - 3}`}
+        {(evaluation?.matched_keywords ?? []).slice(0, 3).join(" · ") ||
+          (entry.resume ? "Resume on file" : "No resume yet")}
       </p>
       <footer>
-        <span>
-          {candidate.experience} · {candidate.location}
-        </span>
+        <span>{entry.email}</span>
         <span className="talent-pool-go">→</span>
       </footer>
     </button>
@@ -86,47 +85,76 @@ function CandidateCard({
 }
 
 export default function TalentPoolPage() {
+  const [pool, setPool] = useState<TalentPoolEntry[]>([]);
+  const [jobs, setJobs] = useState<EmployerJob[]>([]);
+  const [headhunters, setHeadhunters] = useState<EmployerHeadhunter[]>([]);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [jobFilter, setJobFilter] = useState("All roles");
-  const [stageFilter, setStageFilter] = useState("All stages");
   const [interviewFilter, setInterviewFilter] = useState("All candidates");
   const [sortBy, setSortBy] = useState<SortOption>("Top match");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  useEffect(() => {
+    let cancelled = false;
+    Promise.allSettled([
+      employerApi.browsePool(),
+      employerApi.listJobs(),
+      employerApi.listHeadhunters(),
+    ]).then(([poolRes, jobsRes, hhRes]) => {
+      if (cancelled) return;
+      if (poolRes.status === "fulfilled") setPool(poolRes.value);
+      if (jobsRes.status === "fulfilled") setJobs(jobsRes.value);
+      if (hhRes.status === "fulfilled") setHeadhunters(hhRes.value);
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const rows = useMemo(() => {
-    const filtered = candidates.filter((candidate) => {
-      const matchesQuery =
-        `${candidate.name} ${candidate.role} ${candidate.skills.join(" ")}`
-          .toLowerCase()
-          .includes(query.toLowerCase());
+    const filtered = pool.filter((entry) => {
+      const evaluation = bestEvaluation(entry);
+      const haystack = `${entry.full_name ?? ""} ${entry.email ?? ""} ${(
+        evaluation?.matched_keywords ?? []
+      ).join(" ")}`.toLowerCase();
+      const matchesQuery = haystack.includes(query.toLowerCase());
       const matchesJob =
-        jobFilter === "All roles" || candidate.jobId === jobFilter;
-      const matchesStage =
-        stageFilter === "All stages" || candidate.stage === stageFilter;
+        jobFilter === "All roles" ||
+        (entry.evaluations ?? []).some((e) => e.job_id === jobFilter);
+      const attempted = Boolean(evaluation?.interview_evaluation);
       const matchesInterview =
         interviewFilter === "All candidates" ||
-        (interviewFilter === "Interview attempted" &&
-          candidate.interviewAttempted) ||
-        (interviewFilter === "Not attempted" && !candidate.interviewAttempted);
-      return matchesQuery && matchesJob && matchesStage && matchesInterview;
+        (interviewFilter === "Interview attempted" && attempted) ||
+        (interviewFilter === "Not attempted" && !attempted);
+      return matchesQuery && matchesJob && matchesInterview;
     });
     const sorted = [...filtered];
     if (sortBy === "Name A–Z") {
-      sorted.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (sortBy === "Most experienced") {
-      sorted.sort((a, b) => parseInt(b.experience) - parseInt(a.experience));
+      sorted.sort((a, b) => (a.full_name ?? "").localeCompare(b.full_name ?? ""));
+    } else if (sortBy === "Newest") {
+      sorted.sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
     } else {
-      sorted.sort((a, b) => b.score - a.score);
+      sorted.sort(
+        (a, b) =>
+          (bestEvaluation(b)?.wlc_score ?? -1) - (bestEvaluation(a)?.wlc_score ?? -1),
+      );
     }
     return sorted;
-  }, [query, jobFilter, stageFilter, interviewFilter, sortBy]);
+  }, [pool, query, jobFilter, interviewFilter, sortBy]);
 
   const spotlighted = useMemo(
-    () => candidates.filter((candidate) => headhunterSuggestions[candidate.id]),
-    [],
+    () =>
+      pool.filter((entry) =>
+        (entry.evaluations ?? []).some((e) => e.source === "headhunter"),
+      ),
+    [pool],
   );
 
-  const selectedCandidate = candidates.find((c) => c.id === selectedId);
+  const selectedEntry = pool.find((entry) => entry.id === selectedId);
 
   return (
     <div className="employer-page">
@@ -139,7 +167,7 @@ export default function TalentPoolPage() {
             roles — best matches first.
           </p>
         </div>
-        <span className="chip chip-tier-high">{candidates.length} in pool</span>
+        <span className="chip chip-tier-high">{pool.length} in pool</span>
       </div>
 
       <div className="candidate-toolbar panel">
@@ -163,17 +191,6 @@ export default function TalentPoolPage() {
             <option key={job.id} value={job.id}>
               {job.title}
             </option>
-          ))}
-        </select>
-        <select
-          className="select"
-          aria-label="Filter by stage"
-          value={stageFilter}
-          onChange={(event) => setStageFilter(event.target.value)}
-        >
-          <option>All stages</option>
-          {stageOptions.map((option) => (
-            <option key={option}>{option}</option>
           ))}
         </select>
         <select
@@ -203,13 +220,14 @@ export default function TalentPoolPage() {
         <section className="talent-pool-spotlight">
           <div className="talent-pool-spotlight-head">
             <h2>✦ Suggested by your headhunters</h2>
-            <span>{spotlighted.length} new candidates found</span>
+            <span>{spotlighted.length} candidates found</span>
           </div>
           <div className="talent-pool-grid">
-            {spotlighted.map((candidate) => (
+            {spotlighted.map((entry) => (
               <CandidateCard
-                key={candidate.id}
-                candidate={candidate}
+                key={entry.id}
+                entry={entry}
+                headhunters={headhunters}
                 onSelect={setSelectedId}
               />
             ))}
@@ -217,26 +235,34 @@ export default function TalentPoolPage() {
         </section>
       )}
 
-      <div className="talent-pool-grid">
-        {rows.map((candidate) => (
-          <CandidateCard
-            key={candidate.id}
-            candidate={candidate}
-            onSelect={setSelectedId}
-          />
-        ))}
-      </div>
+      {loading ? (
+        <div className="panel">
+          <Loader label="Loading talent pool…" />
+        </div>
+      ) : (
+        <div className="talent-pool-grid">
+          {rows.map((entry) => (
+            <CandidateCard
+              key={entry.id}
+              entry={entry}
+              headhunters={headhunters}
+              onSelect={setSelectedId}
+            />
+          ))}
+        </div>
+      )}
 
-      {rows.length === 0 && (
+      {!loading && rows.length === 0 && (
         <div className="empty-state panel">
           <h3>No candidates found</h3>
           <p>Try a broader search or clear a filter.</p>
         </div>
       )}
 
-      {selectedCandidate && (
+      {selectedEntry && (
         <CandidateOverviewModal
-          candidate={selectedCandidate}
+          entry={selectedEntry}
+          headhunters={headhunters}
           onClose={() => setSelectedId(null)}
         />
       )}

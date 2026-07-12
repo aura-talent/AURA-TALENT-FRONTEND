@@ -1,19 +1,41 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { jobPlans, jobs, planStatusChipClass } from "../data";
+import { planStatusChipClass } from "../data";
+import {
+  employerApi,
+  type EmployerJob,
+  type EmployerJobPlan,
+} from "@/lib/employerApi";
+import { Loader } from "@/components/ui/loader";
 
 export default function WorkforcePage() {
-  const plannedOpenings = jobs.reduce(
-    (total, job) => total + (jobPlans[job.id]?.openings ?? 0),
-    0,
-  );
-  const totalBudget = jobs.reduce(
-    (total, job) => total + (jobPlans[job.id]?.budget ?? 0),
-    0,
-  );
-  const awaitingApproval = jobs.filter(
-    (job) => jobPlans[job.id]?.status === "Draft",
-  ).length;
-  const noPlanYet = jobs.filter((job) => !jobPlans[job.id]).length;
+  const [jobs, setJobs] = useState<EmployerJob[]>([]);
+  const [plans, setPlans] = useState<EmployerJobPlan[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.allSettled([employerApi.listJobs(), employerApi.listJobPlans()]).then(
+      ([jobsRes, plansRes]) => {
+        if (cancelled) return;
+        if (jobsRes.status === "fulfilled") setJobs(jobsRes.value);
+        if (plansRes.status === "fulfilled") setPlans(plansRes.value);
+        setLoading(false);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const planByJob = Object.fromEntries(plans.map((plan) => [plan.job_id, plan]));
+
+  const plannedOpenings = plans.reduce((total, plan) => total + plan.openings, 0);
+  const totalBudget = plans.reduce((total, plan) => total + (plan.budget ?? 0), 0);
+  const awaitingApproval = plans.filter((plan) => plan.status === "Draft").length;
+  const noPlanYet = jobs.filter((job) => !planByJob[job.id]).length;
 
   return (
     <div className="employer-page">
@@ -53,6 +75,9 @@ export default function WorkforcePage() {
       </div>
 
       <div className="panel candidate-table-wrap">
+        {loading ? (
+          <Loader label="Loading workforce plans…" />
+        ) : (
         <table className="table employer-table">
           <thead>
             <tr>
@@ -68,12 +93,12 @@ export default function WorkforcePage() {
           </thead>
           <tbody>
             {jobs.map((job) => {
-              const plan = jobPlans[job.id];
+              const plan = planByJob[job.id];
               return (
                 <tr key={job.id}>
                   <td>
                     <strong>{job.title}</strong>
-                    <small>{job.team}</small>
+                    <small>{job.team ?? "—"}</small>
                   </td>
                   <td>
                     <span className={`chip ${job.status === "Active" ? "chip-tier-high" : ""}`}>
@@ -89,18 +114,18 @@ export default function WorkforcePage() {
                       <span className="signal-missing">Not started</span>
                     )}
                   </td>
-                  <td>{plan ? plan.priority : "—"}</td>
+                  <td>{plan?.priority ?? "—"}</td>
                   <td>{plan ? plan.openings : "—"}</td>
                   <td>
                     {plan ? (
                       <span className="signal-score">
-                        RM {(plan.budget / 1000).toFixed(0)}k
+                        RM {((plan.budget ?? 0) / 1000).toFixed(0)}k
                       </span>
                     ) : (
                       "—"
                     )}
                   </td>
-                  <td>{plan?.targetFillDate || "—"}</td>
+                  <td>{plan?.target_fill_date || "—"}</td>
                   <td>
                     <Link
                       href={`/employer/workforce/${job.id}`}
@@ -114,6 +139,13 @@ export default function WorkforcePage() {
             })}
           </tbody>
         </table>
+        )}
+        {!loading && jobs.length === 0 && (
+          <div className="empty-state">
+            <h3>No jobs yet</h3>
+            <p>Create a job listing to start workforce planning.</p>
+          </div>
+        )}
       </div>
     </div>
   );

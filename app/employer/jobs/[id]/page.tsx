@@ -1,60 +1,91 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import {
-  candidates,
-  headhunters,
-  headhunterInitials,
-  jobPlans,
-  jobs,
-  planStatusChipClass,
-  talentPoolProfiles,
-} from "../../data";
+"use client";
 
-function recommendationScore(
-  candidate: (typeof candidates)[number],
-  job: (typeof jobs)[number],
-) {
+import { use, useEffect, useState } from "react";
+import Link from "next/link";
+import { Loader } from "@/components/ui/loader";
+import { headhunterInitials, planStatusChipClass } from "@/app/employer/data";
+import {
+  candidateInitials,
+  employerApi,
+  formatSalary,
+  timeAgo,
+  type CandidateRow,
+  type EmployerHeadhunter,
+  type EmployerJob,
+  type EmployerJobPlan,
+} from "@/lib/employerApi";
+
+function recommendationScore(row: CandidateRow, job: EmployerJob) {
   const evidence = new Set(
-    [...candidate.skills, ...candidate.matchedKeywords].map((value) =>
-      value.toLowerCase(),
-    ),
+    (row.evaluation?.matched_keywords ?? []).map((value) => value.toLowerCase()),
   );
   const matches = job.keywords.filter((keyword) =>
     evidence.has(keyword.toLowerCase()),
   );
-  const skillScore = Math.round((matches.length / job.keywords.length) * 100);
-  const overall = Math.round(candidate.score * 0.65 + skillScore * 0.35);
+  const skillScore = job.keywords.length
+    ? Math.round((matches.length / job.keywords.length) * 100)
+    : 0;
+  const base = row.evaluation?.wlc_score ?? 50;
+  const overall = Math.round(base * 0.65 + skillScore * 0.35);
   return { matches, overall };
 }
 
-export default async function EmployerJobDetailPage({
+export default function EmployerJobDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
-  const job = jobs.find((item) => item.id === id);
-  if (!job) notFound();
+  const { id } = use(params);
+  const [job, setJob] = useState<EmployerJob | null>(null);
+  const [plan, setPlan] = useState<EmployerJobPlan | null>(null);
+  const [headhunters, setHeadhunters] = useState<EmployerHeadhunter[]>([]);
+  const [candidateRows, setCandidateRows] = useState<CandidateRow[]>([]);
+  const [notFound, setNotFound] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.allSettled([
+      employerApi.getJob(id),
+      employerApi.getJobPlan(id),
+      employerApi.listHeadhunters(),
+      employerApi.listCandidates(),
+    ]).then(([jobRes, planRes, hhRes, candidatesRes]) => {
+      if (cancelled) return;
+      if (jobRes.status === "fulfilled") setJob(jobRes.value);
+      else setNotFound(true);
+      if (planRes.status === "fulfilled") setPlan(planRes.value);
+      if (hhRes.status === "fulfilled") setHeadhunters(hhRes.value);
+      if (candidatesRes.status === "fulfilled") setCandidateRows(candidatesRes.value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  if (notFound)
+    return (
+      <div className="employer-page">
+        <div className="empty-state panel">
+          <h3>Job not found</h3>
+        </div>
+      </div>
+    );
+  if (!job)
+    return (
+      <div className="employer-page">
+        <Loader label="Loading job…" />
+      </div>
+    );
 
   const assignedHeadhunters = headhunters.filter((headhunter) =>
-    job.headhunterIds.includes(headhunter.id),
+    job.headhunter_ids.includes(headhunter.id),
   );
-  const plan = jobPlans[job.id];
 
-  const recommendations = candidates
-    .filter((candidate) => candidate.jobId !== job.id)
-    .map((candidate) => {
-      const profile = talentPoolProfiles[candidate.id];
-      const outcomeLabel =
-        profile?.previousOutcome ?? `${candidate.stage} · ${candidate.role}`;
-      return {
-        candidate,
-        profile,
-        outcomeLabel,
-        ...recommendationScore(candidate, job),
-      };
-    })
-    .sort((a, b) => b.overall - a.overall);
+  const recommendations = candidateRows
+    .filter((row) => row.job_id !== job.id && row.evaluation)
+    .map((row) => ({ row, ...recommendationScore(row, job) }))
+    .sort((a, b) => b.overall - a.overall)
+    .slice(0, 5);
 
   return (
     <div className="employer-page">
@@ -66,8 +97,8 @@ export default async function EmployerJobDetailPage({
             <span className={`chip ${job.status === "Active" ? "chip-tier-high" : ""}`}>
               {job.status}
             </span>
-            <span>{job.team}</span>
-            <span>{job.age}</span>
+            <span>{job.team ?? "—"}</span>
+            <span>Created {timeAgo(job.created_at)}</span>
           </div>
           <h1>{job.title}</h1>
           <p>{job.description}</p>
@@ -76,6 +107,9 @@ export default async function EmployerJobDetailPage({
           <Link className="btn btn-ghost" href={`/employer/jobs/${job.id}/applicants`}>
             View applicants
           </Link>
+          <Link className="btn btn-ghost" href={`/employer/jobs/${job.id}/stages`}>
+            Configure stages
+          </Link>
           <Link className="btn btn-primary" href={`/employer/jobs/${job.id}/edit`}>
             Edit job
           </Link>
@@ -83,10 +117,10 @@ export default async function EmployerJobDetailPage({
       </div>
 
       <div className="employer-job-facts">
-        <article className="panel"><span>Location</span><strong>{job.location}</strong></article>
-        <article className="panel"><span>Employment</span><strong>{job.employmentType}</strong></article>
-        <article className="panel"><span>Compensation</span><strong>{job.salary}</strong></article>
-        <article className="panel"><span>Current quality</span><strong>{job.fit}% match</strong></article>
+        <article className="panel"><span>Location</span><strong>{job.location ?? "—"}</strong></article>
+        <article className="panel"><span>Employment</span><strong>{job.employment_type ?? "—"}</strong></article>
+        <article className="panel"><span>Compensation</span><strong>{formatSalary(job)}</strong></article>
+        <article className="panel"><span>Applicants</span><strong>{job.stats?.applicant_count ?? 0}</strong></article>
       </div>
 
       <div className="employer-job-detail-grid">
@@ -111,19 +145,22 @@ export default async function EmployerJobDetailPage({
               <div>
                 <p className="eyebrow">Aura talent recall</p>
                 <h2>Recommended from your talent pool</h2>
-                <p>Candidates from your talent pool who may fit this newly available role.</p>
+                <p>Candidates evaluated for your other roles who may fit this one.</p>
               </div>
               <Link href="/employer/talent-pool">View talent pool →</Link>
             </div>
             <div className="talent-recommendation-list">
-              {recommendations.map(({ candidate, profile, outcomeLabel, matches, overall }) => (
-                <article key={candidate.id}>
-                  <span className="candidate-avatar">{candidate.initials}</span>
+              {recommendations.map(({ row, matches, overall }) => (
+                <article key={`${row.job_id}-${row.candidate_user_id}`}>
+                  <span className="candidate-avatar">{candidateInitials(row.full_name)}</span>
                   <div>
                     <header>
                       <div>
-                        <strong>{candidate.name}</strong>
-                        <small>{outcomeLabel}</small>
+                        <strong>{row.full_name ?? row.email ?? "Candidate"}</strong>
+                        <small>
+                          {row.application ? `${row.application.stage} · ` : ""}
+                          {row.job_title}
+                        </small>
                       </div>
                       <span className="quality-score">{overall}% renewed fit</span>
                     </header>
@@ -133,12 +170,17 @@ export default async function EmployerJobDetailPage({
                         : `Aura sees transferable evidence and recommends a human review.`}
                     </p>
                     <footer>
-                      <span>{profile?.availableFrom ?? candidate.stage}</span>
-                      <Link href={`/employer/candidates/${candidate.id}`}>Review and reconnect →</Link>
+                      <span>{row.evaluation?.match_summary?.slice(0, 60) ?? row.job_title}</span>
+                      <Link href={`/employer/candidates/${row.candidate_user_id}`}>Review and reconnect →</Link>
                     </footer>
                   </div>
                 </article>
               ))}
+              {recommendations.length === 0 && (
+                <p style={{ color: "var(--ink-55)", fontSize: "0.85rem" }}>
+                  No evaluated candidates from other roles yet.
+                </p>
+              )}
             </div>
           </section>
         </main>
@@ -146,9 +188,9 @@ export default async function EmployerJobDetailPage({
         <aside>
           <section className="panel employer-section">
             <p className="eyebrow">Hiring activity</p>
-            <div className="job-detail-stat"><strong>{job.candidates}</strong><span>Candidates</span></div>
-            <div className="job-detail-stat"><strong>{job.interviews}</strong><span>Interviews</span></div>
-            <div className="job-detail-stat"><strong>{job.interviewQuestions}</strong><span>Interview questions</span></div>
+            <div className="job-detail-stat"><strong>{job.stats?.applicant_count ?? 0}</strong><span>Candidates</span></div>
+            <div className="job-detail-stat"><strong>{job.stats?.interview_count ?? 0}</strong><span>Interviews</span></div>
+            <div className="job-detail-stat"><strong>{job.interview_questions.length}</strong><span>Interview questions</span></div>
           </section>
           <section className="panel employer-section">
             <div className="employer-section-head">
@@ -166,11 +208,11 @@ export default async function EmployerJobDetailPage({
                   <span className={`chip ${planStatusChipClass(plan.status)}`}>
                     {plan.status}
                   </span>
-                  <span className="chip">{plan.priority} priority</span>
+                  <span className="chip">{plan.priority ?? "—"} priority</span>
                 </div>
                 <div className="job-detail-stat"><strong>{plan.openings}</strong><span>Planned openings</span></div>
-                <div className="job-detail-stat"><strong>RM {(plan.budget / 1000).toFixed(0)}k</strong><span>Annual budget</span></div>
-                <div className="job-detail-stat"><strong>{plan.targetFillDate || "TBD"}</strong><span>Target fill date</span></div>
+                <div className="job-detail-stat"><strong>RM {((plan.budget ?? 0) / 1000).toFixed(0)}k</strong><span>Annual budget</span></div>
+                <div className="job-detail-stat"><strong>{plan.target_fill_date || "TBD"}</strong><span>Target fill date</span></div>
               </>
             ) : (
               <p style={{ color: "var(--ink-55)", fontSize: "0.82rem" }}>
@@ -202,7 +244,7 @@ export default async function EmployerJobDetailPage({
                     <span className="candidate-avatar">{headhunterInitials(headhunter.name)}</span>
                     <div>
                       <strong>{headhunter.name}</strong>
-                      <p>{headhunter.stats.candidatesSourced} sourced</p>
+                      <p>{headhunter.stats.candidates_sourced ?? 0} sourced</p>
                     </div>
                     <span className="chip chip-tier-high">{headhunter.status}</span>
                   </Link>

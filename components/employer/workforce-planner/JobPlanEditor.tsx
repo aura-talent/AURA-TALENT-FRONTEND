@@ -4,14 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
+import { planStatusChipClass, type PlanStatus } from "@/app/employer/data";
 import {
-  jobs,
-  jobPlans,
-  pipelinePhases,
-  planStatusChipClass,
-  type JobPlan,
-  type PlanStatus,
-} from "@/app/employer/data";
+  employerApi,
+  type EmployerJob,
+  type EmployerJobPlan,
+  type JobPlanPayload,
+  type PhaseDef,
+} from "@/lib/employerApi";
 import SectionHeader from "@/components/employer/job-editor/SectionHeader";
 import jobEditorStyles from "@/components/employer/job-editor/JobEditor.module.css";
 import PlanForecast from "./PlanForecast";
@@ -26,51 +26,88 @@ const statusHints: Record<PlanStatus, string> = {
   Published: "Live and reflected in this job's hiring pipeline phase.",
 };
 
-const priorityOptions: JobPlan["priority"][] = ["High", "Medium", "Low"];
-const riskOptions: JobPlan["demandSignal"]["risk"][] = [
-  "High",
-  "Medium",
-  "Covered",
-];
+const priorityOptions = ["High", "Medium", "Low"];
+const riskOptions = ["High", "Medium", "Covered"];
 
-const riskClass: Record<JobPlan["demandSignal"]["risk"], string> = {
+const riskClass: Record<string, string> = {
   High: styles.riskHigh,
   Medium: styles.riskMedium,
   Covered: styles.riskLow,
 };
 
-const defaultPlan: JobPlan = {
+const defaultPlan: JobPlanPayload = {
   status: "Draft",
   priority: "Medium",
   backfill: false,
   openings: 1,
-  baselineHeadcount: 0,
+  baseline_headcount: 0,
   budget: 0,
-  hiringManager: "",
-  targetStartDate: "",
-  targetFillDate: "",
+  hiring_manager: "",
+  target_start_date: null,
+  target_fill_date: null,
   justification: "",
-  demandSignal: { reason: "", risk: "Medium" },
-  lastUpdated: "Never",
+  demand_signal_reason: "",
+  demand_signal_risk: "Medium",
 };
 
-export default function JobPlanEditor({ jobId }: { jobId: string }) {
-  const router = useRouter();
-  const job = jobs.find((item) => item.id === jobId)!;
-  const [plan, setPlan] = useState<JobPlan>(jobPlans[jobId] ?? defaultPlan);
-  const [showAuraModal, setShowAuraModal] = useState(false);
-  const [saved, setSaved] = useState(false);
+function planToForm(plan: EmployerJobPlan): JobPlanPayload {
+  return {
+    status: plan.status,
+    priority: plan.priority ?? "Medium",
+    backfill: plan.backfill,
+    openings: plan.openings,
+    baseline_headcount: plan.baseline_headcount ?? 0,
+    budget: plan.budget ?? 0,
+    hiring_manager: plan.hiring_manager ?? "",
+    target_start_date: plan.target_start_date,
+    target_fill_date: plan.target_fill_date,
+    justification: plan.justification ?? "",
+    demand_signal_reason: plan.demand_signal_reason ?? "",
+    demand_signal_risk: plan.demand_signal_risk ?? "Medium",
+  };
+}
 
-  function update(patch: Partial<JobPlan>) {
+export default function JobPlanEditor({
+  job,
+  initialPlan,
+  phases,
+}: {
+  job: EmployerJob;
+  initialPlan: EmployerJobPlan | null;
+  phases: PhaseDef[];
+}) {
+  const router = useRouter();
+  const [plan, setPlan] = useState<JobPlanPayload>(
+    initialPlan ? planToForm(initialPlan) : defaultPlan,
+  );
+  const [showAuraModal, setShowAuraModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function update(patch: Partial<JobPlanPayload>) {
     setPlan((current) => ({ ...current, ...patch }));
   }
 
-  function save() {
-    setSaved(true);
-    window.setTimeout(() => router.push("/employer/workforce"), 650);
+  async function save() {
+    setSaving(true);
+    setError(null);
+    try {
+      await employerApi.upsertJobPlan(job.id, {
+        ...plan,
+        target_start_date: plan.target_start_date || null,
+        target_fill_date: plan.target_fill_date || null,
+      });
+      setSaved(true);
+      window.setTimeout(() => router.push("/employer/workforce"), 650);
+    } catch (err) {
+      console.error("Failed to save plan:", err);
+      setError(err instanceof Error ? err.message : "Failed to save plan");
+      setSaving(false);
+    }
   }
 
-  const phase = pipelinePhases.find((item) => item.id === job.pipelinePhase);
+  const phase = phases.find((item) => item.id === job.pipeline_phase);
 
   return (
     <div className="employer-page">
@@ -95,11 +132,18 @@ export default function JobPlanEditor({ jobId }: { jobId: string }) {
           >
             <Sparkles size={15} /> Generate with Aura
           </button>
-          <button className="btn btn-primary" type="button" onClick={save}>
-            {saved ? "Saved ✓" : "Save plan"}
+          <button
+            className="btn btn-primary"
+            type="button"
+            onClick={save}
+            disabled={saving}
+          >
+            {saved ? "Saved ✓" : saving ? "Saving…" : "Save plan"}
           </button>
         </div>
       </div>
+
+      {error && <p className="notice notice-error">{error}</p>}
 
       <div className={jobEditorStyles.layout}>
         <main>
@@ -128,9 +172,9 @@ export default function JobPlanEditor({ jobId }: { jobId: string }) {
                   className="input"
                   type="number"
                   min="0"
-                  value={plan.baselineHeadcount}
+                  value={plan.baseline_headcount ?? 0}
                   onChange={(event) =>
-                    update({ baselineHeadcount: Number(event.target.value) })
+                    update({ baseline_headcount: Number(event.target.value) })
                   }
                 />
               </label>
@@ -143,7 +187,7 @@ export default function JobPlanEditor({ jobId }: { jobId: string }) {
                   type="number"
                   min="0"
                   step="1000"
-                  value={plan.budget}
+                  value={plan.budget ?? 0}
                   onChange={(event) =>
                     update({ budget: Number(event.target.value) })
                   }
@@ -190,22 +234,22 @@ export default function JobPlanEditor({ jobId }: { jobId: string }) {
                 <span>Target start</span>
                 <input
                   className="input"
-                  value={plan.targetStartDate}
+                  type="date"
+                  value={plan.target_start_date ?? ""}
                   onChange={(event) =>
-                    update({ targetStartDate: event.target.value })
+                    update({ target_start_date: event.target.value || null })
                   }
-                  placeholder="e.g. Jun 2026"
                 />
               </label>
               <label className={styles.field}>
                 <span>Target fill date</span>
                 <input
                   className="input"
-                  value={plan.targetFillDate}
+                  type="date"
+                  value={plan.target_fill_date ?? ""}
                   onChange={(event) =>
-                    update({ targetFillDate: event.target.value })
+                    update({ target_fill_date: event.target.value || null })
                   }
-                  placeholder="e.g. Sep 2026"
                 />
               </label>
             </div>
@@ -213,9 +257,9 @@ export default function JobPlanEditor({ jobId }: { jobId: string }) {
               <span>Hiring manager</span>
               <input
                 className="input"
-                value={plan.hiringManager}
+                value={plan.hiring_manager ?? ""}
                 onChange={(event) =>
-                  update({ hiringManager: event.target.value })
+                  update({ hiring_manager: event.target.value })
                 }
                 placeholder="Who owns this requisition"
               />
@@ -232,7 +276,7 @@ export default function JobPlanEditor({ jobId }: { jobId: string }) {
               <textarea
                 className="input"
                 style={{ minHeight: "110px" }}
-                value={plan.justification}
+                value={plan.justification ?? ""}
                 onChange={(event) =>
                   update({ justification: event.target.value })
                 }
@@ -252,14 +296,9 @@ export default function JobPlanEditor({ jobId }: { jobId: string }) {
               <textarea
                 className="input"
                 style={{ minHeight: "80px" }}
-                value={plan.demandSignal.reason}
+                value={plan.demand_signal_reason ?? ""}
                 onChange={(event) =>
-                  update({
-                    demandSignal: {
-                      ...plan.demandSignal,
-                      reason: event.target.value,
-                    },
-                  })
+                  update({ demand_signal_reason: event.target.value })
                 }
                 placeholder="What's driving the hiring pressure on this role?"
               />
@@ -271,12 +310,8 @@ export default function JobPlanEditor({ jobId }: { jobId: string }) {
                   <button
                     key={option}
                     type="button"
-                    className={`chip ${styles.pillOption} ${plan.demandSignal.risk === option ? riskClass[option] : ""}`}
-                    onClick={() =>
-                      update({
-                        demandSignal: { ...plan.demandSignal, risk: option },
-                      })
-                    }
+                    className={`chip ${styles.pillOption} ${plan.demand_signal_risk === option ? riskClass[option] : ""}`}
+                    onClick={() => update({ demand_signal_risk: option })}
                   >
                     {option}
                   </button>
@@ -345,8 +380,8 @@ export default function JobPlanEditor({ jobId }: { jobId: string }) {
               </span>
             </div>
             <p className={styles.previewNote}>
-              {job.candidates} candidate{job.candidates === 1 ? "" : "s"} ·{" "}
-              {job.location}
+              {job.stats?.applicant_count ?? 0} candidate{(job.stats?.applicant_count ?? 0) === 1 ? "" : "s"} ·{" "}
+              {job.location ?? "—"}
             </p>
             <Link href={`/employer/jobs/${job.id}`} className="table-action">
               View job listing →

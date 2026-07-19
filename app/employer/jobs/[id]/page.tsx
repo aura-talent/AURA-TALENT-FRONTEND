@@ -3,7 +3,9 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader } from "@/components/ui/loader";
-import { headhunterInitials, planStatusChipClass } from "@/app/employer/data";
+import { setBreadcrumbLabel } from "@/components/employer/Breadcrumbs";
+import JobActivityFeed from "@/components/employer/JobActivityFeed";
+import { headhunterInitials, phaseMeta, planStatusChipClass } from "@/app/employer/data";
 import {
   candidateInitials,
   employerApi,
@@ -62,6 +64,22 @@ export default function EmployerJobDetailPage({
     };
   }, [id]);
 
+  useEffect(() => {
+    if (job) setBreadcrumbLabel(id, job.title);
+  }, [id, job]);
+
+  async function closeJob() {
+    if (!job) return;
+    const previous = job.pipeline_phase;
+    setJob({ ...job, pipeline_phase: "closed" });
+    try {
+      await employerApi.updateJob(job.id, { pipeline_phase: "closed" });
+    } catch (err) {
+      console.error("Failed to close job:", err);
+      setJob({ ...job, pipeline_phase: previous });
+    }
+  }
+
   if (notFound)
     return (
       <div className="employer-page">
@@ -89,14 +107,23 @@ export default function EmployerJobDetailPage({
 
   return (
     <div className="employer-page">
-      <Link href="/employer/jobs" className="back-link">← Job listings</Link>
-
       <div className="employer-job-detail-head panel">
         <div>
           <div className="employer-job-detail-meta">
-            <span className={`chip ${job.status === "Active" ? "chip-tier-high" : ""}`}>
-              {job.status}
-            </span>
+            {(() => {
+              const meta = phaseMeta(job.pipeline_phase);
+              return (
+                <span
+                  className="chip"
+                  style={{
+                    background: `color-mix(in srgb, ${meta.color} 14%, transparent)`,
+                    color: meta.color,
+                  }}
+                >
+                  {meta.label}
+                </span>
+              );
+            })()}
             <span>{job.team ?? "—"}</span>
             <span>Created {timeAgo(job.created_at)}</span>
           </div>
@@ -110,9 +137,20 @@ export default function EmployerJobDetailPage({
           <Link className="btn btn-ghost" href={`/employer/jobs/${job.id}/stages`}>
             Configure stages
           </Link>
+          <Link
+            className={`btn ${job.pipeline_phase === "offer-decision" ? "btn-primary" : "btn-ghost"}`}
+            href={`/employer/jobs/${job.id}/offers`}
+          >
+            Offer console
+          </Link>
           <Link className="btn btn-primary" href={`/employer/jobs/${job.id}/edit`}>
             Edit job
           </Link>
+          {job.pipeline_phase !== "closed" && (
+            <button className="btn btn-ghost" style={{ color: "#dc2626" }} onClick={closeJob}>
+              Close job
+            </button>
+          )}
         </div>
       </div>
 
@@ -188,10 +226,13 @@ export default function EmployerJobDetailPage({
         <aside>
           <section className="panel employer-section">
             <p className="eyebrow">Hiring activity</p>
-            <div className="job-detail-stat"><strong>{job.stats?.applicant_count ?? 0}</strong><span>Candidates</span></div>
-            <div className="job-detail-stat"><strong>{job.stats?.interview_count ?? 0}</strong><span>Interviews</span></div>
-            <div className="job-detail-stat"><strong>{job.interview_questions.length}</strong><span>Interview questions</span></div>
+            <div className="job-detail-stats-row">
+              <div className="job-detail-stat"><strong>{job.stats?.applicant_count ?? 0}</strong><span>Candidates</span></div>
+              <div className="job-detail-stat"><strong>{job.stats?.interview_count ?? 0}</strong><span>Interviews</span></div>
+              <div className="job-detail-stat"><strong>{job.interview_questions.length}</strong><span>Questions</span></div>
+            </div>
           </section>
+          <JobActivityFeed job={job} />
           <section className="panel employer-section">
             <div className="employer-section-head">
               <div>

@@ -67,9 +67,6 @@ export default function CandidateInterviewEvaluationPage({
   if (!row || !evaluation)
     return (
       <div className="employer-page">
-        <Link href={`/employer/candidates/${id}`} className="back-link">
-          ← Candidate evaluation
-        </Link>
         <div className="empty-state panel">
           <h3>No interview evaluation yet</h3>
           <p>{name} hasn&apos;t attempted the mock interview for your roles.</p>
@@ -96,9 +93,6 @@ export default function CandidateInterviewEvaluationPage({
 
   return (
     <div className="employer-page">
-      <Link href={`/employer/candidates/${id}`} className="back-link">
-        ← Candidate evaluation
-      </Link>
 
       <div className="employer-page-head">
         <div>

@@ -53,6 +53,9 @@ const eid = () => `employer_id=${encodeURIComponent(getUserId())}`;
 export type StageDef = { label: string; color: string; is_rejected: boolean };
 export type PhaseDef = { id: string; label: string; color: string };
 
+/** Per-phase advance target stored on jobs.phase_targets (0002). */
+export type PhaseTargetRow = { phaseId: string; metric: string; targetCount: number };
+
 export interface JobStats {
   applicant_count?: number;
   active_applicant_count?: number;
@@ -73,6 +76,8 @@ export interface EmployerJob {
   keywords: string[];
   status: "Active" | "Draft";
   pipeline_phase: string;
+  automation_level: "auto" | "manual";
+  phase_targets: PhaseTargetRow[];
   mock_interview_enabled: boolean;
   interview_questions: string[];
   job_application_stages: StageDef[];
@@ -221,6 +226,131 @@ export interface StageEvent {
   created_at: string;
 }
 
+/* ── Pipeline automation / offers / comms / suggestions (0002) ── */
+
+export interface PhaseProgress {
+  phaseId: string | null;
+  metric: string;
+  currentCount: number;
+  targetCount: number;
+  met: boolean;
+  isManualGate: boolean;
+}
+
+export interface JobPhaseProgress {
+  current_phase: string | null;
+  next_phase: string | null;
+  automation_level: "auto" | "manual";
+  progress: PhaseProgress;
+}
+
+export interface AdvanceResult {
+  advanced: boolean;
+  reason?: string;
+  from_phase?: string;
+  to_phase?: string;
+  trigger?: string;
+  job?: EmployerJob;
+  progress?: PhaseProgress;
+  current_phase?: string | null;
+}
+
+export interface JobPhaseEvent {
+  id: string;
+  job_id: string;
+  from_phase: string | null;
+  to_phase: string;
+  changed_by: string | null;
+  trigger: string;
+  note: string | null;
+  created_at: string;
+}
+
+export interface Offer {
+  id: string;
+  job_id: string;
+  candidate_user_id: string;
+  status: "sent" | "accepted" | "declined" | "rescinded";
+  email_subject: string | null;
+  email_body: string | null;
+  sent_at: string;
+  responded_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CommsMessage {
+  id: string;
+  job_id: string | null;
+  candidate_user_id: string | null;
+  sender_id: string | null;
+  channel: string;
+  subject: string | null;
+  body: string | null;
+  template_id: string | null;
+  status: "draft" | "queued" | "sent" | "failed";
+  error: string | null;
+  sent_at: string | null;
+  created_at: string;
+}
+
+export interface CommsDraft {
+  subject: string;
+  body: string;
+}
+
+export interface SuggestedAction {
+  id: string;
+  employer_id: string;
+  job_id: string | null;
+  candidate_user_id: string | null;
+  kind: string;
+  title: string;
+  body: string | null;
+  payload: Record<string, unknown>;
+  status: "open" | "done" | "dismissed";
+  source: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JobDraftResult {
+  draft: {
+    title: string;
+    team: string | null;
+    location: string | null;
+    employment_type: string | null;
+    salary_low: number | null;
+    salary_high: number | null;
+    salary_currency: string;
+    description: string;
+    keywords: string[];
+  };
+  interview_questions: string[];
+}
+
+export interface PlanDraftResult {
+  priority: string | null;
+  openings: number;
+  baseline_headcount: number | null;
+  budget: number | null;
+  target_start_date: string | null;
+  target_fill_date: string | null;
+  justification: string;
+  demand_signal_reason: string | null;
+  demand_signal_risk: string | null;
+}
+
+export interface EmployerProfileDraft {
+  company_name: string | null;
+  industry: string | null;
+  company_size: string | null;
+  headquarters: string | null;
+  about: string | null;
+  culture_values: string[];
+  career_growth: string | null;
+}
+
 /* ── Payload types ── */
 
 export type JobPayload = Partial<
@@ -309,6 +439,118 @@ export const employerApi = {
   getProfile: () => request<EmployerProfile>(`profile/${getUserId()}`),
   upsertProfile: (payload: Partial<Omit<EmployerProfile, "user_id" | "updated_at">>) =>
     jsonBody<EmployerProfile>(`profile/${getUserId()}`, "PUT", payload),
+  importProfile: (payload: { source_url?: string; raw_text?: string }) =>
+    jsonBody<EmployerProfileDraft>(`profile/import`, "POST", {
+      ...payload,
+      employer_id: getUserId(),
+    }),
+
+  /* pipeline automation: phase advance + progress + audit (0002) */
+  phaseProgress: (jobId: string) =>
+    request<JobPhaseProgress>(`jobs/${jobId}/phase-progress?${eid()}`),
+  advancePhase: (
+    jobId: string,
+    opts?: { to_phase?: string; trigger?: string; note?: string; require_target?: boolean },
+  ) =>
+    jsonBody<AdvanceResult>(`jobs/${jobId}/advance`, "POST", {
+      employer_id: getUserId(),
+      ...opts,
+    }),
+  phaseEvents: (jobId: string) =>
+    request<JobPhaseEvent[]>(`jobs/${jobId}/phase-events?${eid()}`),
+
+  /* offers (0002) — replaces offerStore localStorage */
+  listOffers: (jobId: string) => request<Offer[]>(`offers?job_id=${jobId}&${eid()}`),
+  createOffer: (
+    jobId: string,
+    candidateUserId: string,
+    opts?: { email_subject?: string; email_body?: string },
+  ) =>
+    jsonBody<Offer>(`offers`, "POST", {
+      job_id: jobId,
+      candidate_user_id: candidateUserId,
+      employer_id: getUserId(),
+      ...opts,
+    }),
+  updateOffer: (jobId: string, candidateUserId: string, status: Offer["status"]) =>
+    jsonBody<Offer>(`offers/${jobId}/${candidateUserId}`, "PATCH", {
+      employer_id: getUserId(),
+      status,
+    }),
+
+  /* comms (0002) — real send + agent-drafted generate */
+  listComms: (opts: { jobId?: string; candidateUserId?: string }) =>
+    request<CommsMessage[]>(
+      `comms?${eid()}${opts.jobId ? `&job_id=${opts.jobId}` : ""}${
+        opts.candidateUserId ? `&candidate_user_id=${opts.candidateUserId}` : ""
+      }`,
+    ),
+  generateComms: (payload: {
+    candidate_user_id: string;
+    job_id?: string;
+    kind?: string;
+    instructions?: string;
+  }) =>
+    jsonBody<CommsDraft>(`comms/generate`, "POST", { ...payload, employer_id: getUserId() }),
+  sendComms: (payload: {
+    candidate_user_id: string;
+    subject: string;
+    body: string;
+    job_id?: string;
+    template_id?: string;
+    is_offer?: boolean;
+  }) => jsonBody<CommsMessage>(`comms/send`, "POST", { ...payload, employer_id: getUserId() }),
+
+  /* suggested actions (0002) — agent-emitted, persisted */
+  listSuggestedActions: (status = "open") =>
+    request<SuggestedAction[]>(`suggested-actions?${eid()}&status=${status}`),
+  updateSuggestedAction: (actionId: string, status: SuggestedAction["status"]) =>
+    jsonBody<SuggestedAction>(`suggested-actions/${actionId}`, "PATCH", {
+      employer_id: getUserId(),
+      status,
+    }),
+
+  /* agent triggers (graphs owned by backend; these wire the UI to them) */
+  triggerEvaluation: (
+    jobId: string,
+    candidateUserId: string,
+    source: "applied" | "aura" | "headhunter" = "aura",
+  ) =>
+    jsonBody<{ ok: boolean; status: string }>(`talent-pool/evaluate/trigger`, "POST", {
+      job_id: jobId,
+      candidate_user_id: candidateUserId,
+      employer_id: getUserId(),
+      source,
+    }),
+  sourceHeadhunter: (headhunterId: string, jobId: string) =>
+    jsonBody<{ status: string }>(
+      `headhunters/${headhunterId}/source?job_id=${jobId}&${eid()}`,
+      "POST",
+      {},
+    ),
+  draftJob: (payload: {
+    mode: "aura" | "url";
+    brief?: string;
+    jd_url?: string;
+    question_count?: number;
+  }) => jsonBody<JobDraftResult>(`jobs/draft`, "POST", { ...payload, employer_id: getUserId() }),
+  draftPlan: (payload: { job_id?: string; brief?: string; title?: string }) =>
+    jsonBody<PlanDraftResult>(`job-plans/draft`, "POST", {
+      ...payload,
+      employer_id: getUserId(),
+    }),
+  nextActions: (candidateUserId: string, jobId?: string) =>
+    jsonBody<{ actions: SuggestedAction[] }>(
+      `talent-pool/candidates/${candidateUserId}/next-actions`,
+      "POST",
+      { employer_id: getUserId(), job_id: jobId },
+    ),
+  runSupervisor: (jobId: string) =>
+    jsonBody<{ suggestions: SuggestedAction[]; auto_advanced: AdvanceResult }>(
+      `jobs/${jobId}/run?${eid()}`,
+      "POST",
+      {},
+    ),
 };
 
 /* ── Display helpers shared by employer pages ── */

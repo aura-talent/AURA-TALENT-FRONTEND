@@ -1,14 +1,18 @@
+"use client";
+
 import { useState } from "react";
-import type { JobPlanPayload } from "@/lib/employerApi";
+import { employerApi, type JobPlanPayload } from "@/lib/employerApi";
 import styles from "./WorkforcePlanner.module.css";
 
-/** Local drafting helper — fills the plan form from the prompt text. No
- * backend/agent call in this pass. */
+/** Drafts a workforce plan via the planning agent (POST /job-plans/draft) and
+ * fills the plan form with the result. */
 export default function PlanAuraModal({
+  jobId,
   jobTitle,
   onGenerate,
   onClose,
 }: {
+  jobId?: string;
   jobTitle: string;
   onGenerate: (patch: Partial<JobPlanPayload>) => void;
   onClose: () => void;
@@ -16,23 +20,38 @@ export default function PlanAuraModal({
   const [prompt, setPrompt] = useState("");
   const [includePrediction, setIncludePrediction] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function generate() {
+  async function generate() {
     setGenerating(true);
-    window.setTimeout(() => {
+    setError(null);
+    try {
+      const draft = await employerApi.draftPlan({
+        job_id: jobId,
+        brief: prompt.trim() || undefined,
+        title: jobTitle,
+      });
       onGenerate({
-        justification:
-          prompt.trim() ||
-          `Aura recommends growing this role based on current pipeline velocity and team capacity for ${jobTitle}.`,
+        priority: draft.priority ?? undefined,
+        openings: draft.openings,
+        baseline_headcount: draft.baseline_headcount ?? undefined,
+        budget: draft.budget ?? undefined,
+        target_start_date: draft.target_start_date ?? undefined,
+        target_fill_date: draft.target_fill_date ?? undefined,
+        justification: draft.justification,
         ...(includePrediction
           ? {
-              demand_signal_reason: `Aura detected rising demand pressure on ${jobTitle} from recent hiring velocity and open pipeline volume.`,
-              demand_signal_risk: "High",
+              demand_signal_reason: draft.demand_signal_reason ?? undefined,
+              demand_signal_risk: draft.demand_signal_risk ?? undefined,
             }
           : {}),
       });
       onClose();
-    }, 700);
+    } catch (err) {
+      console.error("Plan draft failed:", err);
+      setError(err instanceof Error ? err.message : "Draft failed — fill the plan manually.");
+      setGenerating(false);
+    }
   }
 
   return (
@@ -90,6 +109,10 @@ export default function PlanAuraModal({
             </span>
           </label>
         </div>
+
+        {error && (
+          <p style={{ color: "#dc2626", fontSize: "0.8rem", padding: "0 1.5rem" }}>{error}</p>
+        )}
 
         <footer>
           <button className="btn btn-ghost" type="button" onClick={onClose}>

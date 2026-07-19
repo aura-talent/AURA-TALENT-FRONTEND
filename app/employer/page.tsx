@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
-import { defaultPipelinePhases } from "./data";
+import { defaultPipelinePhases, isJobOpen } from "./data";
 import {
   candidateInitials,
   employerApi,
@@ -64,7 +64,7 @@ export default function EmployerOverview() {
     (user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email ?? "there")
       .split(" ")[0];
 
-  const openRoles = jobs.filter((job) => job.status === "Active").length;
+  const openRoles = jobs.filter(isJobOpen).length;
   const activeCandidates = candidates.filter(
     (row) => row.application && !row.application.is_rejected,
   ).length;
@@ -131,14 +131,8 @@ export default function EmployerOverview() {
             <h2>Hiring pipeline</h2>
             <p>Every open role, moving through your hiring process</p>
           </div>
-          <div className="section-head-actions">
-            <Link href="/employer/pipeline-settings" title="Configure pipeline phases">
-              ⚙ Configure phases
-            </Link>
-            <Link href="/employer/jobs">Manage jobs →</Link>
-          </div>
         </div>
-        <HiringPipelineBoard jobs={jobs} phases={phases} plans={plans} />
+        <HiringPipelineBoard jobs={jobs} phases={phases} plans={plans} candidates={candidates} />
       </section>
 
       <div className="employer-dashboard-grid">
@@ -225,7 +219,7 @@ export default function EmployerOverview() {
             <Link href="/employer/jobs">Manage →</Link>
           </div>
           <div className="role-health-list">
-            {jobs.filter((job) => job.status === "Active").slice(0, 3).map((job) => (
+            {jobs.filter(isJobOpen).slice(0, 3).map((job) => (
               <div key={job.id}>
                 <span>
                   <strong>{job.title}</strong>

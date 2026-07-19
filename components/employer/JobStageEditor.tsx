@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { defaultApplicationStages } from "@/app/employer/data";
 import { employerApi, type EmployerJob, type StageDef } from "@/lib/employerApi";
@@ -53,9 +52,6 @@ export default function JobStageEditor({ job }: { job: EmployerJob }) {
 
   return (
     <div className="employer-page">
-      <Link href={`/employer/jobs/${job.id}`} className="back-link">
-        ← {job.title}
-      </Link>
 
       <div className="employer-page-head">
         <div>

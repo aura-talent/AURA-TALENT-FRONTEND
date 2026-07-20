@@ -180,6 +180,27 @@ export function stageColor(stage: string, stages?: StageDef[] | null): string {
   return list.find((step) => step.label === stage)?.color ?? "var(--ink-55)";
 }
 
+// Phases that mean the role is no longer actively hiring. A job's lifecycle is
+// now expressed through its pipeline phase rather than the Draft/Active status.
+const NON_OPEN_PHASE_IDS = ["planning", "filled", "closed"];
+
+/** Whether a job is actively hiring, based on its pipeline phase. */
+export function isJobOpen(job: { pipeline_phase: string }): boolean {
+  return !NON_OPEN_PHASE_IDS.includes(job.pipeline_phase);
+}
+
+/** Resolve a phase id to its {id,label,color}, falling back to the defaults. */
+export function phaseMeta(phaseId: string, phases?: PhaseDef[] | null): PhaseDef {
+  const list = phases?.length ? phases : defaultPipelinePhases;
+  return (
+    list.find((phase) => phase.id === phaseId) ?? {
+      id: phaseId,
+      label: phaseId || "—",
+      color: "#64748b",
+    }
+  );
+}
+
 // ── Chip styling helpers ──────────────────────────────────────────────────
 
 export type PlanStatus = "Draft" | "Approved" | "Published";

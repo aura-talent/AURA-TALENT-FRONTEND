@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader } from "@/components/ui/loader";
+import { isJobOpen, phaseMeta } from "@/app/employer/data";
 import { employerApi, type EmployerJob } from "@/lib/employerApi";
 
 export default function JobsPage() {
@@ -25,22 +26,7 @@ export default function JobsPage() {
     };
   }, []);
 
-  function toggleStatus(job: EmployerJob) {
-    const status = job.status === "Active" ? "Draft" : "Active";
-    setJobs((current) =>
-      current.map((item) => (item.id === job.id ? { ...item, status } : item)),
-    );
-    employerApi.updateJob(job.id, { status }).catch((err) => {
-      console.error("Failed to update job status:", err);
-      setJobs((current) =>
-        current.map((item) =>
-          item.id === job.id ? { ...item, status: job.status } : item,
-        ),
-      );
-    });
-  }
-
-  const activeCount = jobs.filter((job) => job.status === "Active").length;
+  const openCount = jobs.filter(isJobOpen).length;
   const totalCandidates = jobs.reduce(
     (total, job) => total + (job.stats?.applicant_count ?? 0),
     0,
@@ -67,10 +53,10 @@ export default function JobsPage() {
       </div>
       <div className="job-summary-strip">
         <span>
-          <b>{activeCount}</b>Active
+          <b>{openCount}</b>Open roles
         </span>
         <span>
-          <b>{jobs.length - activeCount}</b>Draft
+          <b>{jobs.length}</b>Total jobs
         </span>
         <span>
           <b>{totalCandidates}</b>Total candidates
@@ -87,7 +73,6 @@ export default function JobsPage() {
           <thead>
             <tr>
               <th>Role</th>
-              <th>Status</th>
               <th>Applicants</th>
               <th>Interviews</th>
               <th>Mock interview</th>
@@ -101,15 +86,6 @@ export default function JobsPage() {
                 <td>
                   <strong>{job.title}</strong>
                   <small>{job.team ?? "—"}</small>
-                </td>
-                <td>
-                  <button
-                    className={`status-toggle ${job.status.toLowerCase()}`}
-                    onClick={() => toggleStatus(job)}
-                  >
-                    <i />
-                    {job.status}
-                  </button>
                 </td>
                 <td>
                   <Link
@@ -137,7 +113,20 @@ export default function JobsPage() {
                   )}
                 </td>
                 <td>
-                  <span className="chip">{job.pipeline_phase}</span>
+                  {(() => {
+                    const meta = phaseMeta(job.pipeline_phase);
+                    return (
+                      <span
+                        className="chip"
+                        style={{
+                          background: `color-mix(in srgb, ${meta.color} 14%, transparent)`,
+                          color: meta.color,
+                        }}
+                      >
+                        {meta.label}
+                      </span>
+                    );
+                  })()}
                 </td>
                 <td>
                   <div className="job-row-actions">

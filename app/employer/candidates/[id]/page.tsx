@@ -18,6 +18,7 @@ import {
 import CandidateEmailComposer from "@/components/employer/CandidateEmailComposer";
 import StageTracker from "@/components/employer/StageTracker";
 import { setBreadcrumbLabel } from "@/components/employer/Breadcrumbs";
+import BountyCandidateHistory from "@/components/employer/BountyCandidateHistory";
 
 function scoreTone(score: number) {
   if (score >= 90) return "strong";
@@ -455,6 +456,7 @@ export default function CandidateDetailPage({
                 ))}
             </section>
           )}
+          <BountyCandidateHistory candidateUserId={detail.candidate_user_id} />
           {evaluation && metrics?.redFlags != null && (
             <section className="panel employer-section red-flag-card">
               <div>

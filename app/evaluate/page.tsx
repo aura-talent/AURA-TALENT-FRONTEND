@@ -628,7 +628,7 @@ function EvaluateInner() {
       )}
       {error && <div className="notice notice-error">{error}</div>}
 
-      <div className="panel">
+      <div className="panel" data-tour="evaluate-input">
         <div className="tabs" role="tablist">
           <button className="tab" role="tab" aria-selected={mode === "url"} onClick={() => setMode("url")}>
             Job link
@@ -665,6 +665,7 @@ function EvaluateInner() {
 
         <button
           className="btn btn-primary"
+          data-tour="evaluate-submit"
           disabled={hasResume === false || (mode === "url" ? !url.trim().startsWith("http") : text.trim().length < 200)}
           onClick={run}
         >

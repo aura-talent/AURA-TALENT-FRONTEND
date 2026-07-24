@@ -3,6 +3,8 @@ import { Bricolage_Grotesque, Hanken_Grotesk, Space_Mono, Spline_Sans_Mono } fro
 import Nav from "@/components/Nav";
 import { AuthProvider } from "@/components/AuthProvider";
 import { RouteGuard } from "@/components/RouteGuard";
+import { TourProvider } from "@/components/tour/TourProvider";
+import TourOverlay from "@/components/tour/TourOverlay";
 import "./globals.css";
 
 const display = Bricolage_Grotesque({
@@ -80,24 +82,27 @@ export default function RootLayout({
       <body className={`${display.variable} ${body.variable} ${mono.variable} ${spaceMono.variable}`}>
         <AuthProvider>
           <RouteGuard>
-            <Nav />
-            <main>{children}</main>
-            <footer className="footer">
-              <div className="footer-inner">
-                <span>© {new Date().getFullYear()} Aura Talent</span>
-                <span>
-                  Powered by{" "}
-                  <a
-                    href="https://github.com/santifer/career-ops"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    career-ops
-                  </a>
-                  , open source
-                </span>
-              </div>
-            </footer>
+            <TourProvider>
+              <Nav />
+              <main>{children}</main>
+              <TourOverlay />
+              <footer className="footer">
+                <div className="footer-inner">
+                  <span>© {new Date().getFullYear()} Aura Talent</span>
+                  <span>
+                    Powered by{" "}
+                    <a
+                      href="https://github.com/santifer/career-ops"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      career-ops
+                    </a>
+                    , open source
+                  </span>
+                </div>
+              </footer>
+            </TourProvider>
           </RouteGuard>
         </AuthProvider>
       </body>

@@ -7,44 +7,74 @@ import {
   type CommsMessage,
   type EmployerJob,
   type JobPhaseEvent,
+  type SuggestedAction,
 } from "@/lib/employerApi";
 
 /**
  * Job-level activity feed.
  *
- * Reads real events for the job — pipeline-phase moves (job_phase_events, with
- * their trigger: manual / auto / an agent name) and sent emails
- * (comms_messages) — most recent first. Empty until something happens on the
- * role; no more synthetic seeding.
+ * Reads real events for the job — pipeline-phase moves (job_phase_events),
+ * sent emails (comms_messages), and agent-drafted suggestions
+ * (suggested_actions, any status) — most recent first. Empty until
+ * something happens on the role; no more synthetic seeding.
  */
-type Activity = { agent: string; color: string; text: string; when: string };
+type Activity = { agent: string; color: string; text: string; note?: string | null; when: string };
 
+function titleCase(s: string) {
+  return s.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// Every trigger/source string the backend actually writes (see
+// job_phase_events.trigger and suggested_actions.source). Unknown future
+// values fall back to a title-cased version of the raw string rather than
+// showing it verbatim.
 const TRIGGER_LABEL: Record<string, { agent: string; color: string }> = {
-  manual: { agent: "Pipeline", color: "#64748b" },
-  auto: { agent: "Aura Coordinator", color: "#7c3aed" },
-  "hr-supervisor": { agent: "Aura HR", color: "#7c3aed" },
+  manual: { agent: "You", color: "#64748b" },
+  auto: { agent: "Auto-advance", color: "#2563eb" },
+  "hr-supervisor": { agent: "Hiring Agent", color: "#7c3aed" },
+  "chat-agent": { agent: "Hiring Agent", color: "#7c3aed" },
 };
 
+const SEND_KINDS = new Set(["send_interview_invite", "follow_up", "recommend_offer"]);
+
 function phaseEventToActivity(e: JobPhaseEvent): Activity {
-  const meta = TRIGGER_LABEL[e.trigger] ?? { agent: e.trigger, color: "#2563eb" };
-  const from = e.from_phase ? `${e.from_phase} → ` : "";
+  const meta = TRIGGER_LABEL[e.trigger] ?? { agent: titleCase(e.trigger), color: "#2563eb" };
+  const from = e.from_phase ? `${titleCase(e.from_phase)} → ` : "";
   return {
     agent: meta.agent,
     color: meta.color,
-    text: `Advanced ${from}${e.to_phase}`,
+    text: `Advanced ${from}${titleCase(e.to_phase)}`,
+    note: e.note,
     when: timeAgo(e.created_at),
   };
 }
 
 function commsToActivity(m: CommsMessage): Activity {
   return {
-    agent: "Aura Comms",
+    agent: "Hiring Agent",
     color: "#0d9488",
     text:
       m.status === "failed"
         ? `Email failed: ${m.subject ?? "(no subject)"}`
         : `Email sent: ${m.subject ?? "(no subject)"}`,
     when: timeAgo(m.sent_at ?? m.created_at),
+  };
+}
+
+function suggestionToActivity(a: SuggestedAction): Activity {
+  const needsConfirmation = SEND_KINDS.has(a.kind);
+  const statusNote =
+    a.status === "done"
+      ? "Confirmed and sent"
+      : a.status === "dismissed"
+        ? "Dismissed"
+        : "Waiting for your confirmation";
+  return {
+    agent: "Hiring Agent",
+    color: "#7c3aed",
+    text: a.title,
+    note: needsConfirmation ? statusNote : a.body,
+    when: timeAgo(a.created_at),
   };
 }
 
@@ -62,7 +92,8 @@ export default function JobActivityFeed({
     Promise.allSettled([
       employerApi.phaseEvents(job.id),
       employerApi.listComms({ jobId: job.id }),
-    ]).then(([phaseRes, commsRes]) => {
+      employerApi.listSuggestedActions("all"),
+    ]).then(([phaseRes, commsRes, suggestionsRes]) => {
       if (cancelled) return;
       const events: { at: string; activity: Activity }[] = [];
       if (phaseRes.status === "fulfilled")
@@ -71,6 +102,10 @@ export default function JobActivityFeed({
       if (commsRes.status === "fulfilled")
         for (const m of commsRes.value)
           events.push({ at: m.sent_at ?? m.created_at, activity: commsToActivity(m) });
+      if (suggestionsRes.status === "fulfilled")
+        for (const a of suggestionsRes.value)
+          if (a.job_id === job.id)
+            events.push({ at: a.created_at, activity: suggestionToActivity(a) });
       events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
       setFeed(events.map((e) => e.activity));
     });
@@ -79,12 +114,20 @@ export default function JobActivityFeed({
     };
   }, [job.id]);
 
+  const idleHint =
+    job.automation_level === "auto" &&
+    job.status === "Active" &&
+    job.headhunter_ids.length === 0 &&
+    (job.stats?.applicant_count ?? 0) === 0
+      ? "Aura checks this job every few minutes — it'll auto-assign a headhunter and start sourcing shortly."
+      : null;
+
   const list =
     feed === null ? (
       <p className="job-activity-note">Loading activity…</p>
     ) : feed.length === 0 ? (
       <p className="job-activity-note">
-        No activity yet — phase moves and emails on this role will appear here.
+        No activity yet — phase moves, sourcing, and emails on this role will appear here.
       </p>
     ) : (
       <ol className="job-activity-feed">
@@ -94,6 +137,7 @@ export default function JobActivityFeed({
             <div>
               <strong style={{ color: item.color }}>{item.agent}</strong>
               <p>{item.text}</p>
+              {item.note && <small className="job-activity-detail">{item.note}</small>}
               <small>{item.when}</small>
             </div>
           </li>
@@ -108,6 +152,7 @@ export default function JobActivityFeed({
           AGENT ACTIVITY
         </p>
         {list}
+        {idleHint && <p className="job-activity-note job-activity-idle-hint">{idleHint}</p>}
       </div>
     );
   }
@@ -121,6 +166,7 @@ export default function JobActivityFeed({
         </div>
       </div>
       {list}
+      {idleHint && <p className="job-activity-note job-activity-idle-hint">{idleHint}</p>}
     </section>
   );
 }

@@ -5,6 +5,11 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import { useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
+import {
+  fetchCandidateNotifications,
+  type CandidateNotification,
+} from "@/lib/notificationHelpers";
+
 
 const APP_LINKS = [
   { href: "/dashboard", label: "DASHBOARD" },
@@ -30,10 +35,25 @@ export default function Nav() {
   const onEmployer = pathname.startsWith("/employer");
   const { user, loading, role, signOut } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<CandidateNotification[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    fetchCandidateNotifications(user.id)
+      .then((data) => {
+        if (!cancelled) setNotifications(data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   // animate the sheet back up before unmounting
   function closeMenu() {
@@ -52,7 +72,9 @@ export default function Nav() {
   useEffect(() => {
     setMenuOpen(false);
     setDropdownOpen(false);
+    setNotifOpen(false);
   }, [pathname]);
+
 
   // lock scroll + close on Escape while the fullscreen menu is open.
   // Pad by the scrollbar width so removing the scrollbar doesn't shift
@@ -118,20 +140,138 @@ export default function Nav() {
                   Loading...
                 </span>
               ) : user ? (
-                <div style={{ position: "relative" }}>
-                  <button
-                    onClick={() => setDropdownOpen(!dropdownOpen)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      background: "transparent",
-                      border: "none",
-                      color: "var(--ink)",
-                      padding: 0,
-                      flexShrink: 0,
-                    }}
-                  >
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  {/* Notification Bell Dropdown Button */}
+                  <div style={{ position: "relative" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNotifOpen(!notifOpen);
+                        setDropdownOpen(false);
+                      }}
+                      style={{
+                        position: "relative",
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: "0.35rem",
+                        color: "var(--ink)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                      aria-label="Notifications"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                      </svg>
+                      {notifications.length > 0 && (
+                        <span
+                          style={{
+                            position: "absolute",
+                            top: "3px",
+                            right: "3px",
+                            width: "8px",
+                            height: "8px",
+                            borderRadius: "50%",
+                            background: "var(--iris)",
+                            boxShadow: "0 0 8px var(--iris)",
+                          }}
+                        />
+                      )}
+                    </button>
+
+                    {notifOpen && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          right: "-40px",
+                          top: "100%",
+                          marginTop: "0.5rem",
+                          background: "var(--surface)",
+                          border: "1px solid var(--ink-30)",
+                          borderRadius: "10px",
+                          width: "310px",
+                          boxShadow: "0 8px 30px rgba(0,0,0,0.18)",
+                          zIndex: 100,
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div style={{ padding: "0.75rem 1rem", borderBottom: "1px solid var(--ink-10)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--ink)" }}>Notifications</span>
+                          <span className="mono" style={{ fontSize: "0.7rem", color: "var(--ink-50)" }}>{notifications.length} updates</span>
+                        </div>
+
+                        <div style={{ maxHeight: "280px", overflowY: "auto", display: "flex", flexDirection: "column" }}>
+                          {notifications.length === 0 ? (
+                            <div style={{ padding: "1.5rem", textAlign: "center", fontSize: "0.82rem", color: "var(--ink-55)" }}>
+                              No new notifications
+                            </div>
+                          ) : (
+                            notifications.slice(0, 4).map((n) => (
+                              <Link
+                                key={n.id}
+                                href={n.link}
+                                onClick={() => setNotifOpen(false)}
+                                style={{
+                                  padding: "0.75rem 1rem",
+                                  borderBottom: "1px solid var(--ink-06)",
+                                  textDecoration: "none",
+                                  color: "inherit",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: "0.2rem",
+                                  transition: "background 0.15s ease",
+                                }}
+                                className="dropdown-item"
+                              >
+                                <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--ink)" }}>
+                                  {n.title}
+                                </div>
+                                <div style={{ fontSize: "0.75rem", color: "var(--ink-65)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {n.message}
+                                </div>
+                                <span style={{ fontSize: "0.68rem", color: "var(--ink-40)", marginTop: "0.1rem" }}>
+                                  {n.timestamp}
+                                </span>
+                              </Link>
+                            ))
+                          )}
+                        </div>
+
+                        <div style={{ borderTop: "1px solid var(--ink-10)", padding: "0.5rem", textAlign: "center", background: "var(--ink-02)" }}>
+                          <Link
+                            href="/notifications"
+                            onClick={() => setNotifOpen(false)}
+                            style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--iris)", textDecoration: "none", display: "block", padding: "0.3rem" }}
+                          >
+                            View all notifications →
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Profile Menu Dropdown */}
+                  <div style={{ position: "relative" }}>
+                    <button
+                      onClick={() => {
+                        setDropdownOpen(!dropdownOpen);
+                        setNotifOpen(false);
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        background: "transparent",
+                        border: "none",
+                        color: "var(--ink)",
+                        padding: 0,
+                        flexShrink: 0,
+                      }}
+                    >
+
                     {user.user_metadata?.avatar_url ||
                       user.user_metadata?.picture ? (
                       <img
@@ -239,14 +379,24 @@ export default function Nav() {
                         </>
                       )}
                       {role === "candidate" && (
-                        <Link
-                          href="/my-resume"
-                          onClick={() => setDropdownOpen(false)}
-                          style={{ padding: "0.5rem", borderRadius: 0, fontSize: "0.875rem", color: "var(--ink-72)" }}
-                          className="dropdown-item"
-                        >
-                          My resume
-                        </Link>
+                        <>
+                          <Link
+                            href="/my-resume"
+                            onClick={() => setDropdownOpen(false)}
+                            style={{ padding: "0.5rem", borderRadius: 0, fontSize: "0.875rem", color: "var(--ink-72)" }}
+                            className="dropdown-item"
+                          >
+                            My resume
+                          </Link>
+                          <Link
+                            href="/dashboard?tour=1"
+                            onClick={() => setDropdownOpen(false)}
+                            style={{ padding: "0.5rem", borderRadius: 0, fontSize: "0.875rem", color: "var(--ink-72)" }}
+                            className="dropdown-item"
+                          >
+                            Take the tour
+                          </Link>
+                        </>
                       )}
                       <button
                         onClick={() => {
@@ -270,7 +420,10 @@ export default function Nav() {
                     </div>
                   )}
                 </div>
-              ) : (
+              </div>
+            ) : (
+
+
                 <>
                   <Link href="/login?mode=signin" style={{ marginRight: "0.5rem" }}>
                     SIGN_IN
@@ -356,159 +509,288 @@ export default function Nav() {
                   Loading...
                 </span>
               ) : user ? (
-                <div style={{ position: "relative" }}>
-                  <button
-                    onClick={() => setDropdownOpen(!dropdownOpen)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      background: "transparent",
-                      border: "none",
-                      color: "var(--ink)",
-                      padding: 0,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {user.user_metadata?.avatar_url ||
-                      user.user_metadata?.picture ? (
-                      <img
-                        src={
-                          user.user_metadata.avatar_url ||
-                          user.user_metadata.picture
-                        }
-                        alt="Profile"
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: "50%",
-                          border: "1px solid var(--ink-12)",
-                        }}
-                      />
-                    ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  {/* Notification Bell Dropdown Button */}
+                  <div style={{ position: "relative" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNotifOpen(!notifOpen);
+                        setDropdownOpen(false);
+                      }}
+                      style={{
+                        position: "relative",
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: "0.35rem",
+                        color: "var(--ink)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                      aria-label="Notifications"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                      </svg>
+                      {notifications.length > 0 && (
+                        <span
+                          style={{
+                            position: "absolute",
+                            top: "3px",
+                            right: "3px",
+                            width: "8px",
+                            height: "8px",
+                            borderRadius: "50%",
+                            background: "var(--iris)",
+                            boxShadow: "0 0 8px var(--iris)",
+                          }}
+                        />
+                      )}
+                    </button>
+
+                    {notifOpen && (
                       <div
                         style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: "50%",
-                          background: "var(--iris-12)",
-                          color: "var(--iris)",
-                          display: "grid",
-                          placeItems: "center",
-                          fontWeight: 600,
-                          fontSize: "0.875rem",
+                          position: "absolute",
+                          right: "-40px",
+                          top: "100%",
+                          marginTop: "0.5rem",
+                          background: "var(--surface)",
+                          border: "1px solid var(--ink-30)",
+                          borderRadius: "10px",
+                          width: "310px",
+                          boxShadow: "0 8px 30px rgba(0,0,0,0.18)",
+                          zIndex: 100,
+                          overflow: "hidden",
                         }}
                       >
-                        {user.email?.[0].toUpperCase() ?? "U"}
+                        <div style={{ padding: "0.75rem 1rem", borderBottom: "1px solid var(--ink-10)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--ink)" }}>Notifications</span>
+                          <span className="mono" style={{ fontSize: "0.7rem", color: "var(--ink-50)" }}>{notifications.length} updates</span>
+                        </div>
+
+                        <div style={{ maxHeight: "280px", overflowY: "auto", display: "flex", flexDirection: "column" }}>
+                          {notifications.length === 0 ? (
+                            <div style={{ padding: "1.5rem", textAlign: "center", fontSize: "0.82rem", color: "var(--ink-55)" }}>
+                              No new notifications
+                            </div>
+                          ) : (
+                            notifications.slice(0, 4).map((n) => (
+                              <Link
+                                key={n.id}
+                                href={n.link}
+                                onClick={() => setNotifOpen(false)}
+                                style={{
+                                  padding: "0.75rem 1rem",
+                                  borderBottom: "1px solid var(--ink-06)",
+                                  textDecoration: "none",
+                                  color: "inherit",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: "0.2rem",
+                                  transition: "background 0.15s ease",
+                                }}
+                                className="dropdown-item"
+                              >
+                                <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--ink)" }}>
+                                  {n.title}
+                                </div>
+                                <div style={{ fontSize: "0.75rem", color: "var(--ink-65)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {n.message}
+                                </div>
+                                <span style={{ fontSize: "0.68rem", color: "var(--ink-40)", marginTop: "0.1rem" }}>
+                                  {n.timestamp}
+                                </span>
+                              </Link>
+                            ))
+                          )}
+                        </div>
+
+                        <div style={{ borderTop: "1px solid var(--ink-10)", padding: "0.5rem", textAlign: "center", background: "var(--ink-02)" }}>
+                          <Link
+                            href="/notifications"
+                            onClick={() => setNotifOpen(false)}
+                            style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--iris)", textDecoration: "none", display: "block", padding: "0.3rem" }}
+                          >
+                            View all notifications →
+                          </Link>
+                        </div>
                       </div>
                     )}
-                    <span
-                      style={{ fontSize: "0.9375rem", fontWeight: 500, whiteSpace: "nowrap" }}
-                      className="nav-user-name"
-                    >
-                      {user.user_metadata?.full_name ||
-                        user.user_metadata?.name ||
-                        "Account"}
-                    </span>
-                  </button>
+                  </div>
 
-                  {dropdownOpen && (
-                    <div
+                  {/* Profile Dropdown */}
+                  <div style={{ position: "relative" }}>
+                    <button
+                      onClick={() => {
+                        setDropdownOpen(!dropdownOpen);
+                        setNotifOpen(false);
+                      }}
                       style={{
-                        position: "absolute",
-                        right: 0,
-                        top: "100%",
-                        marginTop: "0.5rem",
-                        background: "var(--surface)",
-                        border: "1px solid var(--ink-30)",
-                        borderRadius: 0,
-                        padding: "0.5rem",
-                        minWidth: "180px",
                         display: "flex",
-                        flexDirection: "column",
-                        gap: "0.25rem",
-                        zIndex: 100,
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        background: "transparent",
+                        border: "none",
+                        color: "var(--ink)",
+                        padding: 0,
+                        flexShrink: 0,
                       }}
                     >
+                      {user.user_metadata?.avatar_url ||
+                        user.user_metadata?.picture ? (
+                        <img
+                          src={
+                            user.user_metadata.avatar_url ||
+                            user.user_metadata.picture
+                          }
+                          alt="Profile"
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: "50%",
+                            border: "1px solid var(--ink-12)",
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: "50%",
+                            background: "var(--iris-12)",
+                            color: "var(--iris)",
+                            display: "grid",
+                            placeItems: "center",
+                            fontWeight: 600,
+                            fontSize: "0.875rem",
+                          }}
+                        >
+                          {user.email?.[0].toUpperCase() ?? "U"}
+                        </div>
+                      )}
+                      <span
+                        style={{ fontSize: "0.9375rem", fontWeight: 500, whiteSpace: "nowrap" }}
+                        className="nav-user-name"
+                      >
+                        {user.user_metadata?.full_name ||
+                          user.user_metadata?.name ||
+                          "Account"}
+                      </span>
+                    </button>
+
+                    {dropdownOpen && (
                       <div
                         style={{
+                          position: "absolute",
+                          right: 0,
+                          top: "100%",
+                          marginTop: "0.5rem",
+                          background: "var(--surface)",
+                          border: "1px solid var(--ink-30)",
+                          borderRadius: 0,
                           padding: "0.5rem",
-                          borderBottom: "1px solid var(--ink-06)",
-                          marginBottom: "0.25rem",
+                          minWidth: "180px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "0.25rem",
+                          zIndex: 100,
                         }}
                       >
                         <div
                           style={{
-                            fontSize: "0.8125rem",
-                            fontWeight: 600,
-                            color: "var(--ink-55)",
+                            padding: "0.5rem",
+                            borderBottom: "1px solid var(--ink-06)",
+                            marginBottom: "0.25rem",
                           }}
                         >
-                          Logged in as
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "0.875rem",
-                            fontWeight: 500,
-                            color: "var(--ink)",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {user.email}
+                          <div
+                            style={{
+                              fontSize: "0.8125rem",
+                              fontWeight: 600,
+                              color: "var(--ink-55)",
+                            }}
+                          >
+                            Logged in as
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "0.875rem",
+                              fontWeight: 500,
+                              color: "var(--ink)",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {user.email}
+                          </div>
+                          {role === "employer" && (
+                            <div style={{ marginTop: "0.25rem", color: "var(--iris)", fontSize: "0.8125rem", fontWeight: 600 }}>
+                              Employer account
+                            </div>
+                          )}
                         </div>
                         {role === "employer" && (
-                          <div style={{ marginTop: "0.25rem", color: "var(--iris)", fontSize: "0.8125rem", fontWeight: 600 }}>
-                            Employer account
-                          </div>
+                          <>
+                            <Link
+                              href="/employer"
+                              onClick={() => setDropdownOpen(false)}
+                              style={{ padding: "0.5rem", borderRadius: 0, fontSize: "0.875rem", color: "var(--ink-72)" }}
+                              className="dropdown-item"
+                            >
+                              Employer workspace
+                            </Link>
+                          </>
                         )}
-                      </div>
-                      {role === "employer" && (
-                        <>
-                          <Link
-                            href="/employer"
-                            onClick={() => setDropdownOpen(false)}
-                            style={{ padding: "0.5rem", borderRadius: 0, fontSize: "0.875rem", color: "var(--ink-72)" }}
-                            className="dropdown-item"
-                          >
-                            Employer workspace
-                          </Link>
-                        </>
-                      )}
-                      {role === "candidate" && (
-                        <Link
-                          href="/my-resume"
-                          onClick={() => setDropdownOpen(false)}
-                          style={{ padding: "0.5rem", borderRadius: 0, fontSize: "0.875rem", color: "var(--ink-72)" }}
-                          className="dropdown-item"
+                        {role === "candidate" && (
+                          <>
+                            <Link
+                              href="/my-resume"
+                              onClick={() => setDropdownOpen(false)}
+                              style={{ padding: "0.5rem", borderRadius: 0, fontSize: "0.875rem", color: "var(--ink-72)" }}
+                              className="dropdown-item"
+                            >
+                              My resume
+                            </Link>
+                            <Link
+                              href="/dashboard?tour=1"
+                              onClick={() => setDropdownOpen(false)}
+                              style={{ padding: "0.5rem", borderRadius: 0, fontSize: "0.875rem", color: "var(--ink-72)" }}
+                              className="dropdown-item"
+                            >
+                              Take the tour
+                            </Link>
+                          </>
+                        )}
+                        <button
+                          onClick={() => {
+                            setDropdownOpen(false);
+                            signOut();
+                          }}
+                          style={{
+                            textAlign: "left",
+                            padding: "0.5rem",
+                            borderRadius: 0,
+                            fontSize: "0.875rem",
+                            color: "#bc4a2a",
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                            width: "100%",
+                          }}
                         >
-                          My resume
-                        </Link>
-                      )}
-                      <button
-                        onClick={() => {
-                          setDropdownOpen(false);
-                          signOut();
-                        }}
-                        style={{
-                          textAlign: "left",
-                          padding: "0.5rem",
-                          borderRadius: 0,
-                          fontSize: "0.875rem",
-                          color: "#bc4a2a",
-                          background: "transparent",
-                          border: "none",
-                          cursor: "pointer",
-                          width: "100%",
-                        }}
-                      >
-                        Sign out
-                      </button>
-                    </div>
-                  )}
+                          Sign out
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
+
                 <>
                   <Link href="/login?mode=signin" className="btn btn-ghost">
                     Sign in

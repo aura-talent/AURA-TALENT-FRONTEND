@@ -216,7 +216,15 @@ export interface Application {
   date: string;
   company: string;
   role: string;
+  company_name?: string;
+  job_title?: string;
   score: number;
+  rounds?: {
+    name?: string;
+    scheduled_at?: string;
+    interviewer?: string;
+  }[];
+
   /** Raw LLM score breakdown: match_cv, alignment, comp, culture, red_flags, global_score (1-5 scale) */
   scores?: {
     match_cv?: number;

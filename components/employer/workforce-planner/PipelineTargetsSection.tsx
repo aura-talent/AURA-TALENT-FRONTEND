@@ -8,16 +8,20 @@ import {
   type PhaseMetric,
   type PhaseTarget,
 } from "@/app/employer/pipelineConfig";
+import AutomationLevelSection from "./AutomationLevelSection";
 import styles from "./PipelineTargetsSection.module.css";
 
 export default function PipelineTargetsSection({
   phases,
   config,
   onChange,
+  showAutomation = true,
 }: {
   phases: PhaseDef[];
   config: JobPipelineConfig;
   onChange: (config: JobPipelineConfig) => void;
+  /** Hide the automation switch when it's already shown elsewhere (job-creation step 1). */
+  showAutomation?: boolean;
 }) {
   const byId = new Map(config.phases.map((target) => [target.phaseId, target]));
 
@@ -36,33 +40,11 @@ export default function PipelineTargetsSection({
 
   return (
     <div className={styles.wrap}>
-      {/* Automation level — one switch for the whole job. */}
-      <div className={styles.autoRow}>
-        <div className={styles.autoCopy}>
-          <strong>Automation level</strong>
-          <p>
-            {config.automation === "auto"
-              ? "Aura advances this job through every phase automatically as each target is met."
-              : "You advance this job phase by phase. Aura flags when a target is met."}
-          </p>
-        </div>
-        <div className={styles.switch} role="group" aria-label="Automation level">
-          <button
-            type="button"
-            className={`${styles.switchBtn} ${config.automation === "auto" ? styles.switchActive : ""}`}
-            onClick={() => setAutomation("auto")}
-          >
-            ⚡ Automatic
-          </button>
-          <button
-            type="button"
-            className={`${styles.switchBtn} ${config.automation === "manual" ? styles.switchActive : ""}`}
-            onClick={() => setAutomation("manual")}
-          >
-            ✋ Human
-          </button>
-        </div>
-      </div>
+      {/* Automation level — one switch for the whole job. Hidden when the
+          host already renders it elsewhere (job-creation step 1). */}
+      {showAutomation && (
+        <AutomationLevelSection automation={config.automation} onChange={setAutomation} />
+      )}
 
       {/* Targets — one per phase, defining when the job may leave it. */}
       <div className={styles.targets}>

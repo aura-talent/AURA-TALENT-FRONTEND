@@ -76,9 +76,14 @@ export default function MyResume() {
                 : "This is the single source of truth Aura matches every job against."}
             </p>
           </div>
-          <Link href="/onboarding" className="btn btn-primary">
-            Upload new résumé →
-          </Link>
+          <div style={{ display: "flex", gap: "0.65rem" }}>
+            <Link href="/profile" className="btn btn-ghost">
+              Edit profile
+            </Link>
+            <Link href="/onboarding" className="btn btn-primary">
+              Upload new résumé →
+            </Link>
+          </div>
         </div>
 
         <div className="my-resume-body">

@@ -37,9 +37,15 @@ async function forward(
     console.log(`[Proxy] ⬅️  Response from backend: ${resp.status} for ${req.method} /${pathStr}`);
 
     if (!resp.ok) {
+      // 4xx responses are often expected — e.g. a 404 "no resume found yet"
+      // for a brand-new user, which callers already catch and handle
+      // gracefully. Only 5xx (actual backend failures) get logged as
+      // errors; 4xx are logged at warn level to keep the console honest.
+      const logFn = resp.status >= 500 ? console.error : console.warn;
+      const icon = resp.status >= 500 ? "❌" : "⚠️ ";
       try {
         const errorText = await resp.clone().text();
-        console.error(`[Proxy] ❌ Backend error details:`, errorText);
+        logFn(`[Proxy] ${icon} Backend response body:`, errorText);
       } catch (err) {
         console.error(`[Proxy] ❌ Failed to read backend error text:`, err);
       }

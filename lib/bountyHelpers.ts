@@ -67,9 +67,10 @@ export type SubmissionWithResult = BountySubmission & { result: SubmissionResult
 
 export type CandidateBountyHistory = {
   submission: BountySubmission;
-  bounty: Pick<Bounty, "id" | "title" | "currency">;
+  bounty: Pick<Bounty, "id" | "title" | "currency" | "winner_slots">;
   result: SubmissionResult | null;
 };
+
 
 export type BountyEditorMode = "create" | "edit";
 
@@ -102,6 +103,25 @@ export function totalPrizePool(winnerSlots: WinnerSlot[]): number {
 export function formatPrize(amount: number, currency: string): string {
   return `${currency} ${amount.toLocaleString()}`;
 }
+
+export function formatRankLabel(rank: number): string {
+  switch (rank) {
+    case 1:
+      return "First Place";
+    case 2:
+      return "Follow-up";
+
+    case 3:
+      return "Third Place";
+    case 4:
+      return "Fourth Place";
+    case 5:
+      return "Fifth Place";
+    default:
+      return `Rank ${rank}`;
+  }
+}
+
 
 export function bountyStatusLabel(status: BountyStatus): string {
   switch (status) {

@@ -16,6 +16,8 @@ import {
   type Bounty,
   type CandidateBountyHistory,
 } from "@/lib/bountyApi";
+import BountyCard, { getBountyAvatar } from "@/components/bounties/BountyCard";
+
 
 
 function guessCountry(): string {
@@ -71,6 +73,11 @@ function ScanStatus({ label }: { label: string }) {
     </div>
   );
 }
+
+function SkeletonValue({ width = "60px", height = "2rem", margin = "0.25rem 0" }: { width?: string; height?: string; margin?: string }) {
+  return <div className="skeleton-pulse" style={{ width, height, margin }} />;
+}
+
 
 export default function Dashboard() {
   const router = useRouter();
@@ -244,7 +251,7 @@ export default function Dashboard() {
           .from("job_scans")
           .select("jobs, scanned_at")
           .eq("user_id", userId)
-          .single();
+          .maybeSingle();
 
         if (data) {
           setJobs(data.jobs as JobPosting[]);
@@ -333,6 +340,8 @@ export default function Dashboard() {
   }, [jobs]);
 
   // Statistics Computations
+  const isDataLoading = authLoading || apps === null;
+
   const totalApps = apps?.length ?? 0;
   
   const offersCount = apps?.filter((a) => a.status === "Offer").length ?? 0;
@@ -390,10 +399,19 @@ export default function Dashboard() {
   });
 
   const monthsList = Object.keys(monthlyCounts).slice(-6); // last 6 months
-  const maxMonthValue = Math.max(...Object.values(monthlyCounts), 1);
-
-  const hasNoCache = !cacheLoading && !jobs && !scanLoading;
+  const maxMonthValue = Math.max(...Object.values(monthlyCounts), 1);  const hasNoCache = !cacheLoading && !jobs && !scanLoading;
   const showJobs = jobs && jobs.length > 0;
+
+  if (authLoading || apps === null) {
+    return (
+      <div className="container" style={{ minHeight: "80vh", display: "grid", placeItems: "center" }}>
+        <div className="thinking">
+          <div className="thinking-orb" />
+          <p className="thinking-status">Checking access permissions…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-page app-sheet" ref={root}>
@@ -420,7 +438,7 @@ export default function Dashboard() {
           <div className="dash-col" style={{ display: "flex", flexDirection: "column", gap: "2rem", minWidth: 0 }}>
             
             {/* KPI Scorecards Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "1rem" }}>
+            <div data-tour="dashboard-stats" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "1rem" }}>
               
               {/* Total Apps */}
               <div className="panel" style={{ padding: "1.25rem", position: "relative" }}>
@@ -456,7 +474,7 @@ export default function Dashboard() {
                 <span style={{ fontSize: "2rem", fontWeight: 700, display: "block", margin: "0.25rem 0" }} className="mono">
                   {interviewRoundsCount}
                 </span>
-                <span style={{ fontSize: "0.72rem", color: "var(--ink-55)" }}>
+                <span style={{ fontSize: "0.72rem", color: "var(--ink-55)", display: "block" }}>
                   Active scheduled dates
                 </span>
               </div>
@@ -539,97 +557,7 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
-
               </div>
-            </div>
-
-            {/* Career Path Navigator */}
-            {!authLoading && user && hasResume === true && (
-              <>
-                <Link
-                  href="/career-map"
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    gap: "1rem", padding: "1rem 1.2rem", marginBottom: "1rem",
-                    borderRadius: "var(--r-m, 12px)", textDecoration: "none",
-                    background: "linear-gradient(120deg, #10132a, #1c1440)",
-                    border: "1px solid rgba(143,125,255,0.35)", color: "#fafaf8",
-                  }}
-                >
-                  <span style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
-                    <span style={{ fontWeight: 700 }}>Career Map</span>
-                    <span style={{ fontSize: "0.8rem", color: "rgba(250,250,248,0.6)" }}>
-                      Explore your next roles, pivots, and wildcards in 3D
-                    </span>
-                  </span>
-                  <span className="mono" style={{ fontSize: "0.75rem", color: "#c7b9ff", whiteSpace: "nowrap" }}>
-                    Open map →
-                  </span>
-                </Link>
-                <CareerPathNavigator />
-              </>
-            )}
-
-            {/* Upcoming Interviews Reminder Checklist */}
-            <div className="panel" style={{ padding: "1.5rem" }}>
-              <h3 style={{ fontSize: "1.05rem", fontWeight: 700, marginBottom: "1rem", fontFamily: "var(--font-space), monospace" }}>
-                UPCOMING_INTERVIEW_ROUND_NOTIFICATIONS
-              </h3>
-
-              {upcomingInterviews.length > 0 ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                  {upcomingInterviews.map((int) => (
-                    <div 
-                      key={int.id} 
-                      className="panel" 
-                      style={{ 
-                        padding: "0.85rem", 
-                        background: "rgba(78, 63, 216, 0.02)", 
-                        border: "1px solid var(--iris-12)", 
-                        display: "flex", 
-                        justifyContent: "space-between", 
-                        alignItems: "center" 
-                      }}
-                    >
-                      <div>
-                        <span style={{ fontSize: "0.68rem", textTransform: "uppercase", fontWeight: 700, color: "var(--iris)" }}>
-                          {int.company}
-                        </span>
-                        <h4 style={{ fontSize: "0.85rem", fontWeight: 600, margin: "0.1rem 0" }}>
-                          {int.name} // {int.role}
-                        </h4>
-                        {int.interviewer && (
-                          <span style={{ fontSize: "0.72rem", color: "var(--ink-55)", display: "block" }}>
-                            Interviewer: {int.interviewer}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div style={{ textAlign: "right" }}>
-                        <span className="mono" style={{ fontSize: "0.8rem", fontWeight: 700, display: "block", color: "var(--ink)" }}>
-                          {int.date}
-                        </span>
-                        <Link 
-                          href="/tracker" 
-                          style={{ fontSize: "0.7rem", fontWeight: 600, display: "inline-block", marginTop: "0.25rem" }} 
-                          className="auth-legal-link"
-                        >
-                          View round checklist →
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ textAlign: "center", padding: "2rem", border: "1.5px dashed var(--ink-12)", borderRadius: "var(--r-s)" }}>
-                  <p style={{ fontSize: "0.8rem", color: "var(--ink-55)", margin: 0 }}>
-                    No upcoming interview dates scheduled.
-                  </p>
-                  <Link href="/tracker" style={{ fontSize: "0.75rem", fontWeight: 600, marginTop: "0.5rem", display: "inline-block" }} className="auth-legal-link">
-                    Open scheduler tool →
-                  </Link>
-                </div>
-              )}
             </div>
 
           </div>
@@ -647,6 +575,10 @@ export default function Dashboard() {
             </div>
 
             <div className="panel">
+          {/* RIGHT COLUMN: Company portals matches & Keyword scans */}
+
+          <div className="dash-col" style={{ minWidth: 0 }}>
+            <div className="panel" data-tour="dashboard-jobs-panel">
               <span className="eval-tick eval-tick-tl" />
               <span className="eval-tick eval-tick-tr" />
               <span className="eval-tick eval-tick-bl" />
@@ -655,12 +587,9 @@ export default function Dashboard() {
               <div className="page-kicker" style={{ marginBottom: "0.6rem" }}>
                 LIVE_SCAN // PORTALS
               </div>
-              <h3 style={{ fontSize: "1.15rem", marginBottom: "0.5rem" }}>
+              <h3 style={{ fontSize: "1.15rem", marginBottom: "1.25rem" }}>
                 Suited jobs for you
               </h3>
-              <p style={{ fontSize: "0.82rem", color: "var(--ink-55)", marginBottom: "1.25rem" }}>
-                Aura matches open roles on company portals against your resume target roles and skills.
-              </p>
 
               {authLoading && <ScanStatus label="AUTH_CHECK // RUNNING" />}
 
@@ -721,29 +650,19 @@ export default function Dashboard() {
               {/* Logged in with resume */}
               {!authLoading && user && hasResume === true && (
                 <div>
-                  {resume && (
-                    <div style={{ marginBottom: "0.75rem", fontSize: "0.8125rem", color: "var(--ink-55)" }}>
-                      Profile: <strong>{resume.profile?.headline || "Your Resume"}</strong>
-                    </div>
-                  )}
-
-                  <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.25rem", alignItems: "flex-end" }}>
-                    <div className="field" style={{ margin: 0, flex: 1 }}>
-                      <label htmlFor="dashboard-loc-loc" style={{ fontSize: "0.75rem", fontWeight: 500, color: "var(--ink-55)", marginBottom: "0.25rem" }}>
-                        Target Locations
-                      </label>
-                      <input
-                        id="dashboard-loc-loc"
-                        className="input"
-                        style={{ padding: "0.35rem 0.6rem", fontSize: "0.8125rem", height: "32px" }}
-                        placeholder="Malaysia, Remote, Singapore"
-                        value={locationInput}
-                        onChange={(e) => {
-                          setLocationInput(e.target.value);
-                          localStorage.setItem("aura_location_filter", e.target.value);
-                        }}
-                      />
-                    </div>
+                  <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.25rem" }}>
+                    <input
+                      id="dashboard-loc-loc"
+                      className="input"
+                      style={{ padding: "0.35rem 0.6rem", fontSize: "0.8125rem", height: "32px", flex: 1 }}
+                      placeholder="Malaysia, Remote, Singapore"
+                      aria-label="Target locations"
+                      value={locationInput}
+                      onChange={(e) => {
+                        setLocationInput(e.target.value);
+                        localStorage.setItem("aura_location_filter", e.target.value);
+                      }}
+                    />
                     <button
                       className="btn btn-primary"
                       style={{ height: "32px", padding: "0 0.75rem", fontSize: "0.8125rem" }}
@@ -786,7 +705,7 @@ export default function Dashboard() {
 
                   {showJobs && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-                      {jobs!.slice(0, 6).map((job) => (
+                      {jobs!.slice(0, 1).map((job) => (
                         <div
                           key={job.url}
                           className="dash-job"
@@ -895,7 +814,7 @@ export default function Dashboard() {
 
 
             {/* Paid Bounties Panel */}
-            <div className="panel" style={{ marginTop: "2rem" }}>
+            <div className="panel" data-tour="dashboard-bounties-panel" style={{ marginTop: "2rem" }}>
               <span className="eval-tick eval-tick-tl" />
               <span className="eval-tick eval-tick-tr" />
               <span className="eval-tick eval-tick-bl" />
@@ -968,31 +887,7 @@ export default function Dashboard() {
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
                       {recentBounties.map((b) => (
-                        <div
-                          key={b.id}
-                          style={{
-                            padding: "0.75rem",
-                            border: "1px solid var(--ink-12)",
-                            background: "var(--surface)",
-                            borderRadius: "6px",
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            gap: "0.75rem",
-                          }}
-                        >
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ fontSize: "0.85rem", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                              {b.title}
-                            </div>
-                            <div style={{ fontSize: "0.75rem", color: "var(--ink-55)", marginTop: "0.15rem" }}>
-                              {formatPrize(totalPrizePool(b.winner_slots), b.currency)} pool · {b.winner_slots.length} winners
-                            </div>
-                          </div>
-                          <Link href={`/bounties/${b.id}`} className="btn btn-ghost" style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem", whiteSpace: "nowrap" }}>
-                            View →
-                          </Link>
-                        </div>
+                        <BountyCard key={b.id} bounty={b} />
                       ))}
                     </div>
                   )}
@@ -1007,44 +902,100 @@ export default function Dashboard() {
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
                       {mySubmissions.map((s) => {
                         const isWinner = s.result?.status === "winner";
+                        const avatarUrl = getBountyAvatar(s.bounty.id);
+                        const prizeFormatted = s.bounty.winner_slots ? formatPrize(totalPrizePool(s.bounty.winner_slots), s.bounty.currency) : s.bounty.currency;
+
                         return (
-                          <div
+                          <Link
                             key={s.submission.id}
+                            href={`/bounties/${s.bounty.id}`}
+                            className="bounty-card-row"
                             style={{
-                              padding: "0.75rem",
-                              border: "1px solid var(--ink-12)",
-                              background: "var(--surface)",
-                              borderRadius: "6px",
                               display: "flex",
-                              justifyContent: "space-between",
                               alignItems: "center",
-                              gap: "0.75rem",
+                              justifyContent: "space-between",
+                              gap: "1rem",
+                              padding: "0.85rem 1rem",
+                              borderRadius: "10px",
+                              background: "var(--surface)",
+                              border: "1px solid var(--ink-12)",
+                              textDecoration: "none",
+                              color: "inherit",
+                              transition: "all 0.2s ease",
+                              cursor: "pointer",
                             }}
                           >
-                            <div style={{ minWidth: 0, flex: 1 }}>
-                              <div style={{ fontSize: "0.85rem", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                {s.bounty.title}
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.85rem", minWidth: 0, flex: 1 }}>
+                              <div
+                                style={{
+                                  width: "44px",
+                                  height: "44px",
+                                  borderRadius: "10px",
+                                  overflow: "hidden",
+                                  flexShrink: 0,
+                                  background: "var(--ink-10)",
+                                  boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
+                                }}
+                              >
+                                <img
+                                  src={avatarUrl}
+                                  alt={s.bounty.title}
+                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                />
                               </div>
-                              <div style={{ fontSize: "0.72rem", color: "var(--ink-55)", marginTop: "0.15rem" }}>
-                                {isWinner ? (
-                                  <span style={{ color: "var(--score-strong)", fontWeight: 700 }}>🏆 Winner (Rank {s.result!.rank})</span>
-                                ) : s.result?.status === "not_selected" ? (
-                                  <span>Not selected</span>
-                                ) : (
-                                  <span style={{ color: "var(--iris)", fontWeight: 600 }}>⏳ Pending Review</span>
-                                )}
+
+                              <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: "0.15rem" }}>
+                                <h4
+                                  style={{
+                                    fontSize: "0.88rem",
+                                    fontWeight: 700,
+                                    margin: 0,
+                                    color: "var(--ink)",
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                  }}
+                                >
+                                  {s.bounty.title}
+                                </h4>
+
+                                <div style={{ fontSize: "0.75rem", marginTop: "0.1rem" }}>
+                                  {isWinner ? (
+                                    <span style={{ color: "var(--score-strong)", fontWeight: 700 }}>🏆 Winner (Rank {s.result!.rank})</span>
+                                  ) : s.result?.status === "not_selected" ? (
+                                    <span style={{ color: "var(--ink-55)" }}>Not selected</span>
+                                  ) : (
+                                    <span style={{ color: "var(--iris)", fontWeight: 600 }}>⏳ Pending Review</span>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                            <Link href={`/bounties/${s.bounty.id}`} className="btn btn-ghost" style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem", whiteSpace: "nowrap" }}>
-                              View →
-                            </Link>
-                          </div>
+
+                            <div style={{ textAlign: "right", flexShrink: 0 }}>
+                              <div
+                                className="mono"
+                                style={{
+                                  fontSize: "1.05rem",
+                                  fontWeight: 800,
+                                  color: "var(--iris)",
+                                  letterSpacing: "-0.01em",
+                                }}
+                              >
+                                {prizeFormatted}
+
+                              </div>
+                              <span style={{ fontSize: "0.62rem", color: "var(--ink-50)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>
+                                PRIZE POOL
+                              </span>
+                            </div>
+                          </Link>
                         );
                       })}
                     </div>
                   )}
                 </div>
               )}
+
 
               <div style={{ marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid var(--ink-10)", textAlign: "center" }}>
                 <Link href="/bounties" className="btn btn-ghost" style={{ fontSize: "0.82rem", width: "100%", justifyContent: "center" }}>

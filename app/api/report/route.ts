@@ -29,8 +29,9 @@ export async function POST(req: Request) {
       client,
       reportPrompt(body.role, body.answers),
       ReportLLMSchema,
-      "gpt-4o report",
+      "gemini-3.5-flash report",
     );
+
     return Response.json({ ...report, mocked: false });
   } catch (err) {
     console.error("report route failed:", err);

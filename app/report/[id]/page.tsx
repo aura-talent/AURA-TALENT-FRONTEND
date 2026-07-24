@@ -6,7 +6,9 @@ import { api, type Evaluation, getUserId } from "@/lib/api";
 import ReportView from "@/components/ReportView";
 import ScoreDial, { scoreColor } from "@/components/ScoreDial";
 import SalaryPanel from "@/components/SalaryPanel";
+import JobPostingInsightsPanel from "@/components/JobPostingInsightsPanel";
 import Thinking from "@/components/Thinking";
+
 
 const BAR_LABELS: Record<string, string> = {
   match_cv: "Resume match",
@@ -27,6 +29,8 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
   const [result, setResult] = useState<Evaluation | null>(null);
   const [error, setError] = useState("");
   const [windowWidth, setWindowWidth] = useState(1200);
+  const [activeTab, setActiveTab] = useState<"fit" | "report" | "insights">("fit");
+
 
   // States for Tailoring Resume
   const [modalOpen, setModalOpen] = useState(false);
@@ -193,88 +197,185 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
       {error && <div className="notice notice-error">{error}</div>}
       
       {result && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: isDesktop ? "3fr 7fr" : "1fr",
-            gap: "2rem",
-            alignItems: "start",
-          }}
-        >
-          {/* Left Column: Metrics & Recommendations */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", position: isDesktop ? "sticky" : "static", top: "6.5rem" }}>
-            <div className="panel" style={{ position: "relative", overflow: "hidden" }}>
-              <div className="aura-glow" style={{ opacity: 0.35 }} />
-              <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: "1.5rem", alignItems: "center" }}>
-                <ScoreDial score={result.score} />
-                <div style={{ width: "100%" }}>
-                  <div className="bars">
-                    {Object.entries(BAR_LABELS).map(([key, label]) => {
-                      const v = result.scores[key as keyof typeof result.scores];
-                      return (
-                        <div className="bar-row" key={key}>
-                          <span className="bar-label">{label}</span>
-                          <div className="bar-track">
-                            <div className="bar-fill" style={{ width: `${(v / 5) * 100}%`, background: scoreColor(v) }} />
+        <>
+          {/* 3 Main View Tabs */}
+          <div
+            style={{
+              display: "flex",
+              gap: "0.5rem",
+              borderBottom: "1px solid var(--ink-10)",
+              marginBottom: "1.75rem",
+              overflowX: "auto",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setActiveTab("fit")}
+              style={{
+                padding: "0.6rem 1rem",
+                border: "none",
+                borderBottom: activeTab === "fit" ? "2px solid var(--iris)" : "2px solid transparent",
+                background: activeTab === "fit" ? "var(--iris-08)" : "transparent",
+                color: activeTab === "fit" ? "var(--iris)" : "var(--ink-70)",
+                fontFamily: "var(--font-space), monospace",
+                fontSize: "0.825rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                borderRadius: "4px 4px 0 0",
+                whiteSpace: "nowrap",
+                transition: "all 0.2s ease",
+              }}
+            >
+              FIT_SCORE
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("report")}
+              style={{
+                padding: "0.6rem 1rem",
+                border: "none",
+                borderBottom: activeTab === "report" ? "2px solid var(--iris)" : "2px solid transparent",
+                background: activeTab === "report" ? "var(--iris-08)" : "transparent",
+                color: activeTab === "report" ? "var(--iris)" : "var(--ink-70)",
+                fontFamily: "var(--font-space), monospace",
+                fontSize: "0.825rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                borderRadius: "4px 4px 0 0",
+                whiteSpace: "nowrap",
+                maxWidth: "360px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                transition: "all 0.2s ease",
+              }}
+              title={`Evaluation: ${result.company} — ${result.role}`}
+            >
+              Evaluation: {result.company} — {result.role}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("insights")}
+              style={{
+                padding: "0.6rem 1rem",
+                border: "none",
+                borderBottom: activeTab === "insights" ? "2px solid var(--iris)" : "2px solid transparent",
+                background: activeTab === "insights" ? "var(--iris-08)" : "transparent",
+                color: activeTab === "insights" ? "var(--iris)" : "var(--ink-70)",
+                fontFamily: "var(--font-space), monospace",
+                fontSize: "0.825rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                borderRadius: "4px 4px 0 0",
+                whiteSpace: "nowrap",
+                transition: "all 0.2s ease",
+              }}
+            >
+              Job Posting Insights
+            </button>
+          </div>
+
+
+          {/* Tab 1: FIT_SCORE // FIVE_AXES */}
+          {activeTab === "fit" && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr",
+                gap: "2rem",
+                alignItems: "start",
+              }}
+            >
+              <div className="panel" style={{ position: "relative", overflow: "hidden" }}>
+                <div className="aura-glow" style={{ opacity: 0.35 }} />
+                <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: "1.5rem", alignItems: "center" }}>
+                  <ScoreDial score={result.score} />
+                  <div style={{ width: "100%" }}>
+                    <div className="bars">
+                      {Object.entries(BAR_LABELS).map(([key, label]) => {
+                        const v = result.scores[key as keyof typeof result.scores];
+                        return (
+                          <div className="bar-row" key={key}>
+                            <span className="bar-label">{label}</span>
+                            <div className="bar-track">
+                              <div className="bar-fill" style={{ width: `${(v / 5) * 100}%`, background: scoreColor(v) }} />
+                            </div>
+                            <span className="bar-num">{v.toFixed(1)}</span>
                           </div>
-                          <span className="bar-num">{v.toFixed(1)}</span>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div style={{ position: "relative", marginTop: "1.5rem", borderTop: "1px solid var(--ink-06)", paddingTop: "1.25rem" }}>
-                <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", flexWrap: "wrap", marginBottom: "0.75rem" }}>
-                  <span className={tierChip(result.legitimacy.tier)}>
-                    {result.legitimacy.tier}
-                  </span>
+                <div style={{ position: "relative", marginTop: "1.5rem", borderTop: "1px solid var(--ink-06)", paddingTop: "1.25rem" }}>
+                  <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+                    <span className={tierChip(result.legitimacy.tier)}>
+                      {result.legitimacy.tier}
+                    </span>
+                  </div>
+                  <p style={{ fontWeight: 600, fontSize: "0.95rem", lineHeight: "1.5" }}>{result.recommendation}</p>
                 </div>
-                <p style={{ fontWeight: 600, fontSize: "0.95rem", lineHeight: "1.5" }}>{result.recommendation}</p>
-              </div>
-              {result.score < 3.5 && (
-                <div className="notice notice-warn" style={{ marginTop: "1.25rem", marginBottom: 0 }}>
-                  This score is below 3.5 — Aura recommends skipping this one
-                  unless you have a specific reason. Your time is worth more.
-                </div>
-              )}
-              <div style={{ position: "relative", marginTop: "1.25rem", borderTop: "1px solid var(--ink-06)", paddingTop: "1.25rem" }}>
-                {result.score >= 4.0 ? (
-                  <button
-                    className="btn btn-primary"
-                    style={{ width: "100%", justifyContent: "center" }}
-                    onClick={() => generateResumeFlow(extraInstructions)}
-                  >
-                    Generate Tailored Resume
-                  </button>
-                ) : (
-                  <div>
+                {result.score < 3.5 && (
+                  <div className="notice notice-warn" style={{ marginTop: "1.25rem", marginBottom: 0 }}>
+                    This score is below 3.5 — Aura recommends skipping this one
+                    unless you have a specific reason. Your time is worth more.
+                  </div>
+                )}
+                <div style={{ position: "relative", marginTop: "1.25rem", borderTop: "1px solid var(--ink-06)", paddingTop: "1.25rem" }}>
+                  {result.score >= 4.0 ? (
                     <button
                       className="btn btn-primary"
-                      style={{ width: "100%", justifyContent: "center", opacity: 0.5, cursor: "not-allowed" }}
-                      disabled
-                      title="Only available for roles with score >= 4.0"
+                      style={{ width: "100%", justifyContent: "center" }}
+                      onClick={() => generateResumeFlow(extraInstructions)}
                     >
                       Generate Tailored Resume
                     </button>
-                    <p style={{ fontSize: "0.75rem", color: "var(--ink-55)", marginTop: "0.5rem", textAlign: "center" }}>
-                      ⚠️ Resume tailoring is disabled. Aura discourages tailoring applications for low-fit roles (score &lt; 4.0).
-                    </p>
-                  </div>
-                )}
+                  ) : (
+                    <div>
+                      <button
+                        className="btn btn-primary"
+                        style={{ width: "100%", justifyContent: "center", opacity: 0.5, cursor: "not-allowed" }}
+                        disabled
+                        title="Only available for roles with score >= 4.0"
+                      >
+                        Generate Tailored Resume
+                      </button>
+                      <p style={{ fontSize: "0.75rem", color: "var(--ink-55)", marginTop: "0.5rem", textAlign: "center" }}>
+                        ⚠️ Resume tailoring is disabled. Aura discourages tailoring applications for low-fit roles (score &lt; 4.0).
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                {result.salary && <SalaryPanel salary={result.salary} />}
               </div>
             </div>
+          )}
 
-            {result.salary && <SalaryPanel salary={result.salary} />}
+          {/* Tab 2: Evaluation Report */}
+          {activeTab === "report" && (
+            <div className="panel" style={{ minWidth: 0 }}>
+              <ReportView markdown={result.report_markdown} />
+            </div>
+          )}
 
-          </div>
-
-          {/* Right Column: Detailed Markdown Report */}
-          <div className="panel" style={{ minWidth: 0, maxHeight: isDesktop ? "calc(100vh - 12rem)" : "none", overflowY: isDesktop ? "auto" : "visible" }}>
-            <ReportView markdown={result.report_markdown} />
-          </div>
-        </div>
+          {/* Tab 3: JOB_POSTING_INSIGHTS */}
+          {activeTab === "insights" && (
+            <div>
+              {result.insights ? (
+                <JobPostingInsightsPanel insights={result.insights} company={result.company} role={result.role} />
+              ) : (
+                <div className="panel" style={{ textAlign: "center", padding: "3rem" }}>
+                  <p style={{ color: "var(--ink-55)" }}>Market & Sentiment Insights loading...</p>
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
+
       
       {!result && !error && (
         <div className="panel" style={{ textAlign: "center", padding: "3rem" }}>

@@ -53,8 +53,9 @@ export async function POST(req: Request) {
       client,
       evaluatePrompt(role, question, transcript, telemetry),
       EvaluationLLMSchema,
-      "gpt-4o evaluate",
+      "gemini-3.5-flash evaluate",
     );
+
     return Response.json({ ...evaluation, transcript, mocked: false });
   } catch (err) {
     console.error("evaluate route failed:", err);

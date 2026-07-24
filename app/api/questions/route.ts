@@ -24,8 +24,9 @@ export async function POST(req: Request) {
       client,
       questionsPrompt(role),
       QuestionsLLMSchema,
-      "gpt-4o questions",
+      "gemini-3.5-flash questions",
     );
+
     return Response.json({ questions, mocked: false });
   } catch (err) {
     console.error("questions route failed:", err);

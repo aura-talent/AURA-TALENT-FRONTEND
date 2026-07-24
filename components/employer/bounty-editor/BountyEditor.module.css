@@ -1,0 +1,99 @@
+.headerActions {
+  display: flex;
+  gap: 0.65rem;
+}
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sectionHint {
+  margin-bottom: 1rem;
+  color: var(--ink-55);
+  font-size: 0.82rem;
+}
+
+.tagEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tagInput {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tagInput input {
+  flex: 1;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tags button {
+  margin-left: 0.4rem;
+  border: 0;
+  background: none;
+  color: inherit;
+}
+
+.requirementList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.requirementRow {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(160px, 1.4fr) 110px 100px 80px;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--ink-06);
+}
+
+.prizeRow {
+  display: grid;
+  grid-template-columns: 90px 1fr 80px;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--ink-06);
+}
+
+.requiredToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--ink-55);
+}
+
+.removeRow {
+  border: 0;
+  background: transparent;
+  color: var(--score-weak);
+  font-size: 0.7rem;
+}
+
+.addRow {
+  margin-top: 0.6rem;
+  border: 0;
+  background: transparent;
+  color: var(--iris);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+@media (max-width: 700px) {
+  .requirementRow,
+  .prizeRow {
+    grid-template-columns: 1fr;
+  }
+}

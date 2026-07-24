@@ -14,6 +14,7 @@ const links = [
   { href: "/employer/candidates", label: "Candidates", icon: "people" },
   { href: "/employer/interviews", label: "Interviews", icon: "spark" },
   { href: "/employer/talent-pool", label: "Talent pool", icon: "archive" },
+  { href: "/employer/bounties", label: "Bounties", icon: "trophy" },
   { href: "/employer/headhunters", label: "Headhunters", icon: "scout" },
   { href: "/employer/suggested-actions", label: "Suggested actions", icon: "bolt" },
   { href: "/employer/profile", label: "Company profile", icon: "building" },
@@ -82,6 +83,12 @@ function Icon({ name }: { name: string }) {
     bolt: (
       <>
         <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
+      </>
+    ),
+    trophy: (
+      <>
+        <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z" />
+        <path d="M7 5H4a1 1 0 0 0-1 1 5 5 0 0 0 4 5M17 5h3a1 1 0 0 1 1 1 5 5 0 0 1-4 5" />
       </>
     ),
   };

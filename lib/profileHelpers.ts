@@ -13,6 +13,7 @@ export interface CandidateProfile {
   salary_currency: string;
   linkedin_url: string | null;
   portfolio_url: string | null;
+  tour_completed_at: string | null;
   created_at: string;
   updated_at: string;
 }

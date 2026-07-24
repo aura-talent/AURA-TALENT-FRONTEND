@@ -13,6 +13,7 @@ interface AuthContextType {
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithLinkedIn: () => Promise<void>;
+  signInWithPassword: (email: string, password: string, desiredRole?: "candidate" | "employer") => Promise<void>;
   signOut: () => Promise<void>;
   updateRole: (newRole: string, redirectTo?: string) => Promise<void>;
 }
@@ -180,6 +181,82 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const signInWithPassword = async (email: string, password: string, desiredRole?: "candidate" | "employer") => {
+    setLoading(true);
+    try {
+      if (desiredRole && typeof window !== "undefined") {
+        localStorage.setItem("aura_pending_role", desiredRole);
+        localStorage.setItem("aura_auth_mode", "signup");
+      }
+
+      // 1. Attempt login with password
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        // If login fails because user doesn't exist, auto-signup for seamless demo
+        const targetRole = desiredRole || "candidate";
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              role: targetRole,
+              full_name: targetRole === "employer" ? "Demo Employer" : "Demo Candidate",
+            },
+          },
+        });
+
+        if (signUpError) throw signUpError;
+
+        if (signUpData.session) {
+          await handleSessionChange(signUpData.session);
+          return;
+        } else if (signUpData.user) {
+          const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          if (retryError) {
+            throw new Error(
+              "Demo account created. If email confirmation is enabled in Supabase, please confirm your email or check Supabase Auth settings."
+            );
+          }
+          await handleSessionChange(retryData.session);
+          return;
+        }
+        throw error;
+      }
+
+      if (data.session) {
+        if (desiredRole) {
+          const authId = data.session.user.id;
+          await supabase.from("users").upsert({
+            id: authId,
+            email: data.session.user.email,
+            full_name: desiredRole === "employer" ? "Demo Employer" : "Demo Candidate",
+            role: desiredRole,
+          });
+          await api.saveUser({
+            id: authId,
+            email: data.session.user.email ?? null,
+            full_name: desiredRole === "employer" ? "Demo Employer" : "Demo Candidate",
+            avatar_url: null,
+            role: desiredRole,
+          });
+        }
+        await handleSessionChange(data.session);
+      }
+    } catch (err) {
+      setLoading(false);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const signOut = async () => {
     setLoading(true);
     await supabase.auth.signOut();
@@ -194,6 +271,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         signInWithGoogle,
         signInWithLinkedIn,
+        signInWithPassword,
         signOut,
         updateRole,
       }}

@@ -166,7 +166,7 @@ function ProfilePageInner() {
     try {
       await profileApi.upsert(user.id, payload);
       setSaved(true);
-      window.setTimeout(() => router.push("/dashboard"), 500);
+      window.setTimeout(() => router.push("/dashboard?tour=1"), 500);
     } catch (err) {
       console.error("Failed to save profile:", err);
       setError(err instanceof Error ? err.message : "Failed to save profile");
@@ -395,7 +395,7 @@ function ProfilePageInner() {
         <button className="btn btn-primary" disabled={saving} onClick={save}>
           {saved ? "Saved ✓" : saving ? "Saving…" : "Save & continue"}
         </button>
-        <button className="btn btn-ghost" onClick={() => router.push("/dashboard")}>
+        <button className="btn btn-ghost" onClick={() => router.push("/dashboard?tour=1")}>
           Skip for now
         </button>
       </div>

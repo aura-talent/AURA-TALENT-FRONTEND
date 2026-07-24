@@ -12,7 +12,12 @@ async function buildConfig() {
   if (isDev) {
     return baseConfig;
   }
-  // @ts-expect-error next-pwa optional dependency
+  // next-pwa is an optional devDependency whose types may or may not
+  // resolve depending on whether it's installed in a given environment.
+  // Use @ts-ignore (not @ts-expect-error) since it only suppresses an
+  // error when one is actually present, instead of failing the build
+  // itself when the import happens to type-check cleanly.
+  // @ts-ignore next-pwa optional dependency
   const withPWAInit = (await import("@ducanh2912/next-pwa")).default;
 
   const withPWA = withPWAInit({

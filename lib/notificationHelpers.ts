@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient";
-import type { Application } from "./api";
+import { api, type Application } from "./api";
 
 export interface CandidateNotification {
   id: string;
@@ -15,11 +15,11 @@ export async function fetchCandidateNotifications(userId: string): Promise<Candi
   const notifications: CandidateNotification[] = [];
 
   try {
-    // 1. Fetch upcoming interviews from applications
-    const { data: apps } = await supabase
-      .from("applications")
-      .select("*")
-      .eq("user_id", userId);
+    // 1. Fetch upcoming interviews from applications. These live in the
+    // FastAPI backend's own database, not Supabase — go through the same
+    // proxied endpoint the tracker/dashboard already use, not a direct
+    // supabase.from("applications") query (that table doesn't exist here).
+    const apps = await api.listApplications().catch(() => null);
 
     if (apps) {
       for (const app of apps as Application[]) {

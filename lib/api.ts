@@ -143,8 +143,59 @@ export interface SelfWorthEstimate {
   skill_deltas: SkillDelta[];
 }
 
+export interface SalaryComparisonInsight {
+  posted_salary?: string;
+  market_median: string;
+  market_band: string;
+  comparison_verdict: string;
+  delta_pct: number;
+  percentile_estimate: number;
+  negotiation_anchor: string;
+  summary: string;
+}
+
+export interface GlassdoorSentiment {
+  rating: number;
+  culture_score: number;
+  work_life_balance_score: number;
+  recommend_to_friend_pct: number;
+  pros: string[];
+  cons: string[];
+}
+
+export interface RedditSentiment {
+  sentiment_label: string;
+  community_consensus: string;
+  key_discussions: string[];
+  red_flags: string[];
+}
+
+export interface JobStreetSentiment {
+  rating: number;
+  sentiment_label: string;
+  stability_rating: string;
+  pros: string[];
+  cons: string[];
+}
+
+export interface SentimentAnalysis {
+  overall_score: number;
+  overall_label: string;
+  glassdoor: GlassdoorSentiment;
+  reddit: RedditSentiment;
+  jobstreet: JobStreetSentiment;
+  key_takeaways: string[];
+  interview_questions: string[];
+}
+
+export interface JobInsights {
+  salary_comparison: SalaryComparisonInsight;
+  sentiment: SentimentAnalysis;
+}
+
 export interface Evaluation {
   evaluation_id: number;
+  user_id: string;
   company: string;
   role: string;
   archetype: string;
@@ -156,6 +207,7 @@ export interface Evaluation {
   keywords: string[];
   jd_url?: string;
   salary?: SalaryEstimate;
+  insights?: JobInsights;
 }
 
 export interface Application {

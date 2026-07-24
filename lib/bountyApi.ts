@@ -138,7 +138,7 @@ export const bountyApi = {
   getMySubmission: async (
     bountyId: string,
     candidateUserId: string,
-  ): Promise<BountySubmission | null> => {
+  ): Promise<SubmissionWithResult | null> => {
     const { data, error } = await supabase
       .from("bounty_submissions")
       .select("*")
@@ -146,8 +146,20 @@ export const bountyApi = {
       .eq("candidate_user_id", candidateUserId)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return data as BountySubmission | null;
+    if (!data) return null;
+
+    const { data: result } = await supabase
+      .from("bounty_submission_results")
+      .select("*")
+      .eq("submission_id", data.id)
+      .maybeSingle();
+
+    return {
+      ...(data as BountySubmission),
+      result: (result as SubmissionResult) ?? null,
+    };
   },
+
 
   upsertSubmission: async (
     bountyId: string,

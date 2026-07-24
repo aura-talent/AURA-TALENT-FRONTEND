@@ -25,6 +25,8 @@ export default function EmployerBountyDetailPage({
   const [bounty, setBounty] = useState<Bounty | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [activeTab, setActiveTab] = useState<"overview" | "submissions">("overview");
+  const [submissionCount, setSubmissionCount] = useState<number>(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,8 +34,17 @@ export default function EmployerBountyDetailPage({
       .getById(id)
       .then((data) => {
         if (cancelled) return;
-        if (data) setBounty(data);
-        else setNotFound(true);
+        if (data) {
+          setBounty(data);
+          bountyApi
+            .listSubmissionsForBounty(data.id)
+            .then((subs) => {
+              if (!cancelled) setSubmissionCount(subs.length);
+            })
+            .catch(() => {});
+        } else {
+          setNotFound(true);
+        }
       })
       .catch(() => {
         if (!cancelled) setNotFound(true);
@@ -147,62 +158,128 @@ export default function EmployerBountyDetailPage({
         </div>
       </div>
 
-      <div className="bounty-detail-layout">
-        <main>
-          {bounty.rules_text && (
-            <section className="panel">
-              <ReportView markdown={bounty.rules_text} />
-            </section>
-          )}
-          {bounty.status !== "draft" && <BountySubmissionsPanel bounty={bounty} />}
-        </main>
-
-        <aside>
-          <section className="panel bounty-prize-card">
-            <h3>Prize pool</h3>
-            <div className="bounty-prize-total">
-              {formatPrize(totalPrizePool(bounty.winner_slots), bounty.currency)}
-              <small>{bounty.winner_slots.length} winners</small>
-            </div>
-            <div className="bounty-prize-ranks">
-              {bounty.winner_slots.map((slot) => (
-                <div className="bounty-prize-rank-row" key={slot.rank}>
-                  <span>Rank {slot.rank}</span>
-                  <b>{formatPrize(slot.prize_amount, bounty.currency)}</b>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="panel">
-            <h3>Submission requirements</h3>
-            <div className="bounty-requirement-list">
-              {bounty.requirement_items.map((item) => (
-                <div className="bounty-requirement-item" key={item.id}>
-                  <strong>
-                    {item.label}
-                    <b>
-                      {item.type} · {item.required ? "required" : "optional"}
-                    </b>
-                  </strong>
-                  {item.description && <span>{item.description}</span>}
-                </div>
-              ))}
-              {bounty.requirement_items.length === 0 && <span>No requirements set.</span>}
-            </div>
-          </section>
-
-          <section className="panel">
-            <h3>Details</h3>
-            <div className="bounty-requirement-list">
-              <div className="bounty-requirement-item">
-                <strong>Submission mode</strong>
-                <span>{bounty.submission_mode}</span>
-              </div>
-            </div>
-          </section>
-        </aside>
+      {/* Tabs */}
+      <div
+        style={{
+          display: "flex",
+          gap: "0.5rem",
+          borderBottom: "1px solid var(--ink-10)",
+          marginBottom: "1.75rem",
+          whiteSpace: "nowrap",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setActiveTab("overview")}
+          style={{
+            padding: "0.65rem 1.25rem",
+            border: "none",
+            borderBottom: activeTab === "overview" ? "2px solid var(--iris)" : "2px solid transparent",
+            background: activeTab === "overview" ? "var(--iris-08)" : "transparent",
+            color: activeTab === "overview" ? "var(--iris)" : "var(--ink-70)",
+            fontFamily: "var(--font-space), monospace",
+            fontSize: "0.85rem",
+            fontWeight: 700,
+            cursor: "pointer",
+            borderRadius: "4px 4px 0 0",
+            transition: "all 0.2s ease",
+          }}
+        >
+          Overview & Rules
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("submissions")}
+          style={{
+            padding: "0.65rem 1.25rem",
+            border: "none",
+            borderBottom: activeTab === "submissions" ? "2px solid var(--iris)" : "2px solid transparent",
+            background: activeTab === "submissions" ? "var(--iris-08)" : "transparent",
+            color: activeTab === "submissions" ? "var(--iris)" : "var(--ink-70)",
+            fontFamily: "var(--font-space), monospace",
+            fontSize: "0.85rem",
+            fontWeight: 700,
+            cursor: "pointer",
+            borderRadius: "4px 4px 0 0",
+            transition: "all 0.2s ease",
+          }}
+        >
+          Submissions ({submissionCount})
+        </button>
       </div>
+
+      {activeTab === "overview" ? (
+        <div className="bounty-detail-layout">
+          <main>
+            {bounty.rules_text ? (
+              <section className="panel">
+                <ReportView markdown={bounty.rules_text} />
+              </section>
+            ) : (
+              <section className="panel">
+                <p style={{ color: "var(--ink-55)" }}>No details provided.</p>
+              </section>
+            )}
+          </main>
+
+          <aside>
+            <section className="panel bounty-prize-card">
+              <h3>Prize pool</h3>
+              <div className="bounty-prize-total">
+                {formatPrize(totalPrizePool(bounty.winner_slots), bounty.currency)}
+                <small>{bounty.winner_slots.length} winners</small>
+              </div>
+              <div className="bounty-prize-ranks">
+                {bounty.winner_slots.map((slot) => (
+                  <div className="bounty-prize-rank-row" key={slot.rank}>
+                    <span>Rank {slot.rank}</span>
+                    <b>{formatPrize(slot.prize_amount, bounty.currency)}</b>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="panel">
+              <h3>Submission requirements</h3>
+              <div className="bounty-requirement-list">
+                {bounty.requirement_items.map((item) => (
+                  <div className="bounty-requirement-item" key={item.id}>
+                    <strong>
+                      {item.label}
+                      <b>
+                        {item.type} · {item.required ? "required" : "optional"}
+                      </b>
+                    </strong>
+                    {item.description && <span>{item.description}</span>}
+                  </div>
+                ))}
+                {bounty.requirement_items.length === 0 && <span>No requirements set.</span>}
+              </div>
+            </section>
+
+            <section className="panel">
+              <h3>Details</h3>
+              <div className="bounty-requirement-list">
+                <div className="bounty-requirement-item">
+                  <strong>Submission mode</strong>
+                  <span>{bounty.submission_mode}</span>
+                </div>
+              </div>
+            </section>
+          </aside>
+        </div>
+      ) : (
+        <div>
+          {bounty.status === "draft" ? (
+            <div className="panel" style={{ padding: "3rem", textAlign: "center" }}>
+              <p style={{ color: "var(--ink-55)" }}>Draft bounties cannot receive submissions until published.</p>
+            </div>
+          ) : (
+            <BountySubmissionsPanel bounty={bounty} />
+          )}
+        </div>
+      )}
     </div>
   );
 }
+

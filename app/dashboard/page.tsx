@@ -8,6 +8,14 @@ import { api, type Application, type JobPosting } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import CareerPathNavigator from "@/components/CareerPathNavigator";
+import {
+  bountyApi,
+  formatPrize,
+  totalPrizePool,
+  type Bounty,
+  type CandidateBountyHistory,
+} from "@/lib/bountyApi";
+
 
 function guessCountry(): string {
   try {
@@ -81,6 +89,43 @@ export default function Dashboard() {
   const [scanLoading, setScanLoading] = useState(false);
   const [scanError, setScanError] = useState("");
   const [locationInput, setLocationInput] = useState("");
+
+  // Bounty states
+  const [recentBounties, setRecentBounties] = useState<Bounty[]>([]);
+  const [mySubmissions, setMySubmissions] = useState<CandidateBountyHistory[]>([]);
+  const [bountyTab, setBountyTab] = useState<"recent" | "submitted">("recent");
+  const [bountyLoading, setBountyLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    bountyApi
+      .listPublished()
+      .then((data) => {
+        if (!cancelled) setRecentBounties(data.slice(0, 3));
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setBountyLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    bountyApi
+      .listCandidateHistory(user.id)
+      .then((data) => {
+        if (!cancelled) setMySubmissions(data.slice(0, 3));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
 
   const refreshApplications = useCallback(() => {
     if (authLoading || !user) return;
@@ -836,7 +881,168 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+
+
+            {/* Paid Bounties Panel */}
+            <div className="panel" style={{ marginTop: "2rem" }}>
+              <span className="eval-tick eval-tick-tl" />
+              <span className="eval-tick eval-tick-tr" />
+              <span className="eval-tick eval-tick-bl" />
+              <span className="eval-tick eval-tick-br" />
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                <div>
+                  <div className="page-kicker" style={{ marginBottom: "0.2rem" }}>
+                    PAID_WORK // BOUNTIES
+                  </div>
+                  <h3 style={{ fontSize: "1.15rem", margin: 0, fontWeight: 700 }}>
+                    Job Bounties
+                  </h3>
+                </div>
+                <Link href="/bounties" style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--iris)", textDecoration: "none" }}>
+                  View all →
+                </Link>
+              </div>
+
+              <p style={{ fontSize: "0.82rem", color: "var(--ink-55)", marginBottom: "1rem" }}>
+                Complete real tasks from hiring companies to win cash prizes and prove your skills.
+              </p>
+
+              {/* Sub-tabs: Recent vs Submitted */}
+              <div style={{ display: "flex", gap: "0.4rem", marginBottom: "1rem", borderBottom: "1px solid var(--ink-10)" }}>
+                <button
+                  type="button"
+                  onClick={() => setBountyTab("recent")}
+                  style={{
+                    padding: "0.4rem 0.75rem",
+                    border: "none",
+                    borderBottom: bountyTab === "recent" ? "2px solid var(--iris)" : "2px solid transparent",
+                    background: bountyTab === "recent" ? "var(--iris-08)" : "transparent",
+                    color: bountyTab === "recent" ? "var(--iris)" : "var(--ink-70)",
+                    fontFamily: "var(--font-space), monospace",
+                    fontSize: "0.78rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    borderRadius: "4px 4px 0 0",
+                  }}
+                >
+                  Recent Bounties ({recentBounties.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBountyTab("submitted")}
+                  style={{
+                    padding: "0.4rem 0.75rem",
+                    border: "none",
+                    borderBottom: bountyTab === "submitted" ? "2px solid var(--iris)" : "2px solid transparent",
+                    background: bountyTab === "submitted" ? "var(--iris-08)" : "transparent",
+                    color: bountyTab === "submitted" ? "var(--iris)" : "var(--ink-70)",
+                    fontFamily: "var(--font-space), monospace",
+                    fontSize: "0.78rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    borderRadius: "4px 4px 0 0",
+                  }}
+                >
+                  My Submissions ({mySubmissions.length})
+                </button>
+              </div>
+
+              {bountyTab === "recent" ? (
+                <div>
+                  {bountyLoading ? (
+                    <span style={{ fontSize: "0.8rem", color: "var(--ink-55)" }}>Loading bounties…</span>
+                  ) : recentBounties.length === 0 ? (
+                    <p style={{ fontSize: "0.82rem", color: "var(--ink-55)" }}>No active bounties right now.</p>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                      {recentBounties.map((b) => (
+                        <div
+                          key={b.id}
+                          style={{
+                            padding: "0.75rem",
+                            border: "1px solid var(--ink-12)",
+                            background: "var(--surface)",
+                            borderRadius: "6px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: "0.75rem",
+                          }}
+                        >
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontSize: "0.85rem", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {b.title}
+                            </div>
+                            <div style={{ fontSize: "0.75rem", color: "var(--ink-55)", marginTop: "0.15rem" }}>
+                              {formatPrize(totalPrizePool(b.winner_slots), b.currency)} pool · {b.winner_slots.length} winners
+                            </div>
+                          </div>
+                          <Link href={`/bounties/${b.id}`} className="btn btn-ghost" style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem", whiteSpace: "nowrap" }}>
+                            View →
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  {!user ? (
+                    <p style={{ fontSize: "0.82rem", color: "var(--ink-55)" }}>Sign in to view your submissions.</p>
+                  ) : mySubmissions.length === 0 ? (
+                    <p style={{ fontSize: "0.82rem", color: "var(--ink-55)" }}>You haven&apos;t entered any bounties yet.</p>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                      {mySubmissions.map((s) => {
+                        const isWinner = s.result?.status === "winner";
+                        return (
+                          <div
+                            key={s.submission.id}
+                            style={{
+                              padding: "0.75rem",
+                              border: "1px solid var(--ink-12)",
+                              background: "var(--surface)",
+                              borderRadius: "6px",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              gap: "0.75rem",
+                            }}
+                          >
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ fontSize: "0.85rem", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                {s.bounty.title}
+                              </div>
+                              <div style={{ fontSize: "0.72rem", color: "var(--ink-55)", marginTop: "0.15rem" }}>
+                                {isWinner ? (
+                                  <span style={{ color: "var(--score-strong)", fontWeight: 700 }}>🏆 Winner (Rank {s.result!.rank})</span>
+                                ) : s.result?.status === "not_selected" ? (
+                                  <span>Not selected</span>
+                                ) : (
+                                  <span style={{ color: "var(--iris)", fontWeight: 600 }}>⏳ Pending Review</span>
+                                )}
+                              </div>
+                            </div>
+                            <Link href={`/bounties/${s.bounty.id}`} className="btn btn-ghost" style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem", whiteSpace: "nowrap" }}>
+                              View →
+                            </Link>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div style={{ marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid var(--ink-10)", textAlign: "center" }}>
+                <Link href="/bounties" className="btn btn-ghost" style={{ fontSize: "0.82rem", width: "100%", justifyContent: "center" }}>
+                  Explore all open bounties →
+                </Link>
+              </div>
+            </div>
           </div>
+
 
         </div>
       </div>

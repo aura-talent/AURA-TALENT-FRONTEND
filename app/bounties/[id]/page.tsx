@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
+import BountySubmissionView from "@/components/bounties/BountySubmissionView";
 import BountySubmissionForm from "@/components/bounties/BountySubmissionForm";
 import ReportView from "@/components/ReportView";
 import { Loader } from "@/components/ui/loader";
@@ -13,16 +14,17 @@ import {
   formatPrize,
   totalPrizePool,
   type Bounty,
-  type BountySubmission,
+  type SubmissionWithResult,
 } from "@/lib/bountyApi";
 
 export default function BountyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { user, role, loading: authLoading } = useAuth();
   const [bounty, setBounty] = useState<Bounty | null>(null);
-  const [mySubmission, setMySubmission] = useState<BountySubmission | null>(null);
+  const [mySubmission, setMySubmission] = useState<SubmissionWithResult | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -130,14 +132,26 @@ export default function BountyDetailPage({ params }: { params: Promise<{ id: str
           )}
 
           {canSubmit && user && (
-            <BountySubmissionForm
-              bounty={bounty}
-              candidateUserId={user.id}
-              candidateEmail={user.email ?? ""}
-              existing={mySubmission}
-              onSaved={setMySubmission}
-            />
+            mySubmission ? (
+              <BountySubmissionView
+                bounty={bounty}
+                submission={mySubmission}
+                candidateUserId={user.id}
+                candidateEmail={user.email ?? ""}
+                onSaved={setMySubmission}
+              />
+            ) : (
+              <BountySubmissionForm
+                bounty={bounty}
+                candidateUserId={user.id}
+                candidateEmail={user.email ?? ""}
+                existing={null}
+                onSaved={(sub) => setMySubmission({ ...sub, result: null })}
+              />
+
+            )
           )}
+
         </main>
 
         <aside>

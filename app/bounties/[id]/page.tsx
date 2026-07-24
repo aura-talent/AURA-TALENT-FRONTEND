@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import BountySubmissionForm from "@/components/bounties/BountySubmissionForm";
+import ReportView from "@/components/ReportView";
 import { Loader } from "@/components/ui/loader";
 import {
   bountyApi,
@@ -98,7 +99,7 @@ export default function BountyDetailPage({ params }: { params: Promise<{ id: str
             </span>
           ))}
         </div>
-        <p style={{ whiteSpace: "pre-wrap" }}>{bounty.rules_text}</p>
+        {bounty.rules_text && <ReportView markdown={bounty.rules_text} />}
 
         <h3>Prizes</h3>
         <ul>

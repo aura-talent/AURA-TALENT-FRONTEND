@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader } from "@/components/ui/loader";
+import ReportView from "@/components/ReportView";
 import BountySubmissionsPanel from "@/components/employer/BountySubmissionsPanel";
 import {
   bountyApi,
@@ -105,14 +106,14 @@ export default function EmployerBountyDetailPage({
             <span>{formatDeadline(bounty.deadline)}</span>
           </div>
           <h1>{bounty.title}</h1>
-          <p>{bounty.rules_text}</p>
+          {bounty.rules_text && <ReportView markdown={bounty.rules_text} />}
         </div>
         <div className="employer-job-detail-actions">
+          <Link className="btn btn-ghost" href={`/employer/bounties/${bounty.id}/edit`}>
+            Edit
+          </Link>
           {bounty.status === "draft" && (
             <>
-              <Link className="btn btn-ghost" href={`/employer/bounties/${bounty.id}/edit`}>
-                Edit
-              </Link>
               <button className="btn btn-primary" disabled={busy} onClick={() => transition("publish")}>
                 Publish
               </button>

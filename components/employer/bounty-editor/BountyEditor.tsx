@@ -59,7 +59,7 @@ export default function BountyEditor({
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const locked = mode === "edit" && initialBounty?.status !== "draft";
+  const isDraft = mode === "create" || initialBounty?.status === "draft";
 
   function addTag() {
     const value = tagDraft.trim();
@@ -118,23 +118,12 @@ export default function BountyEditor({
         await bountyApi.publish(bounty.id);
       }
       setSaved(true);
-      window.setTimeout(() => router.push("/employer/bounties"), 650);
+      window.setTimeout(() => router.push(`/employer/bounties/${bounty.id}`), 650);
     } catch (err) {
       console.error("Failed to save bounty:", err);
       setError(err instanceof Error ? err.message : "Failed to save bounty");
       setSaving(false);
     }
-  }
-
-  if (locked) {
-    return (
-      <div className="employer-page">
-        <div className="empty-state panel">
-          <h3>This bounty is live</h3>
-          <p>Published bounties can no longer be edited. Close it to make changes.</p>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -143,22 +132,45 @@ export default function BountyEditor({
         <div>
           <p className="eyebrow">{mode === "create" ? "New bounty" : "Edit bounty"}</p>
           <h1>{mode === "create" ? "Create a bounty" : `Edit ${initialBounty?.title}`}</h1>
-          <p>Define the brief, requirements, and prize pool, then publish to the marketplace.</p>
+          <p>
+            {isDraft
+              ? "Define the brief, requirements, and prize pool, then publish to the marketplace."
+              : "This bounty is live. Changes apply immediately and are visible to candidates."}
+          </p>
         </div>
         <div className={styles.headerActions}>
-          <button className="btn btn-ghost" onClick={() => router.push("/employer/bounties")}>
+          <button
+            className="btn btn-ghost"
+            onClick={() =>
+              router.push(
+                mode === "edit" ? `/employer/bounties/${initialBounty!.id}` : "/employer/bounties",
+              )
+            }
+          >
             Cancel
           </button>
-          <button className="btn btn-ghost" disabled={saving} onClick={() => save(false)}>
-            Save draft
-          </button>
-          <button
-            className="btn btn-primary"
-            disabled={saving || !details.title.trim() || winnerSlots.length === 0}
-            onClick={() => save(true)}
-          >
-            {saved ? "Saved ✓" : saving ? "Saving…" : "Publish"}
-          </button>
+          {isDraft ? (
+            <>
+              <button className="btn btn-ghost" disabled={saving} onClick={() => save(false)}>
+                Save draft
+              </button>
+              <button
+                className="btn btn-primary"
+                disabled={saving || !details.title.trim() || winnerSlots.length === 0}
+                onClick={() => save(true)}
+              >
+                {saved ? "Saved ✓" : saving ? "Saving…" : "Publish"}
+              </button>
+            </>
+          ) : (
+            <button
+              className="btn btn-primary"
+              disabled={saving || !details.title.trim() || winnerSlots.length === 0}
+              onClick={() => save(false)}
+            >
+              {saved ? "Saved ✓" : saving ? "Saving…" : "Save changes"}
+            </button>
+          )}
         </div>
       </div>
 

@@ -65,11 +65,18 @@ export default function DetailsSection({
       </div>
       <div className="field">
         <label>Brief and rules</label>
+        <small>
+          Supports Markdown — **bold**, *italic*, blank lines for new
+          paragraphs, &quot;- &quot; for bullet lists, and links.
+        </small>
         <textarea
           className="input"
+          rows={10}
           value={details.rulesText}
           onChange={(event) => onDetailsChange({ rulesText: event.target.value })}
-          placeholder="What are candidates building, and what does a winning submission look like?"
+          placeholder={
+            "What are candidates building, and what does a winning submission look like?\n\nYou can use **bold**, blank lines for paragraphs, and \"- \" for bullet lists."
+          }
         />
       </div>
     </section>

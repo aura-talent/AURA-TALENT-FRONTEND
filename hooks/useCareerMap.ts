@@ -4,6 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError, type CareerMapOut } from "@/lib/api";
 import { useStream } from "@/lib/useStream";
 
+export interface UseCareerMapOptions {
+  /** If false, the stream won't auto-start on mount. Call retry() or regenerate() manually. */
+  autoStart?: boolean;
+}
+
 export interface UseCareerMap {
   map: CareerMapOut | null;
   progress: { node: string; message: string }[];
@@ -14,9 +19,11 @@ export interface UseCareerMap {
   expand: (nodeId: string) => Promise<CareerMapOut | null>;
   regenerate: () => void;
   retry: () => void;
+  /** Manually kick off the initial stream load (useful when autoStart=false). */
+  start: () => void;
 }
 
-export function useCareerMap(): UseCareerMap {
+export function useCareerMap({ autoStart = true }: UseCareerMapOptions = {}): UseCareerMap {
   const stream = useStream<CareerMapOut, { force_refresh?: boolean }>("career/map/stream");
   const [map, setMap] = useState<CareerMapOut | null>(null);
   const [expanding, setExpanding] = useState<string | null>(null);
@@ -26,11 +33,18 @@ export function useCareerMap(): UseCareerMap {
   // The stream endpoint returns a cached map instantly when one exists,
   // so streaming is the single load path (first visit and return visits).
   useEffect(() => {
+    if (!autoStart || started.current) return;
+    started.current = true;
+    void stream.run({});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
+
+  const start = useCallback(() => {
     if (started.current) return;
     started.current = true;
     void stream.run({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [stream.run]);
 
   useEffect(() => {
     if (stream.result) {
@@ -81,5 +95,6 @@ export function useCareerMap(): UseCareerMap {
     expand,
     regenerate,
     retry,
+    start,
   };
 }

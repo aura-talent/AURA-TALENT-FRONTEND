@@ -2036,28 +2036,413 @@ textarea.input {
 .nav-workspace {
   color: var(--ink-55);
 }
+
+/* ── Employer workspace ─────────────────────────────────── */
+
+.nav-workspace {
+  color: var(--ink-55);
+}
+
+/* ── Employer workspace ─────────────────────────────────── */
+
+.nav-workspace {
+  color: var(--ink-55);
+}
+
+/* Shell layout */
+/* Shell Layout */
 .employer-shell {
   min-height: calc(100vh - 65px);
   display: grid;
-  grid-template-columns: 264px minmax(0, 1fr);
+  grid-template-columns: 260px minmax(0, 1fr);
+  background-color: var(--bg-surface, #f9fafb);
 }
-.employer-sidebar {
+
+/* Sidebar Root */
+.nav-sidebar {
   position: sticky;
   top: 65px;
   height: calc(100vh - 65px);
-  padding: 1.4rem 1rem;
-  border-right: 1px solid var(--ink-06);
-  background: rgba(255, 255, 255, 0.55);
+  overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
+  background: #ffffff;
+  border-right: 1px solid rgba(26, 29, 41, 0.08);
+  padding: 0 0 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-12, #e2e8f0) transparent;
 }
-.employer-company,
-.employer-sidebar-foot {
+.nav-sidebar::-webkit-scrollbar { width: 4px; }
+.nav-sidebar::-webkit-scrollbar-track { background: transparent; }
+.nav-sidebar::-webkit-scrollbar-thumb { background: var(--ink-12, #e2e8f0); border-radius: 4px; }
+
+/* Workspace Header */
+.nav-brand {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.4rem 0.55rem 1.25rem;
+  padding: 1.15rem 1.1rem 0.9rem;
+  flex-shrink: 0;
 }
+.nav-brand-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--iris, #6366f1), #8b67f8);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+  box-shadow: 0 3px 10px rgba(78, 63, 216, 0.25);
+}
+.nav-brand-text strong {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1.2;
+  color: var(--ink, #0f172a);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.nav-brand-text span {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--ink-55, #64748b);
+  margin-top: 0.1rem;
+  white-space: nowrap;
+}
+
+/* Divider */
+.nav-divider {
+  height: 1px;
+  background: rgba(26, 29, 41, 0.07);
+  margin: 0 1.1rem;
+  flex-shrink: 0;
+}
+
+/* Navigation Menu */
+.nav-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.85rem 0.75rem;
+  flex: 1;
+}
+
+/* Direct Main Link */
+.nav-section-direct {
+  display: flex;
+  flex-direction: column;
+}
+.nav-link-main {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--r-s, 8px);
+  color: var(--ink-72, #475569);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+  overflow: hidden;
+}
+.nav-link-main:hover {
+  background: rgba(26, 29, 41, 0.04);
+  color: var(--ink, #0f172a);
+}
+.nav-link-main.is-active {
+  background: var(--iris-08, rgba(99, 102, 241, 0.08));
+  color: var(--iris-deep, #4338ca);
+  font-weight: 650;
+}
+
+/* Grouped Sections */
+.nav-section-group {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.4rem;
+}
+.nav-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.75rem 0.35rem;
+  color: var(--ink-55, #64748b);
+  font-family: var(--font-space), monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Nested Items & Tree Guidance Line */
+.nav-section-static-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-left: 1.1rem;
+  padding-left: 0.65rem;
+  border-left: 1px solid rgba(26, 29, 41, 0.08);
+}
+
+.nav-section-modules {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  margin-left: 1.1rem;
+  padding-left: 0.65rem;
+}
+
+/* Dotted Line Flow from Planning down to Action */
+.nav-dotted-flow {
+  border-left: 2px dotted var(--iris, #6366f1);
+}
+
+.nav-module {
+  display: flex;
+  flex-direction: column;
+}
+.nav-module-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.42rem 0.6rem;
+  border: none;
+  background: transparent;
+  border-radius: var(--r-s, 8px);
+  cursor: pointer;
+  color: var(--ink-72, #475569);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.nav-module-toggle:hover {
+  background: rgba(26, 29, 41, 0.04);
+  color: var(--ink, #0f172a);
+}
+.nav-module-toggle.is-active {
+  color: var(--iris-deep, #4338ca);
+}
+
+.nav-chevron {
+  flex-shrink: 0;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.5;
+}
+.nav-module-toggle:hover .nav-chevron {
+  opacity: 0.85;
+}
+.nav-chevron.is-open {
+  transform: rotate(180deg);
+  opacity: 0.85;
+}
+
+/* Collapsible Grid Wrapper */
+.nav-collapse-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  overflow: hidden;
+  visibility: hidden;
+  opacity: 0;
+  transition: grid-template-rows 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, visibility 0.2s ease;
+}
+.nav-collapse-wrap.is-open {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  opacity: 1;
+}
+.nav-module-links {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.15rem 0 0.2rem 0.5rem;
+  transition: padding 0.2s ease;
+}
+.nav-collapse-wrap:not(.is-open) .nav-module-links {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Sub-Links */
+.nav-link-sub {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.42rem 0.65rem;
+  border-radius: var(--r-s, 8px);
+  color: var(--ink-55, #64748b);
+  font-size: 0.83rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+  overflow: hidden;
+}
+.nav-link-sub:hover {
+  background: rgba(26, 29, 41, 0.04);
+  color: var(--ink, #0f172a);
+}
+.nav-link-sub.is-active {
+  background: var(--iris-08, rgba(99, 102, 241, 0.08));
+  color: var(--iris-deep, #4338ca);
+  font-weight: 650;
+}
+
+/* Active Pill Indicator */
+.nav-active-pill {
+  position: absolute;
+  left: 0;
+  top: 18%;
+  bottom: 18%;
+  width: 3.5px;
+  border-radius: 0 4px 4px 0;
+  background: var(--iris, #6366f1);
+  animation: nav-indicator-pop 0.18s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@keyframes nav-indicator-pop {
+  from { opacity: 0; transform: scaleY(0.4); }
+  to   { opacity: 1; transform: scaleY(1); }
+}
+
+/* Icons */
+.nav-icon {
+  flex-shrink: 0;
+  color: var(--ink-55, #64748b);
+  transition: color 0.15s ease;
+}
+.nav-link-main:hover .nav-icon,
+.nav-section-header:hover .nav-icon {
+  color: var(--ink, #0f172a);
+}
+.nav-link-main.is-active .nav-icon {
+  color: var(--iris-deep, #4338ca);
+}
+
+/* Sidebar Footer */
+.nav-footer {
+  flex-shrink: 0;
+  padding: 0 0.75rem 0.4rem;
+}
+.nav-user-card {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.4rem;
+}
+.nav-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--iris-12, rgba(99, 102, 241, 0.12));
+  color: var(--iris-deep, #4338ca);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1.5px solid rgba(78, 63, 216, 0.18);
+}
+.nav-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.nav-user-avatar span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+}
+.nav-user-info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.nav-user-info strong {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 620;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink, #0f172a);
+}
+.nav-user-info span {
+  display: block;
+  font-size: 0.71rem;
+  color: var(--ink-55, #64748b);
+  white-space: nowrap;
+}
+.nav-user-actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+.nav-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-s, 8px);
+  border: 1px solid var(--ink-12, #e2e8f0);
+  background: transparent;
+  color: var(--ink-55, #64748b);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  text-decoration: none;
+}
+.nav-icon-btn:hover,
+.nav-icon-btn.is-active {
+  color: var(--iris-deep, #4338ca);
+  border-color: var(--iris, #6366f1);
+  background: var(--iris-08, rgba(99, 102, 241, 0.08));
+}
+.nav-signout-btn:hover {
+  color: var(--score-weak, #bc4a2a);
+  border-color: var(--score-weak, #bc4a2a);
+  background: rgba(188, 74, 42, 0.08);
+}
+
+/* Legacy icon class kept for any references still using it */
+.employer-icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── Avatar (legacy, shared by candidate pages) ───────────── */
+.employer-avatar,
+.candidate-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--iris-12);
+  color: var(--iris-deep);
+  font: 650 0.72rem var(--font-mono), monospace;
+}
+.employer-avatar {
+  width: 32px;
+  height: 32px;
+}
+
+/* ── Company logo large (profile page) ───────────────────── */
 .employer-company-mark,
 .company-logo-large {
   display: grid;
@@ -2072,193 +2457,13 @@ textarea.input {
   width: 34px;
   height: 34px;
 }
-.employer-company strong,
-.employer-sidebar-foot strong {
-  display: block;
-  font-size: 0.88rem;
-  line-height: 1.25;
-}
-.employer-company span,
-.employer-sidebar-foot span {
-  display: block;
-  color: var(--ink-55);
-  font-size: 0.75rem;
-}
-.employer-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-.employer-menu a {
-  display: grid;
-  grid-template-columns: 20px 1fr auto;
-  align-items: center;
-  gap: 0.7rem;
-  min-height: 42px;
-  padding: 0.55rem 0.7rem;
-  color: var(--ink-72);
-  font-size: 0.875rem;
-  font-weight: 550;
-  text-decoration: none;
-  border-radius: var(--r-s);
-  transition:
-    color 0.15s,
-    background 0.15s;
-}
-.employer-menu a:hover {
-  color: var(--ink);
-  background: var(--ink-06);
-}
-.employer-menu a[aria-current="page"] {
-  color: var(--iris-deep);
-  background: var(--iris-08);
-}
-.employer-icon {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.75;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.employer-menu-count {
-  min-width: 24px;
-  padding: 0.08rem 0.4rem;
-  border-radius: var(--r-pill);
-  background: var(--surface);
-  border: 1px solid var(--ink-06);
-  text-align: center;
-  font:
-    600 0.68rem var(--font-mono),
-    monospace;
-}
-/* A section (Jobs, Talent Pool) is never itself clickable — just a static
-   label that groups what's under it, with a little breathing room above it. */
-.employer-nav-section {
-  margin-top: 0.7rem;
-}
-.employer-nav-section:first-child {
-  margin-top: 0;
-}
-.employer-nav-section-label {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.4rem 0.7rem 0.25rem;
-  color: var(--ink-40);
-  font-family: var(--font-space), monospace;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.employer-nav-section-label .employer-icon {
-  width: 14px;
-  height: 14px;
-}
-/* Flat, always-visible links directly under a section (e.g. Talent Pool) —
-   one indent level in from the section label, nothing to expand/collapse. */
-.employer-nav-static-items {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  padding: 0 0 0.3rem 1.9rem;
-}
-/* A module (Jobs' "Planning"/"Action") is the actual dropdown. */
-.employer-nav-module-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  width: 100%;
-  min-height: 36px;
-  padding: 0.4rem 0.7rem 0.4rem 1.9rem;
-  background: transparent;
-  border: none;
-  color: var(--ink-72);
-  font-size: 0.83rem;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-  border-radius: var(--r-s);
-  transition: color 0.15s ease, background 0.15s ease;
-}
-.employer-nav-module-head:hover {
-  color: var(--ink);
-  background: var(--ink-06);
-}
-.employer-nav-module-head.is-active {
-  color: var(--iris-deep);
-}
-.employer-nav-chevron {
-  transition: transform 0.2s ease;
-  flex-shrink: 0;
-}
-.employer-nav-chevron.open {
-  transform: rotate(180deg);
-}
-/* CSS-only expand/collapse (grid-template-rows 0fr -> 1fr) — animates
-   smoothly without measuring content height in JS. */
-.employer-nav-module-items {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.22s ease;
-}
-.employer-nav-module-items.open {
-  grid-template-rows: 1fr;
-}
-.employer-nav-module-items-inner {
-  display: flex;
-  flex-direction: column;
-  gap: 0.05rem;
-  min-height: 0;
-  overflow: hidden;
-  padding: 0.15rem 0 0.3rem 3rem;
-}
-.employer-nav-link {
-  display: block;
-  padding: 0.4rem 0.6rem;
-  min-height: 32px;
-  color: var(--ink-55);
-  font-size: 0.83rem;
-  font-weight: 550;
-  text-decoration: none;
-  border-radius: var(--r-s);
-  transition: color 0.15s, background 0.15s;
-}
-.employer-nav-link:hover {
-  color: var(--ink);
-  background: var(--ink-06);
-}
-.employer-nav-link[aria-current="page"] {
-  color: var(--iris-deep);
-  background: var(--iris-08);
-}
-.employer-sidebar-foot {
-  margin-top: auto;
-  padding-top: 1rem;
-  border-top: 1px solid var(--ink-06);
-}
-.employer-avatar,
-.candidate-avatar {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: var(--iris-12);
-  color: var(--iris-deep);
-  font:
-    650 0.72rem var(--font-mono),
-    monospace;
-}
-.employer-avatar {
-  width: 32px;
-  height: 32px;
-}
+
+/* ── Content area ─────────────────────────────────────────── */
 .employer-content {
   min-width: 0;
 }
+
+
 .employer-breadcrumbs {
   width: min(100%, 1280px);
   margin: 0 auto;

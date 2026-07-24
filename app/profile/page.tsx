@@ -66,13 +66,22 @@ function seedFromResume(
   authFullName: string,
   authEmail: string,
 ): FormState {
+  // The résumé parser (backend ParsedResume schema) only ever produces
+  // full_name, headline, years_of_experience, top_skills, and
+  // target_archetypes — no phone/location/linkedin/portfolio/salary, so
+  // there's nothing to seed those from; they stay manual-entry-only.
+  const resumeFullName =
+    typeof resumeProfile?.full_name === "string" ? resumeProfile.full_name.trim() : "";
+  const years = resumeProfile?.years_of_experience;
+
   return {
     ...emptyForm,
-    fullName: authFullName,
+    fullName: resumeFullName || authFullName,
     contactEmail: authEmail,
     headline: typeof resumeProfile?.headline === "string" ? resumeProfile.headline : "",
     skills: stringArray(resumeProfile?.top_skills),
     targetRoles: stringArray(resumeProfile?.target_archetypes),
+    yearsExperience: typeof years === "number" ? String(years) : "",
   };
 }
 

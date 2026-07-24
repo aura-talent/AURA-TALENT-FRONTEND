@@ -29,6 +29,17 @@ type CandidateEmailComposerProps = {
   buttonClassName?: string;
   /** Bias the template list toward a category (e.g. "Offer"). */
   categoryFilter?: string;
+  /** Called after a successful send (e.g. so a parent list can mark this
+   * candidate's offer as sent without waiting for a reload). */
+  onSent?: () => void;
+};
+
+// Maps a selected template to the communication writer's `kind` — the offer
+// flow always overrides this via isOffer, since "Offer" isn't a template category.
+const KIND_BY_TEMPLATE: Record<string, string> = {
+  interview_invitation: "interview_invite",
+  interview_scheduling: "interview_invite",
+  candidate_rejection: "rejection",
 };
 
 // Tolerant placeholder substitution: handles {{key}}, {key}, [key], [[key]].
@@ -51,6 +62,7 @@ export default function CandidateEmailComposer({
   buttonLabel = "Email candidate",
   buttonClassName = "btn btn-primary",
   categoryFilter,
+  onSent,
 }: CandidateEmailComposerProps) {
   const [open, setOpen] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -61,9 +73,14 @@ export default function CandidateEmailComposer({
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
 
+  const [sendError, setSendError] = useState<string | null>(null);
+  const isOffer = (categoryFilter ?? "").toLowerCase() === "offer";
+
   // Load the shared template library the first time the composer opens.
+  // Skipped for the offer flow — Aura always drafts offers from real
+  // candidate context, never a template, so there's nothing to preload.
   useEffect(() => {
-    if (!open || templates.length) return;
+    if (!open || templates.length || isOffer) return;
     let cancelled = false;
     api
       .listTemplates("employer")
@@ -83,7 +100,7 @@ export default function CandidateEmailComposer({
     return () => {
       cancelled = true;
     };
-  }, [open, templates.length, categoryFilter]);
+  }, [open, templates.length, categoryFilter, isOffer]);
 
   const selectedTemplate = templates.find((template) => template.id === templateId);
 
@@ -122,13 +139,31 @@ export default function CandidateEmailComposer({
   async function generate() {
     setBusy(true);
     try {
-      const res = await api.generateTemplate({
-        prompt: prompt.trim() || `Write a ${role} email to ${candidateName}.`,
-        template_id: templateId || undefined,
-        role: "employer",
-      });
-      setSubject(res.subject);
-      setBody(res.body);
+      if (candidateUserId) {
+        // Context-aware draft: the communication writer sees the candidate's
+        // real evaluation, stage, offer status, and the employer's own voice —
+        // not just a raw prompt, so it doesn't fall back to generic placeholders.
+        const kind = isOffer
+          ? "offer"
+          : (selectedTemplate && KIND_BY_TEMPLATE[selectedTemplate.id]) || "general";
+        const draft = await employerApi.generateComms({
+          candidate_user_id: candidateUserId,
+          job_id: jobId,
+          kind,
+          instructions: prompt.trim() || undefined,
+        });
+        setSubject(draft.subject);
+        setBody(draft.body);
+      } else {
+        // No candidate to ground the draft in — fall back to the generic writer.
+        const res = await api.generateTemplate({
+          prompt: prompt.trim() || `Write a ${role} email to ${candidateName}.`,
+          template_id: templateId || undefined,
+          role: "employer",
+        });
+        setSubject(res.subject);
+        setBody(res.body);
+      }
     } catch (err) {
       console.error("Aura draft failed, using local fallback:", err);
       const draft = localDraft();
@@ -138,9 +173,6 @@ export default function CandidateEmailComposer({
       setBusy(false);
     }
   }
-
-  const [sendError, setSendError] = useState<string | null>(null);
-  const isOffer = (categoryFilter ?? "").toLowerCase() === "offer";
 
   async function sendEmail() {
     setSendError(null);
@@ -160,6 +192,7 @@ export default function CandidateEmailComposer({
         is_offer: isOffer,
       });
       setSent(true);
+      onSent?.();
       window.setTimeout(() => {
         setOpen(false);
         setSent(false);
@@ -201,26 +234,30 @@ export default function CandidateEmailComposer({
             </header>
 
             <div className="candidate-email-fields">
-              <label>
-                <span>Start from a template</span>
-                <select
-                  className="input"
-                  value={templateId}
-                  onChange={(event) => applyTemplate(event.target.value)}
-                >
-                  <option value="">No template — write from scratch</option>
-                  {templates.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.category ? `${template.category} · ` : ""}
-                      {template.purpose}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {selectedTemplate?.recommended_case && (
-                <p className="candidate-email-hint">
-                  {selectedTemplate.recommended_case}
-                </p>
+              {!isOffer && (
+                <>
+                  <label>
+                    <span>Start from a template</span>
+                    <select
+                      className="input"
+                      value={templateId}
+                      onChange={(event) => applyTemplate(event.target.value)}
+                    >
+                      <option value="">No template — write from scratch</option>
+                      {templates.map((template) => (
+                        <option key={template.id} value={template.id}>
+                          {template.category ? `${template.category} · ` : ""}
+                          {template.purpose}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {selectedTemplate?.recommended_case && (
+                    <p className="candidate-email-hint">
+                      {selectedTemplate.recommended_case}
+                    </p>
+                  )}
+                </>
               )}
               <label>
                 <span>Tell Aura what this email should accomplish</span>

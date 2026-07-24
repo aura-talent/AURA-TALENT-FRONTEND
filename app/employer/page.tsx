@@ -3,17 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
-import { defaultPipelinePhases, isJobOpen } from "./data";
-import {
-  candidateInitials,
-  employerApi,
-  type CandidateRow,
-  type EmployerJob,
-  type EmployerJobPlan,
-  type PhaseDef,
-} from "@/lib/employerApi";
+import { isJobOpen } from "./data";
+import { candidateInitials, employerApi, type CandidateRow, type EmployerJob } from "@/lib/employerApi";
 import StageChip from "@/components/employer/StageChip";
-import HiringPipelineBoard from "@/components/employer/HiringPipelineBoard";
+import AlertsBoard from "@/components/employer/dashboard/AlertsBoard";
 import { Loader } from "@/components/ui/loader";
 
 function getTodayLabel(): string {
@@ -34,27 +27,19 @@ function getGreeting(): string {
 export default function EmployerOverview() {
   const { user } = useAuth();
   const [jobs, setJobs] = useState<EmployerJob[]>([]);
-  const [phases, setPhases] = useState<PhaseDef[]>(defaultPipelinePhases);
-  const [plans, setPlans] = useState<EmployerJobPlan[]>([]);
   const [candidates, setCandidates] = useState<CandidateRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.allSettled([
-      employerApi.listJobs(),
-      employerApi.getProfile(),
-      employerApi.listJobPlans(),
-      employerApi.listCandidates(),
-    ]).then(([jobsRes, profileRes, plansRes, candidatesRes]) => {
-      if (cancelled) return;
-      if (jobsRes.status === "fulfilled") setJobs(jobsRes.value);
-      if (profileRes.status === "fulfilled" && profileRes.value.hiring_pipeline_phases?.length)
-        setPhases(profileRes.value.hiring_pipeline_phases);
-      if (plansRes.status === "fulfilled") setPlans(plansRes.value);
-      if (candidatesRes.status === "fulfilled") setCandidates(candidatesRes.value);
-      setLoading(false);
-    });
+    Promise.allSettled([employerApi.listJobs(), employerApi.listCandidates()]).then(
+      ([jobsRes, candidatesRes]) => {
+        if (cancelled) return;
+        if (jobsRes.status === "fulfilled") setJobs(jobsRes.value);
+        if (candidatesRes.status === "fulfilled") setCandidates(candidatesRes.value);
+        setLoading(false);
+      },
+    );
     return () => {
       cancelled = true;
     };
@@ -125,54 +110,9 @@ export default function EmployerOverview() {
         ))}
       </div>
 
-      <section className="panel employer-section">
-        <div className="employer-section-head">
-          <div>
-            <h2>Hiring pipeline</h2>
-            <p>Every open role, moving through your hiring process</p>
-          </div>
-        </div>
-        <HiringPipelineBoard jobs={jobs} phases={phases} plans={plans} candidates={candidates} />
-      </section>
+      <AlertsBoard />
 
       <div className="employer-dashboard-grid">
-        <section className="panel employer-section">
-          <div className="employer-section-head">
-            <div>
-              <h2>AI attention</h2>
-              <p>Actions with the highest impact</p>
-            </div>
-          </div>
-          <div className="attention-list">
-            <Link href="/employer/candidates">
-              <span className="attention-icon">{needsReview}</span>
-              <div>
-                <strong>Candidates ready to review</strong>
-                <p>Applications without an evaluation yet</p>
-              </div>
-              <b>→</b>
-            </Link>
-            <Link href="/employer/interviews">
-              <span className="attention-icon warm">{interviewsDone}</span>
-              <div>
-                <strong>Interviews completed</strong>
-                <p>Scorecards are ready</p>
-              </div>
-              <b>→</b>
-            </Link>
-            <Link href="/employer/workforce">
-              <span className="attention-icon green">
-                {jobs.filter((job) => !plans.some((plan) => plan.job_id === job.id)).length}
-              </span>
-              <div>
-                <strong>Jobs without a plan</strong>
-                <p>Set headcount and budget</p>
-              </div>
-              <b>→</b>
-            </Link>
-          </div>
-        </section>
-
         <section className="panel employer-section employer-span-2">
           <div className="employer-section-head">
             <div>

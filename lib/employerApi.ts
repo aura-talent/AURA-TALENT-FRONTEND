@@ -8,9 +8,10 @@
  * app/employer/data.ts.
  */
 import { getUserId, ApiError } from "./api";
+import { parseSseBuffer } from "./sse";
 import { supabase } from "./supabaseClient";
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function authHeaders(init?: HeadersInit): Promise<Headers> {
   let token: string | null = null;
   try {
     const sessionRes = await supabase.auth.getSession();
@@ -18,9 +19,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   } catch (err) {
     console.error("Failed to get session token:", err);
   }
-
-  const headers = new Headers(init?.headers);
+  const headers = new Headers(init);
   if (token) headers.set("Authorization", `Bearer ${token}`);
+  return headers;
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = await authHeaders(init?.headers);
   headers.set("Accept", "application/json");
 
   const resp = await fetch(`/api/backend/employer/${path}`, { ...init, headers });
@@ -314,6 +319,28 @@ export interface SuggestedAction {
   updated_at: string;
 }
 
+export interface ChatMessage {
+  id: string;
+  thread_id: string;
+  role: "user" | "assistant" | "tool";
+  content: string;
+  proposed_action_ids: string[];
+  created_at: string;
+}
+
+export interface ChatThread {
+  id: string;
+  employer_id: string;
+  title: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatProgressEvent {
+  node: string;
+  message: string;
+}
+
 export interface JobDraftResult {
   draft: {
     title: string;
@@ -460,7 +487,8 @@ export const employerApi = {
     request<JobPhaseEvent[]>(`jobs/${jobId}/phase-events?${eid()}`),
 
   /* offers (0002) — replaces offerStore localStorage */
-  listOffers: (jobId: string) => request<Offer[]>(`offers?job_id=${jobId}&${eid()}`),
+  listOffers: (jobId?: string) =>
+    request<Offer[]>(`offers?${eid()}${jobId ? `&job_id=${jobId}` : ""}`),
   createOffer: (
     jobId: string,
     candidateUserId: string,
@@ -509,6 +537,12 @@ export const employerApi = {
       employer_id: getUserId(),
       status,
     }),
+  executeSuggestedAction: (actionId: string) =>
+    jsonBody<{ action: SuggestedAction; result: Record<string, unknown> }>(
+      `suggested-actions/${actionId}/execute?${eid()}`,
+      "POST",
+      {},
+    ),
 
   /* agent triggers (graphs owned by backend; these wire the UI to them) */
   triggerEvaluation: (
@@ -551,6 +585,57 @@ export const employerApi = {
       "POST",
       {},
     ),
+
+  /* chat (0003) — the "Ask Aura" side chatbot */
+  listChatThreads: () => request<ChatThread[]>(`chat/threads?${eid()}`),
+  createChatThread: (title?: string) =>
+    jsonBody<ChatThread>(`chat/threads`, "POST", { employer_id: getUserId(), title }),
+  deleteChatThread: (threadId: string) =>
+    request<{ ok: boolean }>(`chat/threads/${threadId}?${eid()}`, { method: "DELETE" }),
+  listChatMessages: (threadId: string) =>
+    request<ChatMessage[]>(`chat/thread/${threadId}/messages?${eid()}`),
+  sendChatMessage: (threadId: string, content: string) =>
+    jsonBody<ChatMessage>(`chat/thread/${threadId}/messages`, "POST", {
+      employer_id: getUserId(),
+      content,
+    }),
+  /** Streams live progress ("Thinking...", "Drafting an email...") while
+   * Aura works, then resolves with the final saved assistant message —
+   * same shape sendChatMessage returns. */
+  streamChatMessage: async (
+    threadId: string,
+    content: string,
+    onProgress: (event: ChatProgressEvent) => void,
+  ): Promise<ChatMessage> => {
+    const headers = await authHeaders({ "Content-Type": "application/json" });
+    const resp = await fetch(`/api/backend/employer/chat/thread/${threadId}/messages/stream`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ employer_id: getUserId(), content }),
+    });
+    if (!resp.ok || !resp.body) {
+      throw new ApiError(resp.status, `Chat stream failed (${resp.status})`);
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let result: ChatMessage | null = null;
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parsed = parseSseBuffer(buffer);
+      buffer = parsed.remainder;
+      for (const msg of parsed.messages) {
+        if (msg.event === "progress") onProgress(msg.data as ChatProgressEvent);
+        if (msg.event === "result") result = msg.data as ChatMessage;
+      }
+    }
+    if (!result) throw new ApiError(500, "Chat stream ended without a result");
+    return result;
+  },
 };
 
 /* ── Display helpers shared by employer pages ── */

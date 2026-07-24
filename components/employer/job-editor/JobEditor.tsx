@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Sparkles } from "lucide-react";
 import {
   defaultMetricPriorities,
   defaultPipelinePhases,
@@ -30,7 +31,10 @@ import KeywordsSection from "./KeywordsSection";
 import MockInterviewSection from "./MockInterviewSection";
 import ScoringPreview from "./ScoringPreview";
 import ScoringSection from "./ScoringSection";
+import SectionHeader from "./SectionHeader";
 import JobPlanFields from "@/components/employer/workforce-planner/JobPlanFields";
+import PlanAuraModal from "@/components/employer/workforce-planner/PlanAuraModal";
+import AutomationLevelSection from "@/components/employer/workforce-planner/AutomationLevelSection";
 import type {
   CreationAssist,
   CustomCriterion,
@@ -113,6 +117,9 @@ export default function JobEditor({
   const [mockInterviewEnabled, setMockInterviewEnabled] = useState(
     initialJob?.mock_interview_enabled ?? true,
   );
+  const [interviewQuestions, setInterviewQuestions] = useState<string[]>(
+    initialJob?.interview_questions ?? [],
+  );
   const [customCriteria, setCustomCriteria] = useState<CustomCriterion[]>(() =>
     (initialJob?.custom_criteria ?? []).map((criterion, index) => ({
       id: index + 1,
@@ -127,9 +134,11 @@ export default function JobEditor({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [closing, setClosing] = useState(false);
 
   // ── Create wizard: step 2 is workforce planning ──────────────────────────
   const [step, setStep] = useState(1);
+  const [showAuraModal, setShowAuraModal] = useState(false);
   const [plan, setPlan] = useState<JobPlanPayload>(defaultPlan);
   const [phases, setPhases] = useState<PhaseDef[]>(
     defaultPipelinePhases.map((phase) => ({ ...phase })),
@@ -220,6 +229,7 @@ export default function JobEditor({
       description: details.description,
       keywords,
       mock_interview_enabled: mockInterviewEnabled,
+      interview_questions: interviewQuestions,
       metric_priorities: priorities,
       dimension_weights: dimensionWeights,
       custom_criteria: customCriteria.map(({ name, priority }) => ({ name, priority })),
@@ -264,6 +274,20 @@ export default function JobEditor({
     }
   }
 
+  async function closeJob() {
+    if (!initialJob) return;
+    if (!window.confirm(`Close "${initialJob.title}"? It will stop appearing as an active role and Aura will stop working on it.`)) return;
+    setClosing(true);
+    try {
+      await employerApi.updateJob(initialJob.id, { pipeline_phase: "closed" });
+      router.push("/employer/jobs");
+    } catch (err) {
+      console.error("Failed to close job:", err);
+      setError(err instanceof Error ? err.message : "Failed to close job");
+      setClosing(false);
+    }
+  }
+
   function updateCriterion(
     id: number,
     update: Partial<Pick<CustomCriterion, "name" | "priority">>,
@@ -304,6 +328,13 @@ export default function JobEditor({
             <>
               <button className="btn btn-ghost" onClick={() => setStep(1)}>
                 ← Back
+              </button>
+              <button
+                className="btn btn-ghost"
+                type="button"
+                onClick={() => setShowAuraModal(true)}
+              >
+                <Sparkles size={15} /> Generate with Aura
               </button>
               <button
                 className="btn btn-primary"
@@ -355,12 +386,30 @@ export default function JobEditor({
               onPhases={setPhases}
               pipelineConfig={pipelineConfig}
               onConfig={setPipelineConfig}
+              hideAutomation
             />
           </main>
         </div>
       ) : (
         <div className={styles.layout}>
           <main>
+            {mode === "create" && pipelineConfig && (
+              <section className={`panel employer-section ${styles.section}`}>
+                <SectionHeader
+                  number="00"
+                  title="Automation level"
+                  description="Decide how much of this job's hiring Aura runs on its own before handing control back to you. You can change this later."
+                />
+                <AutomationLevelSection
+                  automation={pipelineConfig.automation}
+                  onChange={(automation) =>
+                    setPipelineConfig((current) =>
+                      current ? { ...current, automation } : current,
+                    )
+                  }
+                />
+              </section>
+            )}
             <JobDetailsSection
               mode={mode}
               details={details}
@@ -436,6 +485,29 @@ export default function JobEditor({
         </div>
       )}
 
+      {mode === "edit" && initialJob && initialJob.pipeline_phase !== "closed" && (
+        <section className="panel employer-section employer-danger-zone">
+          <div className="employer-section-head">
+            <div>
+              <p className="eyebrow">Danger zone</p>
+              <h2>Close this job</h2>
+              <p>
+                The role stops appearing as active and Aura stops working on it.
+                This can&apos;t be undone from here.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn btn-ghost employer-danger-button"
+              disabled={closing}
+              onClick={closeJob}
+            >
+              {closing ? "Closing…" : "Close job"}
+            </button>
+          </div>
+        </section>
+      )}
+
       {creationAssist && (
         <JobAssistModal
           assist={creationAssist}
@@ -455,10 +527,20 @@ export default function JobEditor({
               description: d.description ?? current.description,
             }));
             if (d.keywords?.length) setKeywords(d.keywords);
-            if (autoSetupInterview && result.interview_questions.length)
+            if (autoSetupInterview && result.interview_questions.length) {
               setMockInterviewEnabled(true);
+              setInterviewQuestions(result.interview_questions);
+            }
           }}
           onClose={() => setCreationAssist(null)}
+        />
+      )}
+
+      {showAuraModal && (
+        <PlanAuraModal
+          jobTitle={details.title || "this role"}
+          onGenerate={(patch) => setPlan((current) => ({ ...current, ...patch }))}
+          onClose={() => setShowAuraModal(false)}
         />
       )}
     </div>

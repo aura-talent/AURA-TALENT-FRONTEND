@@ -10,8 +10,10 @@ import ScoreDial, { scoreColor } from "@/components/ScoreDial";
 import StreamProgress from "@/components/StreamProgress";
 import ReportView from "@/components/ReportView";
 import SalaryPanel from "@/components/SalaryPanel";
+import JobPostingInsightsPanel from "@/components/JobPostingInsightsPanel";
 import Thinking from "@/components/Thinking";
 import { useAuth } from "@/components/AuthProvider";
+
 
 
 const BAR_LABELS: Record<string, string> = {
@@ -44,6 +46,8 @@ function EvaluateInner() {
   const [url, setUrl] = useState(params.get("url") ?? "");
   const [text, setText] = useState("");
   const [hasResume, setHasResume] = useState<boolean | null>(null);
+  const [activeTab, setActiveTab] = useState<"fit" | "report" | "insights">("fit");
+
   const {
     run: streamEvaluate,
     reset: resetEvaluation,
@@ -287,16 +291,94 @@ function EvaluateInner() {
           <p>{result.archetype}</p>
         </div>
 
+        {/* 3 Main View Tabs */}
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: isDesktop ? "3fr 7fr" : "1fr",
-            gap: "2rem",
-            alignItems: "start",
+            display: "flex",
+            gap: "0.5rem",
+            borderBottom: "1px solid var(--ink-10)",
+            marginBottom: "1.75rem",
+            overflowX: "auto",
+            whiteSpace: "nowrap",
           }}
         >
-          {/* Left Column: Metrics & Recommendations */}
-          <div className="eval-result-left" style={{ display: "flex", flexDirection: "column", gap: "1.5rem", position: isDesktop ? "sticky" : "static", top: "6.5rem" }}>
+          <button
+            type="button"
+            onClick={() => setActiveTab("fit")}
+            style={{
+              padding: "0.6rem 1rem",
+              border: "none",
+              borderBottom: activeTab === "fit" ? "2px solid var(--iris)" : "2px solid transparent",
+              background: activeTab === "fit" ? "var(--iris-08)" : "transparent",
+              color: activeTab === "fit" ? "var(--iris)" : "var(--ink-70)",
+              fontFamily: "var(--font-space), monospace",
+              fontSize: "0.825rem",
+              fontWeight: 700,
+              cursor: "pointer",
+              borderRadius: "4px 4px 0 0",
+              whiteSpace: "nowrap",
+              transition: "all 0.2s ease",
+            }}
+          >
+            FIT_SCORE
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("report")}
+            style={{
+              padding: "0.6rem 1rem",
+              border: "none",
+              borderBottom: activeTab === "report" ? "2px solid var(--iris)" : "2px solid transparent",
+              background: activeTab === "report" ? "var(--iris-08)" : "transparent",
+              color: activeTab === "report" ? "var(--iris)" : "var(--ink-70)",
+              fontFamily: "var(--font-space), monospace",
+              fontSize: "0.825rem",
+              fontWeight: 700,
+              cursor: "pointer",
+              borderRadius: "4px 4px 0 0",
+              whiteSpace: "nowrap",
+              maxWidth: "360px",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              transition: "all 0.2s ease",
+            }}
+            title={`Evaluation: ${result.company} — ${result.role}`}
+          >
+            Evaluation: {result.company} — {result.role}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("insights")}
+            style={{
+              padding: "0.6rem 1rem",
+              border: "none",
+              borderBottom: activeTab === "insights" ? "2px solid var(--iris)" : "2px solid transparent",
+              background: activeTab === "insights" ? "var(--iris-08)" : "transparent",
+              color: activeTab === "insights" ? "var(--iris)" : "var(--ink-70)",
+              fontFamily: "var(--font-space), monospace",
+              fontSize: "0.825rem",
+              fontWeight: 700,
+              cursor: "pointer",
+              borderRadius: "4px 4px 0 0",
+              whiteSpace: "nowrap",
+              transition: "all 0.2s ease",
+            }}
+          >
+            Job Posting Insights
+          </button>
+        </div>
+
+
+        {/* Tab 1: FIT_SCORE // FIVE_AXES */}
+        {activeTab === "fit" && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr",
+              gap: "2rem",
+              alignItems: "start",
+            }}
+          >
             <div className="panel">
               <span className="eval-tick eval-tick-tl" />
               <span className="eval-tick eval-tick-tr" />
@@ -365,21 +447,38 @@ function EvaluateInner() {
               </div>
             </div>
 
-            {result.salary && <SalaryPanel salary={result.salary} />}
-
-            <div className="hero-ctas" style={{ gap: "0.75rem" }}>
-              <button className="btn btn-primary text-white" onClick={resetEvaluation}>
-                Evaluate another job
-              </button>
-              <Link href="/dashboard" className="btn btn-ghost">View tracker</Link>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+              {result.salary && <SalaryPanel salary={result.salary} />}
+              <div className="hero-ctas" style={{ gap: "0.75rem" }}>
+                <button className="btn btn-primary text-white" onClick={resetEvaluation}>
+                  Evaluate another job
+                </button>
+                <Link href="/dashboard" className="btn btn-ghost">View tracker</Link>
+              </div>
             </div>
           </div>
+        )}
 
-          {/* Right Column: Detailed Markdown Report */}
-          <div className="panel eval-report-panel" style={{ minWidth: 0, maxHeight: isDesktop ? "calc(100vh - 12rem)" : "none", overflowY: isDesktop ? "auto" : "visible" }}>
+        {/* Tab 2: Evaluation Report */}
+        {activeTab === "report" && (
+          <div className="panel eval-report-panel" style={{ minWidth: 0 }}>
             <ReportView markdown={result.report_markdown} />
           </div>
-        </div>
+        )}
+
+        {/* Tab 3: JOB_POSTING_INSIGHTS */}
+        {activeTab === "insights" && (
+          <div>
+            {result.insights ? (
+              <JobPostingInsightsPanel insights={result.insights} company={result.company} role={result.role} />
+            ) : (
+              <div className="panel" style={{ textAlign: "center", padding: "3rem" }}>
+                <p style={{ color: "var(--ink-55)" }}>Market & Sentiment Insights loading...</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {modalOpen && (
           <div className="modal-backdrop" onClick={() => !isGenerating && setModalOpen(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>

@@ -23,6 +23,7 @@ export default function Onboarding() {
   const [drag, setDrag] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState<ResumeData | null>(null);
+  const [isNewUser, setIsNewUser] = useState(false);
 
   const { user, loading: authLoading } = useAuth();
 
@@ -31,6 +32,9 @@ export default function Onboarding() {
       if (!user) {
         router.push("/login?redirect=/onboarding");
       } else {
+        // Detect new signup flag set by login page
+        const newCandidate = typeof window !== "undefined" && localStorage.getItem("aura_new_candidate") === "1";
+        setIsNewUser(newCandidate);
         api.getResume()
           .then(setExisting)
           .catch(() => {})
@@ -39,11 +43,17 @@ export default function Onboarding() {
     }
   }, [user, authLoading, router]);
 
+
   async function handleFile(file: File) {
     setError("");
     setBusy(true);
     try {
-      setDone(await api.uploadResume(file));
+      const result = await api.uploadResume(file);
+      // Clear the new-user flag now that resume is uploaded
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("aura_new_candidate");
+      }
+      setDone(result);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Upload failed — try again or paste the text instead.");
     } finally {
@@ -55,7 +65,12 @@ export default function Onboarding() {
     setError("");
     setBusy(true);
     try {
-      setDone(await api.submitResumeText(text));
+      const result = await api.submitResumeText(text);
+      // Clear the new-user flag now that resume is uploaded
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("aura_new_candidate");
+      }
+      setDone(result);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Something went wrong — try again.");
     } finally {
@@ -132,15 +147,19 @@ export default function Onboarding() {
       <div className="container" style={{ maxWidth: 760 }}>
         <div className="page-head">
           <div className="page-kicker">(02) // RESUME_PROFILE</div>
-          <h1>Resume saved</h1>
-          <p>This is how Aura reads you. Every evaluation starts from here.</p>
+          <h1>{isNewUser ? "You're all set! 🎉" : "Resume saved"}</h1>
+          <p>
+            {isNewUser
+              ? "Welcome to Aura. Your resume is loaded — start exploring jobs that actually fit you."
+              : "This is how Aura reads you. Every evaluation starts from here."}
+          </p>
         </div>
         <div className="panel resume-saved-panel" style={{ marginBottom: "1.5rem" }}>
           <ReportView markdown={done.markdown} />
         </div>
         <div className="hero-ctas" style={{ paddingBottom: "3rem" }}>
-          <button className="btn btn-primary" onClick={() => router.push("/evaluate")}>
-            Evaluate your first job
+          <button className="btn btn-primary" onClick={() => router.push(isNewUser ? "/dashboard" : "/evaluate")}>
+            {isNewUser ? "Go to Dashboard" : "Evaluate your first job"}
           </button>
           <button className="btn btn-ghost" onClick={() => setDone(null)}>
             Replace resume
@@ -156,9 +175,15 @@ export default function Onboarding() {
     <div className="container" style={{ maxWidth: 760, paddingBottom: "4rem" }}>
       <div className="page-head">
         <div className="page-kicker">(01) // RESUME_INTAKE</div>
-        <h1>{existing ? "Your resume" : "Start with your resume"}</h1>
+        <h1>
+          {isNewUser
+            ? "Upload your resume to get started"
+            : existing ? "Your resume" : "Start with your resume"}
+        </h1>
         <p>
-          {existing
+          {isNewUser
+            ? "Aura needs your resume once. After that, every job you explore gets scored against your real profile."
+            : existing
             ? "Aura already has your resume. Upload a new file to replace it, or head straight to evaluating."
             : "Aura needs your resume once. After that, every job you paste gets scored against it."}
         </p>

@@ -206,7 +206,9 @@ export class PorcelainScene {
       model = gltf.scene; // keep the artist's original materials/colors
       const box = new THREE.Box3().setFromObject(model);
       const size = box.getSize(new THREE.Vector3());
-      const s = 1.7 / Math.max(size.x, size.y, size.z);
+      // Fit by max dimension, but hard-cap the HEIGHT so tall animals (hawk,
+      // owl) don't poke above the framed window like wide ones stay short.
+      const s = Math.min(1.3 / Math.max(size.x, size.y, size.z), 1.0 / size.y);
       model.scale.setScalar(s);
       const box2 = new THREE.Box3().setFromObject(model);
       model.position.y = 0.35 - box2.min.y;

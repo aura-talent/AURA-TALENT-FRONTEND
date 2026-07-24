@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader } from "@/components/ui/loader";
+import BountySubmissionsPanel from "@/components/employer/BountySubmissionsPanel";
 import {
   bountyApi,
   bountyStatusLabel,
@@ -151,6 +152,8 @@ export default function EmployerBountyDetailPage({
           <strong>{bounty.tags.join(", ") || "—"}</strong>
         </article>
       </div>
+
+      {bounty.status !== "draft" && <BountySubmissionsPanel bounty={bounty} />}
     </div>
   );
 }

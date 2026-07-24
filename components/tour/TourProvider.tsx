@@ -2,12 +2,13 @@
 
 import {
   createContext,
+  Suspense,
   useCallback,
   useContext,
   useEffect,
   useState,
 } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { profileApi } from "@/lib/profileApi";
 import { TOUR_PAGES, type TourStep } from "@/lib/tourSteps";
@@ -32,40 +33,49 @@ export function useTour(): TourContextValue {
   return ctx;
 }
 
+/**
+ * Watches ?tour=1 reactively via useSearchParams (not a mount-time-only
+ * check) — TourProvider is mounted once in the root layout and never
+ * remounts on client-side navigation, so detection has to react to param
+ * changes, not just the first page load. Isolated in its own component so
+ * only this (invisible, renders null) piece needs a Suspense boundary —
+ * {children} in TourProvider itself is never blocked by it.
+ */
+function TourUrlWatcher({ onDetected }: { onDetected: () => void }) {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    console.log("[tour] watcher effect fired, tour param =", searchParams.get("tour"), "pathname =", pathname);
+    if (searchParams.get("tour") !== "1") return;
+    // Deferred via setTimeout(0) rather than called synchronously here —
+    // onDetected (which calls setState) and router.replace both run inside
+    // this async callback boundary, not in the effect body itself.
+    const timer = window.setTimeout(() => {
+      console.log("[tour] calling onDetected (startTour) then stripping param");
+      onDetected();
+      const params = new URLSearchParams(searchParams);
+      params.delete("tour");
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname);
+    }, 0);
+    return () => {
+      console.log("[tour] watcher effect cleanup — clearing timer");
+      window.clearTimeout(timer);
+    };
+  }, [searchParams, pathname, router, onDetected]);
+
+  return null;
+}
+
 export function TourProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
-
-  // Detect ?tour=1 once, client-side only, via lazy initializers — deliberately
-  // not useSearchParams (which would force a Suspense boundary here for
-  // something purely cosmetic) or a setState-in-effect (which the
-  // react-hooks/set-state-in-effect rule flags as a cascading-render risk).
-  const [active, setActive] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return new URLSearchParams(window.location.search).get("tour") === "1";
-  });
-  const [pageIndex, setPageIndex] = useState(() => {
-    if (typeof window === "undefined") return 0;
-    if (new URLSearchParams(window.location.search).get("tour") !== "1") return 0;
-    const idx = TOUR_PAGES.findIndex((p) => p.path === window.location.pathname);
-    return idx >= 0 ? idx : 0;
-  });
+  const [active, setActive] = useState(false);
+  const [pageIndex, setPageIndex] = useState(0);
   const [stepIndex, setStepIndex] = useState(0);
-
-  // Strip ?tour=1 from the URL once the initial state above has captured it.
-  // This effect only calls router.replace (navigation, not setState), so it
-  // doesn't trip the same lint rule.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("tour") === "1") {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("tour");
-      router.replace(url.pathname + url.search);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const finish = useCallback(() => {
     setActive(false);
@@ -78,6 +88,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
 
   const startTour = useCallback(() => {
     const pageIdx = TOUR_PAGES.findIndex((p) => p.path === pathname);
+    console.log("[tour] startTour called, pathname =", pathname, "resolved pageIdx =", pageIdx);
     setPageIndex(pageIdx >= 0 ? pageIdx : 0);
     setStepIndex(0);
     setActive(true);
@@ -133,6 +144,9 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
         skipTour,
       }}
     >
+      <Suspense fallback={null}>
+        <TourUrlWatcher onDetected={startTour} />
+      </Suspense>
       {children}
     </TourContext.Provider>
   );

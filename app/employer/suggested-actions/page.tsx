@@ -27,8 +27,14 @@ type Suggestion = {
   detail: string;
   href?: string;
   cta?: string;
+  draft?: { subject: string; body: string };
   action?: { label: string; run: () => void | Promise<void> };
+  dismiss?: () => void | Promise<void>;
 };
+
+// Kinds whose payload carries a ready draft_subject/draft_body (drafted by
+// the candidate-management agent) — executing sends it for real.
+const SEND_KINDS = new Set(["send_interview_invite", "follow_up", "recommend_offer"]);
 
 export default function SuggestedActionsPage() {
   const [jobs, setJobs] = useState<EmployerJob[]>([]);
@@ -112,7 +118,7 @@ export default function SuggestedActionsPage() {
             alreadySent > 0
               ? `${alreadySent} offer${alreadySent === 1 ? "" : "s"} sent · ${shortlist.length} shortlisted`
               : `${shortlist.length} shortlisted candidate${shortlist.length === 1 ? "" : "s"} ready for an offer decision`,
-          href: `/employer/jobs/${job.id}/offers`,
+          href: `/employer/offers?job=${job.id}`,
           cta: "Open offer console →",
         });
       }
@@ -266,20 +272,30 @@ export default function SuggestedActionsPage() {
         : a.job_id
           ? `/employer/jobs/${a.job_id}`
           : undefined;
+      const payload = a.payload as { draft_subject?: string; draft_body?: string };
+      const hasDraft = SEND_KINDS.has(a.kind) && !!payload.draft_subject && !!payload.draft_body;
+      const isScoreCandidate = a.kind === "score_candidate";
+      const id = `agent-${a.id}`;
       list.push({
-        id: `agent-${a.id}`,
+        id,
         tone: "iris",
         badge: "✦",
         title: a.title,
         detail:
           a.body ??
           `Suggested by Aura${a.job_id && jobTitle[a.job_id] ? ` for ${jobTitle[a.job_id]}` : ""}.`,
+        draft: hasDraft ? { subject: payload.draft_subject!, body: payload.draft_body! } : undefined,
         action: {
-          label: "Mark done",
+          label: hasDraft ? "Confirm & send" : isScoreCandidate ? "Score now" : "Mark done",
           run: async () => {
-            await employerApi.updateSuggestedAction(a.id, "done");
-            setDone((current) => new Set(current).add(`agent-${a.id}`));
+            if (hasDraft || isScoreCandidate) await employerApi.executeSuggestedAction(a.id);
+            else await employerApi.updateSuggestedAction(a.id, "done");
+            setDone((current) => new Set(current).add(id));
           },
+        },
+        dismiss: async () => {
+          await employerApi.updateSuggestedAction(a.id, "dismissed");
+          setDone((current) => new Set(current).add(id));
         },
         href,
         cta: href ? "Open →" : undefined,
@@ -324,6 +340,12 @@ export default function SuggestedActionsPage() {
               <div className="suggested-action-body">
                 <strong>{item.title}</strong>
                 <p>{item.detail}</p>
+                {item.draft && (
+                  <div className="suggested-action-draft">
+                    <strong>{item.draft.subject}</strong>
+                    <p>{item.draft.body}</p>
+                  </div>
+                )}
               </div>
               {item.href && item.cta && (
                 <Link href={item.href} className="table-action">
@@ -341,7 +363,9 @@ export default function SuggestedActionsPage() {
                   <button
                     className="btn btn-ghost"
                     onClick={() =>
-                      setDone((current) => new Set(current).add(item.id))
+                      item.dismiss
+                        ? item.dismiss()
+                        : setDone((current) => new Set(current).add(item.id))
                     }
                   >
                     Dismiss

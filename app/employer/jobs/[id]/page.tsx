@@ -137,12 +137,6 @@ export default function EmployerJobDetailPage({
           <Link className="btn btn-ghost" href={`/employer/jobs/${job.id}/stages`}>
             Configure stages
           </Link>
-          <Link
-            className={`btn ${job.pipeline_phase === "offer-decision" ? "btn-primary" : "btn-ghost"}`}
-            href={`/employer/jobs/${job.id}/offers`}
-          >
-            Offer console
-          </Link>
           <Link className="btn btn-primary" href={`/employer/jobs/${job.id}/edit`}>
             Edit job
           </Link>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import Breadcrumbs from "@/components/employer/Breadcrumbs";
+import AuraChatPanel from "@/components/employer/chat/AuraChatPanel";
 
 // Ordered to follow the hiring workflow: plan a role, post it, evaluate and
 // interview applicants, source more, then act on Aura's suggestions.
@@ -16,6 +17,7 @@ const links = [
   { href: "/employer/talent-pool", label: "Talent pool", icon: "archive" },
   { href: "/employer/headhunters", label: "Headhunters", icon: "scout" },
   { href: "/employer/suggested-actions", label: "Suggested actions", icon: "bolt" },
+  { href: "/employer/offers", label: "Offers", icon: "mail" },
   { href: "/employer/profile", label: "Company profile", icon: "building" },
 ];
 
@@ -211,6 +213,7 @@ export default function EmployerShell({ children }: { children: React.ReactNode 
         <Breadcrumbs />
         {children}
       </section>
+      <AuraChatPanel />
     </div>
   );
 }

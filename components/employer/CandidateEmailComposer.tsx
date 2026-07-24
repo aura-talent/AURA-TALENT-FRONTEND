@@ -31,6 +31,14 @@ type CandidateEmailComposerProps = {
   categoryFilter?: string;
 };
 
+// Maps a selected template to the communication writer's `kind` — the offer
+// flow always overrides this via isOffer, since "Offer" isn't a template category.
+const KIND_BY_TEMPLATE: Record<string, string> = {
+  interview_invitation: "interview_invite",
+  interview_scheduling: "interview_invite",
+  candidate_rejection: "rejection",
+};
+
 // Tolerant placeholder substitution: handles {{key}}, {key}, [key], [[key]].
 function applyPlaceholders(text: string, values: Record<string, string>): string {
   return text.replace(
@@ -119,16 +127,37 @@ export default function CandidateEmailComposer({
     setBody(applyPlaceholders(template.body_template, values));
   }
 
+  const [sendError, setSendError] = useState<string | null>(null);
+  const isOffer = (categoryFilter ?? "").toLowerCase() === "offer";
+
   async function generate() {
     setBusy(true);
     try {
-      const res = await api.generateTemplate({
-        prompt: prompt.trim() || `Write a ${role} email to ${candidateName}.`,
-        template_id: templateId || undefined,
-        role: "employer",
-      });
-      setSubject(res.subject);
-      setBody(res.body);
+      if (candidateUserId) {
+        // Context-aware draft: the communication writer sees the candidate's
+        // real evaluation, stage, offer status, and the employer's own voice —
+        // not just a raw prompt, so it doesn't fall back to generic placeholders.
+        const kind = isOffer
+          ? "offer"
+          : (selectedTemplate && KIND_BY_TEMPLATE[selectedTemplate.id]) || "general";
+        const draft = await employerApi.generateComms({
+          candidate_user_id: candidateUserId,
+          job_id: jobId,
+          kind,
+          instructions: prompt.trim() || undefined,
+        });
+        setSubject(draft.subject);
+        setBody(draft.body);
+      } else {
+        // No candidate to ground the draft in — fall back to the generic writer.
+        const res = await api.generateTemplate({
+          prompt: prompt.trim() || `Write a ${role} email to ${candidateName}.`,
+          template_id: templateId || undefined,
+          role: "employer",
+        });
+        setSubject(res.subject);
+        setBody(res.body);
+      }
     } catch (err) {
       console.error("Aura draft failed, using local fallback:", err);
       const draft = localDraft();
@@ -138,9 +167,6 @@ export default function CandidateEmailComposer({
       setBusy(false);
     }
   }
-
-  const [sendError, setSendError] = useState<string | null>(null);
-  const isOffer = (categoryFilter ?? "").toLowerCase() === "offer";
 
   async function sendEmail() {
     setSendError(null);

@@ -2275,6 +2275,26 @@ textarea.input {
   color: var(--ink-55);
   line-height: 1.45;
 }
+.suggested-action-draft {
+  margin-top: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line-soft, rgba(0, 0, 0, 0.08));
+  border-radius: 0.5rem;
+  background: var(--surface-soft, rgba(0, 0, 0, 0.02));
+}
+.suggested-action-draft strong {
+  font-size: 0.78rem;
+}
+.suggested-action-draft p {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: var(--ink-55);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 .suggested-action-controls {
   display: flex;
   gap: 0.5rem;
@@ -3179,6 +3199,163 @@ textarea.input {
 }
 .status-toggle.draft i {
   background: var(--ink-30);
+}
+.automation-toggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  font-size: 0.72rem;
+  cursor: pointer;
+  color: var(--ink-55);
+  background: var(--ink-06);
+}
+.automation-toggle.is-auto {
+  color: var(--iris-deep);
+  background: rgba(99, 91, 255, 0.12);
+}
+.automation-toggle:hover {
+  border-color: currentColor;
+}
+
+/* ── Ask Aura side chat ─────────────────────────────────────────────── */
+
+.aura-chat-toggle {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--iris), var(--peach));
+  color: #fff;
+  font-size: 1.3rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-lift);
+  z-index: 60;
+  display: grid;
+  place-items: center;
+}
+
+.aura-chat-panel {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 5.2rem;
+  width: min(380px, calc(100vw - 2.5rem));
+  height: min(560px, calc(100vh - 8rem));
+  background: var(--surface);
+  border: 1px solid var(--ink-06);
+  border-radius: var(--r-l, 1rem);
+  box-shadow: var(--shadow-lift);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.aura-chat-head {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--ink-06);
+}
+.aura-chat-head strong {
+  display: block;
+  font-size: 0.9rem;
+}
+.aura-chat-head span {
+  font-size: 0.72rem;
+  color: var(--ink-55);
+}
+
+.aura-chat-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.aura-chat-empty {
+  color: var(--ink-55);
+  font-size: 0.8rem;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.aura-chat-msg p {
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.7rem;
+  font-size: 0.83rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  max-width: 90%;
+}
+.aura-chat-msg-user {
+  display: flex;
+  justify-content: flex-end;
+}
+.aura-chat-msg-user p {
+  background: var(--iris);
+  color: #fff;
+}
+.aura-chat-msg-assistant p {
+  background: var(--ink-06);
+  color: var(--ink);
+}
+
+.aura-chat-draft {
+  margin: 0.4rem 0 0;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--ink-12);
+  border-radius: 0.6rem;
+  background: var(--surface-soft, rgba(0, 0, 0, 0.02));
+}
+.aura-chat-draft strong {
+  display: block;
+  font-size: 0.78rem;
+}
+.aura-chat-draft p {
+  margin: 0.2rem 0 0.5rem;
+  font-size: 0.78rem;
+  color: var(--ink-55);
+  white-space: pre-wrap;
+  max-width: 100%;
+}
+.aura-chat-draft button {
+  width: 100%;
+}
+
+.aura-chat-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0 1rem 0.7rem;
+}
+.aura-chat-chip {
+  border: 1px solid var(--ink-12);
+  background: var(--ink-06);
+  border-radius: var(--r-pill);
+  padding: 0.3rem 0.65rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+  color: var(--ink);
+}
+.aura-chat-chip:hover {
+  border-color: var(--iris);
+  color: var(--iris);
+}
+
+.aura-chat-input {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.8rem 1rem;
+  border-top: 1px solid var(--ink-06);
+}
+.aura-chat-input .input {
+  flex: 1;
 }
 .quality-score {
   color: var(--iris-deep);

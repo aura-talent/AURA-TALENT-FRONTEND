@@ -26,6 +26,23 @@ export default function JobsPage() {
     };
   }, []);
 
+  async function toggleAutomation(job: EmployerJob) {
+    const next = job.automation_level === "auto" ? "manual" : "auto";
+    setJobs((current) =>
+      current.map((j) => (j.id === job.id ? { ...j, automation_level: next } : j)),
+    );
+    try {
+      await employerApi.updateJob(job.id, { automation_level: next });
+    } catch (err) {
+      console.error("Failed to update automation level:", err);
+      setJobs((current) =>
+        current.map((j) =>
+          j.id === job.id ? { ...j, automation_level: job.automation_level } : j,
+        ),
+      );
+    }
+  }
+
   const openCount = jobs.filter(isJobOpen).length;
   const totalCandidates = jobs.reduce(
     (total, job) => total + (job.stats?.applicant_count ?? 0),
@@ -77,6 +94,7 @@ export default function JobsPage() {
               <th>Interviews</th>
               <th>Mock interview</th>
               <th>Phase</th>
+              <th>Automation</th>
               <th></th>
             </tr>
           </thead>
@@ -127,6 +145,20 @@ export default function JobsPage() {
                       </span>
                     );
                   })()}
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className={`automation-toggle ${job.automation_level === "auto" ? "is-auto" : ""}`}
+                    onClick={() => toggleAutomation(job)}
+                    title={
+                      job.automation_level === "auto"
+                        ? "Aura is running this job automatically — click to switch to manual"
+                        : "You're driving this job manually — click to let Aura automate it"
+                    }
+                  >
+                    {job.automation_level === "auto" ? "⚡ Auto" : "Manual"}
+                  </button>
                 </td>
                 <td>
                   <div className="job-row-actions">

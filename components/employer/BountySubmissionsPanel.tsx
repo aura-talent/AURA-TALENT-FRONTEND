@@ -152,7 +152,21 @@ export default function BountySubmissionsPanel({ bounty }: { bounty: Bounty }) {
       .finally(() => setLoading(false));
   }
 
-  useEffect(reload, [bounty.id]);
+  useEffect(() => {
+    let cancelled = false;
+    bountyApi
+      .listSubmissionsForBounty(bounty.id)
+      .then((data) => {
+        if (!cancelled) setSubmissions(data);
+      })
+      .catch((err) => console.error("Failed to load submissions:", err))
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bounty.id]);
 
   async function toggleSubmission(submission: SubmissionWithResult) {
     const opening = openId !== submission.id;

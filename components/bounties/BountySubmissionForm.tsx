@@ -34,10 +34,9 @@ export default function BountySubmissionForm({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [now] = useState(() => Date.now());
 
-  const deadlinePassed = Boolean(
-    bounty.deadline && new Date(bounty.deadline).getTime() < Date.now(),
-  );
+  const deadlinePassed = Boolean(bounty.deadline && new Date(bounty.deadline).getTime() < now);
   const showTeamMembers = bounty.submission_mode !== "individual";
   const teamRequired = bounty.submission_mode === "team";
 

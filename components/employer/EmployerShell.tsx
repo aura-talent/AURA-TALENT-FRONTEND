@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import Breadcrumbs from "@/components/employer/Breadcrumbs";
 import AuraChatPanel from "@/components/employer/chat/AuraChatPanel";
+import { employerApi } from "@/lib/employerApi";
 
 type NavLink = { href: string; label: string; icon?: string };
 type NavModule = { label: string; icon?: string; items: NavLink[] };
@@ -236,6 +237,26 @@ function ModuleDropdown({ mod, pathname }: { mod: NavModule; pathname: string })
 export default function EmployerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, loading, role, signOut } = useAuth();
+  const [counts, setCounts] = useState<NotificationCounts | null>(null);
+
+  useEffect(() => {
+    if (!user || role !== "employer") return;
+    let cancelled = false;
+    function refresh() {
+      employerApi
+        .getNotificationCounts()
+        .then((c) => {
+          if (!cancelled) setCounts(c);
+        })
+        .catch(() => {});
+    }
+    refresh();
+    const interval = setInterval(refresh, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [user, role]);
 
   if (loading) {
     return (

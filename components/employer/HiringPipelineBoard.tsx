@@ -134,6 +134,7 @@ export default function HiringPipelineBoard({
   const metricNoun: Record<PhaseProgress["metric"], string> = {
     applicants: "applicants",
     evaluated: "evaluated",
+    selected: "selected for offer",
     offers: "at offer",
     hires: "hired",
     manual: "",

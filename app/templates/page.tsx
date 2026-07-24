@@ -122,10 +122,16 @@ export default function CandidateTemplatesHub() {
     return () => window.removeEventListener("keydown", onKey);
   }, [selectedTemplate, isDrawerOpen]);
 
-  const getLocallyPopulatedDraft = (subjTemplate: string, bodyTemplate: string) => {
+  // `values` is optional — pass it explicitly when calling right after a
+  // setState so the function doesn't read stale state from its closure.
+  const getLocallyPopulatedDraft = (
+    subjTemplate: string,
+    bodyTemplate: string,
+    values: Record<string, string> = placeholderValues,
+  ) => {
     let s = subjTemplate;
     let b = bodyTemplate;
-    Object.entries(placeholderValues).forEach(([placeholder, val]) => {
+    Object.entries(values).forEach(([placeholder, val]) => {
       const displayVal = val || `[${placeholder}]`;
       s = s.replaceAll(`[${placeholder}]`, displayVal);
       b = b.replaceAll(`[${placeholder}]`, displayVal);
@@ -672,14 +678,14 @@ export default function CandidateTemplatesHub() {
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <h3 style={{ fontSize: "0.85rem", fontWeight: 600, margin: 0 }}>Smart Placeholders</h3>
-                      <button
+                      {/* <button
                         className="btn btn-ghost btn-xs text-iris"
                         style={{ fontSize: "0.72rem", gap: "0.25rem" }}
                         onClick={handleAutoPopulate}
                         disabled={isPopulating}
                       >
                         {isPopulating ? (<><Loader2 size={12} className="animate-spin" /> Populating...</>) : (<>✦ Auto-populate</>)}
-                      </button>
+                      </button> */}
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                       {selectedTemplate.placeholders.map(p => (
@@ -693,8 +699,10 @@ export default function CandidateTemplatesHub() {
                             onChange={e => {
                               const newVals = { ...placeholderValues, [p]: e.target.value };
                               setPlaceholderValues(newVals);
+                              // Pass newVals explicitly — setPlaceholderValues is async
+                              // so getLocallyPopulatedDraft would read stale state otherwise.
                               const { subject: s, body: b } = getLocallyPopulatedDraft(
-                                selectedTemplate.subject_template, selectedTemplate.body_template
+                                selectedTemplate.subject_template, selectedTemplate.body_template, newVals
                               );
                               setSubject(s);
                               setBody(b);

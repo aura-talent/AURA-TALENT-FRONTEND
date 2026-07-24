@@ -8,14 +8,10 @@ import { createPortal } from "react-dom";
 
 const APP_LINKS = [
   { href: "/dashboard", label: "DASHBOARD" },
-  { href: "/tracker", label: "JOB_TRACKER" },
-  { href: "/evaluate", label: "EVALUATE" },
+  { href: "/tracker", label: "JOB_HUB" },
   { href: "/worth", label: "YOUR_WORTH" },
   { href: "/insights", label: "INSIGHTS" },
-  { href: "/jobs", label: "FIND_JOBS" },
   { href: "/bounties", label: "BOUNTIES" },
-  { href: "/compare", label: "COMPARE" },
-  { href: "/scan", label: "SCAN_JOBS" },
   { href: "/animal", label: "WORK_ANIMAL" },
   { href: "/mock-interview", label: "MOCK_INTERVIEW" },
   { href: "/templates", label: "COMMS_ASSISTANT" },

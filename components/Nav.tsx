@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import { useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
+import { openPWAInstall } from "./PWAInstallPrompt";
 
 const APP_LINKS = [
   { href: "/dashboard", label: "DASHBOARD" },
@@ -251,6 +252,30 @@ export default function Nav() {
                           My resume
                         </Link>
                       )}
+                      {/* PWA Install — persistent so users can always find it */}
+                      <button
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          openPWAInstall();
+                        }}
+                        style={{
+                          textAlign: "left",
+                          padding: "0.5rem",
+                          borderRadius: 0,
+                          fontSize: "0.875rem",
+                          color: "var(--ink-72)",
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          width: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.4rem",
+                        }}
+                        className="dropdown-item"
+                      >
+                        📲 Install App
+                      </button>
                       <button
                         onClick={() => {
                           setDropdownOpen(false);
@@ -489,6 +514,30 @@ export default function Nav() {
                           My resume
                         </Link>
                       )}
+                      {/* PWA Install — persistent entry for mobile menu */}
+                      <button
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          openPWAInstall();
+                        }}
+                        style={{
+                          textAlign: "left",
+                          padding: "0.5rem",
+                          borderRadius: 0,
+                          fontSize: "0.875rem",
+                          color: "var(--ink-72)",
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          width: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.4rem",
+                        }}
+                        className="dropdown-item"
+                      >
+                        📲 Install App
+                      </button>
                       <button
                         onClick={() => {
                           setDropdownOpen(false);

@@ -14,6 +14,7 @@ const APP_LINKS = [
   { href: "/worth", label: "YOUR_WORTH" },
   { href: "/insights", label: "INSIGHTS" },
   { href: "/jobs", label: "FIND_JOBS" },
+  { href: "/bounties", label: "BOUNTIES" },
   { href: "/compare", label: "COMPARE" },
   { href: "/scan", label: "SCAN_JOBS" },
   { href: "/mock-interview", label: "MOCK_INTERVIEW" },
@@ -24,6 +25,7 @@ const EMPLOYER_LINKS = [
   { href: '/employer', label: 'OVERVIEW' },
   { href: '/employer/candidates', label: 'CANDIDATES' },
   { href: '/employer/jobs', label: 'JOBS' },
+  { href: '/employer/bounties', label: 'BOUNTIES' },
   { href: '/employer/interviews', label: 'INTERVIEWS' },
   { href: '/employer/templates', label: 'TEMPLATES' },
 ];

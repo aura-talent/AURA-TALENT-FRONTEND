@@ -3,6 +3,7 @@ import { Bricolage_Grotesque, Hanken_Grotesk, Space_Mono, Spline_Sans_Mono } fro
 import Nav from "@/components/Nav";
 import { AuthProvider } from "@/components/AuthProvider";
 import { RouteGuard } from "@/components/RouteGuard";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import "./globals.css";
 
 const display = Bricolage_Grotesque({
@@ -82,6 +83,7 @@ export default function RootLayout({
           <RouteGuard>
             <Nav />
             <main>{children}</main>
+            <PWAInstallPrompt />
             <footer className="footer">
               <div className="footer-inner">
                 <span>© {new Date().getFullYear()} Aura Talent</span>

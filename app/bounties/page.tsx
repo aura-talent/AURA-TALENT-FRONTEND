@@ -43,9 +43,9 @@ export default function BountyMarketplacePage() {
       </div>
 
       {tags.length > 0 && (
-        <div className="bounty-card-tags" style={{ marginBottom: "1.25rem" }}>
+        <div className="bounty-filter-bar">
           <button
-            className={`chip ${tagFilter === null ? "chip-tier-high" : ""}`}
+            className={`bounty-filter-pill ${tagFilter === null ? "active" : ""}`}
             onClick={() => setTagFilter(null)}
           >
             All
@@ -53,7 +53,7 @@ export default function BountyMarketplacePage() {
           {tags.map((tag) => (
             <button
               key={tag}
-              className={`chip ${tagFilter === tag ? "chip-tier-high" : ""}`}
+              className={`bounty-filter-pill ${tagFilter === tag ? "active" : ""}`}
               onClick={() => setTagFilter(tag)}
             >
               {tag}
@@ -70,7 +70,7 @@ export default function BountyMarketplacePage() {
           <p>Check back soon — new bounties are published regularly.</p>
         </div>
       ) : (
-        <div className="bounty-marketplace-grid">
+        <div className="panel bounty-list">
           {visible.map((bounty) => (
             <BountyCard key={bounty.id} bounty={bounty} />
           ))}

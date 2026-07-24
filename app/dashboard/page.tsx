@@ -559,102 +559,10 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Career Map Banner */}
-
-            {!authLoading && user && hasResume === true && (
-              <Link
-                href="/career-map"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "1rem",
-                  padding: "1rem 1.2rem",
-                  borderRadius: "var(--r-m, 12px)",
-                  textDecoration: "none",
-                  background: "linear-gradient(120deg, #10132a, #1c1440)",
-                  border: "1px solid rgba(143,125,255,0.35)",
-                  color: "#fafaf8",
-                }}
-              >
-                <span style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
-                  <span style={{ fontWeight: 700 }}>Career Map</span>
-                  <span style={{ fontSize: "0.8rem", color: "rgba(250,250,248,0.6)" }}>
-                    Explore your next roles, pivots, and wildcards in 3D
-                  </span>
-                </span>
-                <span className="mono" style={{ fontSize: "0.75rem", color: "#c7b9ff", whiteSpace: "nowrap" }}>
-                  Open map →
-                </span>
-              </Link>
-            )}
-
-            {/* Upcoming Interviews Reminder Checklist */}
-            <div className="panel" style={{ padding: "1.5rem" }}>
-              <h3 style={{ fontSize: "1.05rem", fontWeight: 700, marginBottom: "1rem", fontFamily: "var(--font-space), monospace" }}>
-                UPCOMING_INTERVIEW_ROUND_NOTIFICATIONS
-              </h3>
-
-              {upcomingInterviews.length > 0 ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                  {upcomingInterviews.map((int) => (
-                    <div 
-                      key={int.id} 
-                      className="panel" 
-                      style={{ 
-                        padding: "0.85rem", 
-                        background: "rgba(78, 63, 216, 0.02)", 
-                        border: "1px solid var(--iris-12)", 
-                        display: "flex", 
-                        justifyContent: "space-between", 
-                        alignItems: "center" 
-                      }}
-                    >
-                      <div>
-
-                        <span style={{ fontSize: "0.68rem", textTransform: "uppercase", fontWeight: 700, color: "var(--iris)" }}>
-                          {int.company}
-                        </span>
-                        <h4 style={{ fontSize: "0.85rem", fontWeight: 600, margin: "0.1rem 0" }}>
-                          {int.name} // {int.role}
-                        </h4>
-                        {int.interviewer && (
-                          <span style={{ fontSize: "0.72rem", color: "var(--ink-55)", display: "block" }}>
-                            Interviewer: {int.interviewer}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div style={{ textAlign: "right" }}>
-                        <span className="mono" style={{ fontSize: "0.8rem", fontWeight: 700, display: "block", color: "var(--ink)" }}>
-                          {int.date}
-                        </span>
-                        <Link 
-                          href="/tracker" 
-                          style={{ fontSize: "0.7rem", fontWeight: 600, display: "inline-block", marginTop: "0.25rem" }} 
-                          className="auth-legal-link"
-                        >
-                          View round checklist →
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ textAlign: "center", padding: "2rem", border: "1.5px dashed var(--ink-12)", borderRadius: "var(--r-s)" }}>
-                  <p style={{ fontSize: "0.8rem", color: "var(--ink-55)", margin: 0 }}>
-                    No upcoming interview dates scheduled.
-                  </p>
-                  <Link href="/tracker" style={{ fontSize: "0.75rem", fontWeight: 600, marginTop: "0.5rem", display: "inline-block" }} className="auth-legal-link">
-                    Open scheduler tool →
-                  </Link>
-                </div>
-              )}
-            </div>
-
           </div>
 
           {/* RIGHT COLUMN: Company portals matches & Keyword scans */}
+
           <div className="dash-col" style={{ minWidth: 0 }}>
             <div className="panel" data-tour="dashboard-jobs-panel">
               <span className="eval-tick eval-tick-tl" />

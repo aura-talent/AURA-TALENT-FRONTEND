@@ -128,15 +128,14 @@ export default function AnimalPage() {
 
   return (
     <main style={{ position: "relative", minHeight: "100vh" }}>
-      {/* the continuous porcelain space — behind everything, all phases */}
+      {/* the continuous porcelain space — always behind content, all phases */}
       <div
         ref={containerRef}
-        // in results the figurine floats ABOVE the scrolling content (sticky
-        // dock); the canvas is transparent + pointer-transparent so it never
-        // blocks reading or clicks
-        style={{ position: "fixed", inset: 0, zIndex: phase === "results" ? 5 : 0, pointerEvents: "none" }}
+        style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }}
         aria-hidden="true"
       />
+
+      <div className="pt-10" />
 
       <div style={{ position: "relative", zIndex: 1, paddingTop: "5.5rem" }}>
         {phase === "loading" && (

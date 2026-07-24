@@ -1,7 +1,9 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+
 import { useAuth } from "@/components/AuthProvider";
 import { api, type ResumeData } from "@/lib/api";
 import { profileApi, type CandidateProfile, type ProfilePayload } from "@/lib/profileApi";
@@ -66,22 +68,29 @@ function seedFromResume(
   authFullName: string,
   authEmail: string,
 ): FormState {
-  // The résumé parser (backend ParsedResume schema) only ever produces
-  // full_name, headline, years_of_experience, top_skills, and
-  // target_archetypes — no phone/location/linkedin/portfolio/salary, so
-  // there's nothing to seed those from; they stay manual-entry-only.
+  // The résumé parser (backend ParsedResume schema) extracts full_name,
+  // headline, years_of_experience, top_skills, target_archetypes, and now
+  // phone/location/linkedin_url/portfolio_url when present in the résumé's
+  // own header. Salary is still never extracted (resumes don't state
+  // compensation expectations) — that stays manual-entry-only.
   const resumeFullName =
     typeof resumeProfile?.full_name === "string" ? resumeProfile.full_name.trim() : "";
   const years = resumeProfile?.years_of_experience;
+  const stringField = (key: string) =>
+    typeof resumeProfile?.[key] === "string" ? (resumeProfile[key] as string) : "";
 
   return {
     ...emptyForm,
     fullName: resumeFullName || authFullName,
     contactEmail: authEmail,
+    phone: stringField("phone"),
+    location: stringField("location"),
     headline: typeof resumeProfile?.headline === "string" ? resumeProfile.headline : "",
     skills: stringArray(resumeProfile?.top_skills),
     targetRoles: stringArray(resumeProfile?.target_archetypes),
     yearsExperience: typeof years === "number" ? String(years) : "",
+    linkedinUrl: stringField("linkedin_url"),
+    portfolioUrl: stringField("portfolio_url"),
   };
 }
 
@@ -205,7 +214,38 @@ function ProfilePageInner() {
 
       {error && <p className="notice notice-error">{error}</p>}
 
+      {/* 3D Career Map Banner */}
+      <Link
+        href="/career-map"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "1rem",
+          padding: "1.25rem 1.5rem",
+          borderRadius: "var(--r-m, 12px)",
+          textDecoration: "none",
+          background: "linear-gradient(120deg, #10132a, #1c1440)",
+          border: "1px solid rgba(143,125,255,0.35)",
+          color: "#fafaf8",
+          marginBottom: "1.5rem",
+          boxShadow: "0 4px 16px rgba(0, 0, 0, 0.12)",
+          transition: "transform 0.2s ease, border-color 0.2s ease",
+        }}
+      >
+        <span style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+          <span style={{ fontWeight: 700, fontSize: "1.05rem" }}>3D Career Map</span>
+          <span style={{ fontSize: "0.82rem", color: "rgba(250,250,248,0.65)" }}>
+            Explore your next roles, skill pivots, and wildcards in interactive 3D
+          </span>
+        </span>
+        <span className="mono" style={{ fontSize: "0.8rem", fontWeight: 700, color: "#c7b9ff", whiteSpace: "nowrap" }}>
+          Open map →
+        </span>
+      </Link>
+
       <div className="panel employer-section" style={{ marginBottom: "1rem" }}>
+
         <h2>Basics</h2>
         <div className="form-grid">
           <div className="field">

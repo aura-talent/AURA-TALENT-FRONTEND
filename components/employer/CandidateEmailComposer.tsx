@@ -43,12 +43,21 @@ const KIND_BY_TEMPLATE: Record<string, string> = {
 };
 
 // Tolerant placeholder substitution: handles {{key}}, {key}, [key], [[key]].
+// Also falls back to the full raw match string as a key (e.g. "[Candidate Name]")
+// so LLM-populated dicts whose keys include the brackets are found correctly.
 function applyPlaceholders(text: string, values: Record<string, string>): string {
   return text.replace(
-    /\{\{?\s*([\w.]+)\s*\}?\}|\[\[?\s*([\w.]+)\s*\]?\]/g,
+    /\{\{?\s*([\w. ]+)\s*\}?\}|\[\[?\s*([\w. ]+)\s*\]?\]/g,
     (match, a, b) => {
       const key = String(a ?? b ?? "").trim();
-      return values[key] ?? values[key.toLowerCase()] ?? match;
+      return (
+        values[key] ??
+        values[key.toLowerCase()] ??
+        // Try the full bracket form that the LLM may have used as the key
+        values[match] ??
+        values[match.toLowerCase()] ??
+        match
+      );
     },
   );
 }
@@ -116,24 +125,34 @@ export default function CandidateEmailComposer({
   async function applyTemplate(id: string) {
     setTemplateId(id);
     const template = templates.find((item) => item.id === id);
-    if (!template) return;
-    // Immediate feedback with the raw template, then fill placeholders.
-    let values: Record<string, string> = {};
+    if (!template) {
+      // Cleared — reset fields
+      setSubject("");
+      setBody("");
+      return;
+    }
+    // Show raw template immediately so user sees content right away.
+    setSubject(template.subject_template);
+    setBody(template.body_template);
+    // Then asynchronously populate placeholders with real candidate/job data.
+    if (!template.placeholders?.length) return;
+    setBusy(true);
     try {
-      if (template.placeholders?.length) {
-        const res = await api.populatePlaceholders({
-          placeholders: template.placeholders,
-          role: "employer",
-          candidate_user_id: candidateUserId,
-          job_id: jobId,
-        });
-        values = res.populated ?? {};
-      }
+      const res = await api.populatePlaceholders({
+        placeholders: template.placeholders,
+        role: "employer",
+        candidate_user_id: candidateUserId,
+        job_id: jobId,
+      });
+      const values = res.populated ?? {};
+      setSubject(applyPlaceholders(template.subject_template, values));
+      setBody(applyPlaceholders(template.body_template, values));
     } catch (err) {
       console.error("Failed to populate placeholders:", err);
+      // Leave the raw template shown — user can edit manually.
+    } finally {
+      setBusy(false);
     }
-    setSubject(applyPlaceholders(template.subject_template, values));
-    setBody(applyPlaceholders(template.body_template, values));
   }
 
   async function generate() {
@@ -141,16 +160,30 @@ export default function CandidateEmailComposer({
     try {
       if (candidateUserId) {
         // Context-aware draft: the communication writer sees the candidate's
-        // real evaluation, stage, offer status, and the employer's own voice —
-        // not just a raw prompt, so it doesn't fall back to generic placeholders.
+        // real evaluation, stage, offer status, and the employer's own voice.
+        // If a template is selected, include its structure as additional guidance
+        // so Aura mirrors the template's shape rather than writing from scratch.
         const kind = isOffer
           ? "offer"
           : (selectedTemplate && KIND_BY_TEMPLATE[selectedTemplate.id]) || "general";
+
+        // Build instructions: honour any user prompt AND template structure.
+        let instructions = prompt.trim() || undefined;
+        if (selectedTemplate) {
+          const templateHint =
+            `Follow this template structure (adapt content to the candidate, do not copy verbatim):\n` +
+            `Subject format: ${selectedTemplate.subject_template}\n` +
+            `Body format:\n${selectedTemplate.body_template}`;
+          instructions = instructions
+            ? `${instructions}\n\n${templateHint}`
+            : templateHint;
+        }
+
         const draft = await employerApi.generateComms({
           candidate_user_id: candidateUserId,
           job_id: jobId,
           kind,
-          instructions: prompt.trim() || undefined,
+          instructions,
         });
         setSubject(draft.subject);
         setBody(draft.body);
@@ -211,12 +244,16 @@ export default function CandidateEmailComposer({
         {buttonLabel}
       </button>
       {open && (
-        <div className="candidate-email-backdrop" onClick={() => setOpen(false)}>
+        // Use onMouseDown instead of onClick so the backdrop close does not
+        // swallow mousedown events that are meant for inputs inside the modal
+        // (which would prevent text editing, including deleting characters).
+        <div className="candidate-email-backdrop" onMouseDown={() => setOpen(false)}>
           <section
             className="candidate-email-modal panel"
             role="dialog"
             aria-modal="true"
             aria-labelledby="candidate-email-title"
+            onMouseDown={(event) => event.stopPropagation()}
             onClick={(event) => event.stopPropagation()}
           >
             <header>

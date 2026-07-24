@@ -123,7 +123,7 @@ export default function SetupScreen({ onStart }: Props) {
         </div>
 
         {/* Input group */}
-        <div style={{ marginBottom: "1.5rem" }}>
+        <div style={{ marginBottom: "1.5rem" }} data-tour="mock-interview-input">
           <div style={{
             display: "flex",
             gap: "0",

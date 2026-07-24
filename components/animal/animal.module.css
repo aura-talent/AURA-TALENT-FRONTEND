@@ -1,0 +1,185 @@
+/* ── Swipe deck ─────────────────────────────────────────── */
+.deckWrap {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  padding-top: 1rem;
+}
+
+.deckProgress { color: var(--ink-55); }
+
+.deckStack {
+  position: relative;
+  width: min(380px, 88vw);
+  height: 300px;
+  perspective: 900px;
+  transform-style: preserve-3d;
+}
+
+.card {
+  position: absolute;
+  inset: 0;
+  background: var(--surface);
+  border-radius: var(--r-l);
+  box-shadow: var(--shadow-lift);
+  padding: 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  will-change: transform;
+}
+.card:active { cursor: grabbing; }
+
+.cardCompany { color: var(--iris); letter-spacing: 0.06em; }
+.cardTitle { font-size: 1.4rem; }
+.cardLoc { color: var(--ink-55); font-size: 0.9rem; }
+
+.chips { display: flex; gap: 0.5rem; margin-top: auto; flex-wrap: wrap; }
+.chip {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: var(--r-pill);
+  background: var(--iris-08);
+  color: var(--iris-deep);
+}
+
+.deckActions { display: flex; gap: 1rem; }
+.passBtn, .saveBtn {
+  border: none;
+  border-radius: var(--r-pill);
+  padding: 0.7rem 1.5rem;
+  font-weight: 600;
+  transition: transform 0.15s ease;
+}
+.passBtn { background: var(--ink-06); color: var(--ink-72); }
+.saveBtn { background: var(--iris); color: var(--primary-foreground); }
+.passBtn:hover, .saveBtn:hover { transform: translateY(-2px); }
+
+.hint { color: var(--ink-30); font-size: 0.72rem; }
+
+/* ── Ceremony ───────────────────────────────────────────── */
+.ceremony {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 14vh;
+  pointer-events: none;
+}
+.ceremonyText { text-align: center; max-width: 560px; padding: 0 1.5rem; }
+.ceremonyHeadline { font-size: clamp(2rem, 5vw, 3.4rem); }
+.ceremonyWhy { color: var(--ink-72); margin-top: 0.8rem; font-size: 1.05rem; }
+.skipBtn {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  pointer-events: auto;
+  background: none;
+  border: 1px solid var(--ink-12);
+  border-radius: var(--r-pill);
+  padding: 0.4rem 1rem;
+  color: var(--ink-55);
+}
+
+/* ── Results ────────────────────────────────────────────── */
+.results {
+  position: relative;
+  z-index: 2;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  /* readable over the 3D scene: fade to porcelain under the panel */
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--porcelain) 0%, transparent) 0,
+    color-mix(in srgb, var(--porcelain) 92%, transparent) 3.5rem,
+    var(--porcelain) 100%
+  );
+  border-radius: var(--r-l) var(--r-l) 0 0;
+}
+.resultsHead { display: flex; justify-content: space-between; align-items: start; gap: 1rem; }
+.resultsHead h2 { display: flex; align-items: center; gap: 0.75rem; font-size: 2rem; }
+.tempBadge {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: var(--r-pill);
+  background: var(--iris-12);
+  color: var(--iris-deep);
+}
+.niche { color: var(--ink-72); margin-top: 0.4rem; }
+.why { margin-top: 0.6rem; }
+.snapBtn {
+  white-space: nowrap;
+  background: var(--ink-06);
+  border: none;
+  border-radius: var(--r-pill);
+  padding: 0.5rem 1rem;
+  color: var(--ink-72);
+}
+.snapBtn:disabled { opacity: 0.4; cursor: default; }
+
+.traitGrid {
+  background: var(--surface);
+  border-radius: var(--r-l);
+  box-shadow: var(--shadow-card);
+  padding: 1.4rem 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.traitRow { display: grid; grid-template-columns: 7.5rem 1fr 7.5rem; align-items: center; gap: 0.8rem; }
+.pole { font-size: 0.7rem; color: var(--ink-55); }
+.pole:last-child { text-align: right; }
+.track { position: relative; height: 6px; border-radius: 3px; background: var(--ink-06); }
+.marker {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--iris);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 4px var(--iris-12);
+}
+
+.alignBox {
+  background: var(--surface);
+  border-radius: var(--r-l);
+  box-shadow: var(--shadow-card);
+  padding: 1.4rem 1.6rem;
+}
+.alignHead { display: flex; justify-content: space-between; margin-bottom: 0.7rem; }
+.alignTrack { height: 8px; border-radius: 4px; background: var(--ink-06); overflow: hidden; }
+.alignFill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--aura-a), var(--aura-b), var(--aura-c));
+}
+.play { margin-top: 0.8rem; color: var(--iris-deep); font-weight: 600; }
+
+.shortlist h3 { margin-bottom: 0.2rem; }
+.shortlistNote { color: var(--ink-55); font-size: 0.85rem; margin-bottom: 0.8rem; }
+.shortlist ul { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; }
+.shortRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface);
+  border-radius: var(--r-m);
+  box-shadow: var(--shadow-card);
+  padding: 0.9rem 1.2rem;
+}
+.evalLink { color: var(--iris); font-weight: 600; text-decoration: none; white-space: nowrap; }

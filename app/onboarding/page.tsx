@@ -158,8 +158,11 @@ export default function Onboarding() {
           <ReportView markdown={done.markdown} />
         </div>
         <div className="hero-ctas" style={{ paddingBottom: "3rem" }}>
-          <button className="btn btn-primary" onClick={() => router.push(isNewUser ? "/dashboard" : "/evaluate")}>
-            {isNewUser ? "Go to Dashboard" : "Evaluate your first job"}
+          <button
+            className="btn btn-primary"
+            onClick={() => router.push(isNewUser ? "/profile?welcome=1" : "/evaluate")}
+          >
+            {isNewUser ? "Review your profile →" : "Evaluate your first job"}
           </button>
           <button className="btn btn-ghost" onClick={() => setDone(null)}>
             Replace resume

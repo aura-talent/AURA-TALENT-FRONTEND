@@ -1,21 +1,38 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import gsap from "gsap";
 import { api, type Application } from "@/lib/api";
 import { scoreColor } from "@/components/ScoreDial";
 import Thinking from "@/components/Thinking";
 import ReportView from "@/components/ReportView";
 
-export default function ComparePage() {
+function CompareInner() {
   const root = useRef<HTMLDivElement>(null);
+  const params = useSearchParams();
+  const idsParam = params.get("ids");
   const [apps, setApps] = useState<Application[]>([]);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [selected, setSelected] = useState<Set<number>>(() => {
+    if (!idsParam) return new Set();
+    const ids = idsParam
+      .split(",")
+      .map((s) => parseInt(s, 10))
+      .filter((n) => !Number.isNaN(n) && n !== 0);
+    return new Set(ids);
+  });
+  // Preselected via ?ids= (e.g. from the job tracker) — skip the picker and run right away.
+  const autoRunRef = useRef(!!idsParam && selected.size >= 2);
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<string | null>(null);
+
+  // Only evaluated jobs (they carry a real evaluation_id) can be compared —
+  // manual tracker entries default evaluation_id to 0 and would render as
+  // duplicate 0.0 rows with colliding React keys.
+  const comparableApps = apps.filter((a) => !!a.evaluation_id);
 
   useEffect(() => {
     api
@@ -47,6 +64,15 @@ export default function ComparePage() {
       setBusy(false);
     }
   }
+
+  // Auto-run the comparison once data has loaded, when arriving from the
+  // tracker with jobs already picked — no need to re-select them here.
+  useEffect(() => {
+    if (!loaded || !autoRunRef.current) return;
+    autoRunRef.current = false;
+    if (selected.size >= 2) run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
 
   /* the title block prints once, immediately — no data dependency */
   useEffect(() => {
@@ -207,7 +233,7 @@ export default function ComparePage() {
             <span className="scan-spinner" aria-hidden="true" />
             <span>LOADING_EVALUATIONS // RUNNING</span>
           </div>
-        ) : apps.length < 2 ? (
+        ) : comparableApps.length < 2 ? (
           <div
             className="panel compare-panel"
             style={{
@@ -238,7 +264,7 @@ export default function ComparePage() {
               className="panel compare-panel"
               style={{ marginBottom: "1.25rem" }}
             >
-              {apps.map((a) => (
+              {comparableApps.map((a) => (
                 <label
                   className="compare-row"
                   key={a.evaluation_id}
@@ -296,5 +322,13 @@ export default function ComparePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ComparePage() {
+  return (
+    <Suspense fallback={<div className="container"><p>Loading comparison...</p></div>}>
+      <CompareInner />
+    </Suspense>
   );
 }

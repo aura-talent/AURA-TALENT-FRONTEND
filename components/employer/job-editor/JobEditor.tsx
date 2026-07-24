@@ -127,6 +127,9 @@ export default function JobEditor({
       priority: criterion.priority,
     })),
   );
+  const [minimumOfferScore, setMinimumOfferScore] = useState<number | null>(
+    initialJob?.minimum_offer_score ?? null,
+  );
   const [headhunters, setHeadhunters] = useState<EmployerHeadhunter[]>([]);
   const [headhunterIds, setHeadhunterIds] = useState<string[]>(
     initialJob?.headhunter_ids ?? [],
@@ -234,6 +237,7 @@ export default function JobEditor({
       dimension_weights: dimensionWeights,
       custom_criteria: customCriteria.map(({ name, priority }) => ({ name, priority })),
       headhunter_ids: headhunterIds,
+      minimum_offer_score: minimumOfferScore,
     };
   }
 
@@ -439,6 +443,8 @@ export default function JobEditor({
               dimensionWeights={dimensionWeights}
               totalPriority={totalPriority}
               totalDimensionWeight={totalDimensionWeight}
+              minimumOfferScore={minimumOfferScore}
+              onMinimumOfferScoreChange={setMinimumOfferScore}
               onPriorityChange={(key: EvaluationMetricKey, value: number) =>
                 setPriorities((current) => ({ ...current, [key]: value }))
               }

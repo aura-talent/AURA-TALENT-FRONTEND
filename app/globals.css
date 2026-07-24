@@ -2235,6 +2235,15 @@ textarea.input {
   color: var(--iris-deep);
   background: var(--iris-08);
 }
+.employer-nav-badge {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 0.4rem;
+  border-radius: 50%;
+  background: #e0433a;
+  vertical-align: middle;
+}
 .employer-sidebar-foot {
   margin-top: auto;
   padding-top: 1rem;

@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import Breadcrumbs from "@/components/employer/Breadcrumbs";
 import AuraChatPanel from "@/components/employer/chat/AuraChatPanel";
+import { employerApi } from "@/lib/employerApi";
 
-type NavLink = { href: string; label: string };
+type NotificationCounts = { offers: number; applicants: number };
+
+type NavLink = { href: string; label: string; badgeKey?: keyof NotificationCounts };
 type NavModule = { label: string; items: NavLink[] };
 type NavSection =
   | { id: string; label: string; icon: string; href: string }
@@ -35,8 +38,8 @@ const NAV: NavSection[] = [
       {
         label: "Action",
         items: [
-          { href: "/employer/applicants", label: "Applicants" },
-          { href: "/employer/offers", label: "Offers" },
+          { href: "/employer/applicants", label: "Applicants", badgeKey: "applicants" },
+          { href: "/employer/offers", label: "Offers", badgeKey: "offers" },
         ],
       },
     ],
@@ -143,7 +146,15 @@ function Icon({ name }: { name: string }) {
 // sidebar doesn't remount between employer pages), so it stays open until
 // its own header is clicked again — navigating to one of its links does not
 // collapse it.
-function ModuleDropdown({ mod, pathname }: { mod: NavModule; pathname: string }) {
+function ModuleDropdown({
+  mod,
+  pathname,
+  counts,
+}: {
+  mod: NavModule;
+  pathname: string;
+  counts: NotificationCounts | null;
+}) {
   const [open, setOpen] = useState(false);
   const active = mod.items.some((item) => isLinkActive(pathname, item.href));
 
@@ -173,16 +184,25 @@ function ModuleDropdown({ mod, pathname }: { mod: NavModule; pathname: string })
       </button>
       <div className={`employer-nav-module-items${open ? " open" : ""}`}>
         <div className="employer-nav-module-items-inner">
-          {mod.items.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="employer-nav-link"
-              aria-current={isLinkActive(pathname, item.href) ? "page" : undefined}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {mod.items.map((item) => {
+            const badgeCount = item.badgeKey ? counts?.[item.badgeKey] ?? 0 : 0;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="employer-nav-link"
+                aria-current={isLinkActive(pathname, item.href) ? "page" : undefined}
+              >
+                {item.label}
+                {badgeCount > 0 && (
+                  <span
+                    className="employer-nav-badge"
+                    title={`${badgeCount} item${badgeCount === 1 ? "" : "s"} need attention`}
+                  />
+                )}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -201,6 +221,26 @@ function getInitials(name: string | null | undefined, email: string | null | und
 export default function EmployerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, loading, role, signOut } = useAuth();
+  const [counts, setCounts] = useState<NotificationCounts | null>(null);
+
+  useEffect(() => {
+    if (!user || role !== "employer") return;
+    let cancelled = false;
+    function refresh() {
+      employerApi
+        .getNotificationCounts()
+        .then((c) => {
+          if (!cancelled) setCounts(c);
+        })
+        .catch(() => {});
+    }
+    refresh();
+    const interval = setInterval(refresh, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [user, role]);
 
   if (loading) {
     return (
@@ -273,7 +313,7 @@ export default function EmployerShell({ children }: { children: React.ReactNode 
                 </div>
                 {"modules" in section
                   ? section.modules.map((mod) => (
-                      <ModuleDropdown key={mod.label} mod={mod} pathname={pathname} />
+                      <ModuleDropdown key={mod.label} mod={mod} pathname={pathname} counts={counts} />
                     ))
                   : (
                     <div className="employer-nav-static-items">

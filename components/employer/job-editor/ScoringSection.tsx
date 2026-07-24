@@ -18,24 +18,28 @@ export default function ScoringSection({
   dimensionWeights,
   totalPriority,
   totalDimensionWeight,
+  minimumOfferScore,
   onPriorityChange,
   onCriterionNameChange,
   onCriterionPriorityChange,
   onCriterionRemove,
   onCriterionAdd,
   onDimensionWeightChange,
+  onMinimumOfferScoreChange,
 }: {
   priorities: MetricPriorities;
   customCriteria: CustomCriterion[];
   dimensionWeights: DimensionWeights;
   totalPriority: number;
   totalDimensionWeight: number;
+  minimumOfferScore: number | null;
   onPriorityChange: (key: EvaluationMetricKey, value: number) => void;
   onCriterionNameChange: (id: number, name: string) => void;
   onCriterionPriorityChange: (id: number, priority: number) => void;
   onCriterionRemove: (id: number) => void;
   onCriterionAdd: () => void;
   onDimensionWeightChange: (key: ScoringDimensionKey, value: number) => void;
+  onMinimumOfferScoreChange: (value: number | null) => void;
 }) {
   return (
     <section className={`panel employer-section ${styles.section}`}>
@@ -189,6 +193,40 @@ export default function ScoringSection({
           {dimensionWeights.culture}%
         </code>
         <b>{totalDimensionWeight === 100 ? "Ready" : "Must total 100%"}</b>
+      </div>
+
+      <div className={styles.divider} />
+
+      <div className={styles.scoringSubhead}>
+        <div>
+          <h3>Minimum offer score</h3>
+          <p>
+            An evaluated applicant below this final score is automatically rejected once
+            Aura runs the Evaluation phase for this role (fully-automated jobs only) — everyone
+            at or above it is a candidate for offer selection. Manual jobs use this only as a
+            reference; nothing is auto-rejected.
+          </p>
+        </div>
+      </div>
+      <div className={styles.metricRow}>
+        <div>
+          <strong>Minimum final score</strong>
+          <p>Leave blank to use the system default (60).</p>
+        </div>
+        <input
+          className="input"
+          type="number"
+          min={0}
+          max={100}
+          placeholder="60"
+          value={minimumOfferScore ?? ""}
+          onChange={(event) => {
+            const raw = event.target.value;
+            onMinimumOfferScoreChange(raw === "" ? null : Number(raw));
+          }}
+          aria-label="Minimum offer score"
+          style={{ maxWidth: "120px" }}
+        />
       </div>
     </section>
   );

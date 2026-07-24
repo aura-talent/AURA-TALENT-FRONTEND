@@ -47,7 +47,7 @@ function OffersHub() {
     let cancelled = false;
     Promise.allSettled([
       employerApi.listJobs(),
-      employerApi.listCandidates(),
+      employerApi.listCandidates(undefined, { onlySelected: true }),
       employerApi.listOffers(),
     ]).then(([jobsRes, rowsRes, offersRes]) => {
       if (cancelled) return;
@@ -68,13 +68,16 @@ function OffersHub() {
     [offers],
   );
 
-  // Everyone still in the running (applied, not rejected, not already hired)
-  // across every job — once hired, a candidate belongs on the board, not here.
+  // The backend already filters to selected_for_offer=true (only_selected)
+  // — these defensive checks just guard against a stale-cache edge case
+  // (e.g. rejected or hired after selection) rather than doing the primary
+  // filtering job themselves.
   const shortlist = useMemo(
     () =>
       rows.filter(
         (row) =>
           row.application &&
+          row.application.selected_for_offer &&
           !row.application.is_rejected &&
           !/hire/i.test(row.application.stage),
       ),
@@ -166,8 +169,8 @@ function OffersHub() {
           <p className="eyebrow">Offer console</p>
           <h1>Offers</h1>
           <p>
-            Every candidate still in the running across your roles, grouped by
-            job, best match first. Aura drafts the offer —{" "}
+            Candidates selected for offer during Evaluation, grouped by job,
+            best match first. Aura drafts the offer —{" "}
             <strong>sending is always your call</strong>.
           </p>
         </div>
@@ -175,8 +178,9 @@ function OffersHub() {
       </div>
 
       <p style={{ fontSize: "0.78rem", color: "var(--ink-55)", margin: "-0.5rem 0 1.25rem" }}>
-        ✦ This shortlist is suggested by Aura — ranked from applicants who&apos;ve cleared
-        rejection, not a final decision. Review each candidate before sending an offer.
+        ✦ Only candidates explicitly selected during Evaluation appear here — Aura selects
+        automatically once a job&apos;s offer target is met, or select manually from the
+        Applicants tab. Review each candidate before sending an offer.
       </p>
 
       <div className="candidate-toolbar panel">
@@ -232,7 +236,7 @@ function OffersHub() {
       ) : groups.length === 0 ? (
         <div className="empty-state panel">
           <h3>No candidates to offer yet</h3>
-          <p>Candidates appear here once they&apos;ve applied and cleared rejection.</p>
+          <p>Candidates appear here once Aura or you have selected them during Evaluation.</p>
         </div>
       ) : (
         groups.map(({ job, jobId, candidates }) => {

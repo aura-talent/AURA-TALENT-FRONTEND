@@ -1,83 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  employerApi,
-  timeAgo,
-  type CommsMessage,
-  type EmployerJob,
-  type JobPhaseEvent,
-  type SuggestedAction,
-} from "@/lib/employerApi";
+import Link from "next/link";
+import { employerApi, type EmployerJob, type SuggestedAction } from "@/lib/employerApi";
+import { deriveAgentActivity, type AgentActivityLine } from "@/lib/agentLabels";
 
 /**
- * Job-level activity feed.
- *
- * Reads real events for the job — pipeline-phase moves (job_phase_events),
- * sent emails (comms_messages), and agent-drafted suggestions
- * (suggested_actions, any status) — most recent first. Empty until
- * something happens on the role; no more synthetic seeding.
+ * Job-level activity feed — a brief roster of which specialists are
+ * currently (or, for standing behaviors like sourcing, about to at the
+ * next scheduler sweep) working this role, one line per agent (0004
+ * follow-up) rather than one line per candidate/suggestion. Completed
+ * system transitions (phase moves, auto-assign, auto-shortlist, plan
+ * drafts) and sent emails never appear here — they're one-shot facts, not
+ * ongoing activity, and live in the Audit Trail page instead (linked
+ * below). Per-candidate detail (who, what, waiting on your confirmation)
+ * lives on the Applicants/Offers pages, which is also where the HIL red-dot
+ * badges point.
  */
-type Activity = { agent: string; color: string; text: string; note?: string | null; when: string };
-
-function titleCase(s: string) {
-  return s.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-// Every trigger/source string the backend actually writes (see
-// job_phase_events.trigger and suggested_actions.source). Unknown future
-// values fall back to a title-cased version of the raw string rather than
-// showing it verbatim.
-const TRIGGER_LABEL: Record<string, { agent: string; color: string }> = {
-  manual: { agent: "You", color: "#64748b" },
-  auto: { agent: "Auto-advance", color: "#2563eb" },
-  "hr-supervisor": { agent: "Hiring Agent", color: "#7c3aed" },
-  "chat-agent": { agent: "Hiring Agent", color: "#7c3aed" },
-};
-
-const SEND_KINDS = new Set(["send_interview_invite", "follow_up", "recommend_offer"]);
-
-function phaseEventToActivity(e: JobPhaseEvent): Activity {
-  const meta = TRIGGER_LABEL[e.trigger] ?? { agent: titleCase(e.trigger), color: "#2563eb" };
-  const from = e.from_phase ? `${titleCase(e.from_phase)} → ` : "";
-  return {
-    agent: meta.agent,
-    color: meta.color,
-    text: `Advanced ${from}${titleCase(e.to_phase)}`,
-    note: e.note,
-    when: timeAgo(e.created_at),
-  };
-}
-
-function commsToActivity(m: CommsMessage): Activity {
-  return {
-    agent: "Hiring Agent",
-    color: "#0d9488",
-    text:
-      m.status === "failed"
-        ? `Email failed: ${m.subject ?? "(no subject)"}`
-        : `Email sent: ${m.subject ?? "(no subject)"}`,
-    when: timeAgo(m.sent_at ?? m.created_at),
-  };
-}
-
-function suggestionToActivity(a: SuggestedAction): Activity {
-  const needsConfirmation = SEND_KINDS.has(a.kind);
-  const statusNote =
-    a.status === "done"
-      ? "Confirmed and sent"
-      : a.status === "dismissed"
-        ? "Dismissed"
-        : "Waiting for your confirmation";
-  return {
-    agent: "Hiring Agent",
-    color: "#7c3aed",
-    text: a.title,
-    note: needsConfirmation ? statusNote : a.body,
-    when: timeAgo(a.created_at),
-  };
-}
-
 export default function JobActivityFeed({
   job,
   compact = false,
@@ -85,60 +24,51 @@ export default function JobActivityFeed({
   job: EmployerJob;
   compact?: boolean;
 }) {
-  const [feed, setFeed] = useState<Activity[] | null>(null);
+  const [roster, setRoster] = useState<AgentActivityLine[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.allSettled([
-      employerApi.phaseEvents(job.id),
-      employerApi.listComms({ jobId: job.id }),
-      employerApi.listSuggestedActions("all"),
-    ]).then(([phaseRes, commsRes, suggestionsRes]) => {
-      if (cancelled) return;
-      const events: { at: string; activity: Activity }[] = [];
-      if (phaseRes.status === "fulfilled")
-        for (const e of phaseRes.value)
-          events.push({ at: e.created_at, activity: phaseEventToActivity(e) });
-      if (commsRes.status === "fulfilled")
-        for (const m of commsRes.value)
-          events.push({ at: m.sent_at ?? m.created_at, activity: commsToActivity(m) });
-      if (suggestionsRes.status === "fulfilled")
-        for (const a of suggestionsRes.value)
-          if (a.job_id === job.id)
-            events.push({ at: a.created_at, activity: suggestionToActivity(a) });
-      events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
-      setFeed(events.map((e) => e.activity));
-    });
+    employerApi
+      .listSuggestedActions("open")
+      .then((suggestions: SuggestedAction[]) => {
+        if (cancelled) return;
+        setRoster(deriveAgentActivity(job, suggestions));
+      })
+      .catch(() => {
+        if (!cancelled) setRoster([]);
+      });
     return () => {
       cancelled = true;
     };
-  }, [job.id]);
+  }, [job]);
 
   const idleHint =
     job.automation_level === "auto" &&
     job.status === "Active" &&
     job.headhunter_ids.length === 0 &&
     (job.stats?.applicant_count ?? 0) === 0
-      ? "Aura checks this job every few minutes — it'll auto-assign a headhunter and start sourcing shortly."
+      ? "Aura checks this job every minute — it'll auto-assign a headhunter and start sourcing shortly."
       : null;
 
   const list =
-    feed === null ? (
+    roster === null ? (
       <p className="job-activity-note">Loading activity…</p>
-    ) : feed.length === 0 ? (
+    ) : roster.length === 0 ? (
       <p className="job-activity-note">
-        No activity yet — phase moves, sourcing, and emails on this role will appear here.
+        No open activity right now — Aura&apos;s specialists will show up here once there&apos;s
+        something to do on this role. Completed actions live in the audit trail.
       </p>
     ) : (
       <ol className="job-activity-feed">
-        {feed.map((item, index) => (
-          <li key={index}>
+        {roster.map((item) => (
+          <li key={item.key}>
             <span className="job-activity-dot" style={{ background: item.color }} />
             <div>
-              <strong style={{ color: item.color }}>{item.agent}</strong>
-              <p>{item.text}</p>
-              {item.note && <small className="job-activity-detail">{item.note}</small>}
-              <small>{item.when}</small>
+              <strong style={{ color: item.color }}>{item.label}</strong>
+              <p>
+                {item.text}
+                {item.count > 1 ? ` (${item.count})` : ""}
+              </p>
             </div>
           </li>
         ))}
@@ -164,6 +94,9 @@ export default function JobActivityFeed({
           <p className="eyebrow">Agent activity</p>
           <h2>What Aura is doing</h2>
         </div>
+        <Link className="table-action" href={`/employer/jobs/${job.id}/audit`}>
+          View audit trail →
+        </Link>
       </div>
       {list}
       {idleHint && <p className="job-activity-note job-activity-idle-hint">{idleHint}</p>}

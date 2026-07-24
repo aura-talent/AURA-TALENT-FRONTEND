@@ -89,9 +89,11 @@ export interface EmployerJob {
   metric_priorities: Record<string, number>;
   dimension_weights: Record<string, number>;
   custom_criteria: { name: string; priority: number }[];
+  minimum_offer_score: number | null;
   created_at: string;
   updated_at: string;
   headhunter_ids: string[];
+  active_headhunter_ids: string[];
   stats?: JobStats;
 }
 
@@ -120,6 +122,8 @@ export interface JobApplication {
   candidate_user_id: string;
   stage: string;
   is_rejected: boolean;
+  selected_for_offer: boolean;
+  selected_for_offer_at: string | null;
   applied_at: string;
   updated_at: string;
 }
@@ -315,6 +319,7 @@ export interface SuggestedAction {
   payload: Record<string, unknown>;
   status: "open" | "done" | "dismissed";
   source: string;
+  agent: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -381,7 +386,10 @@ export interface EmployerProfileDraft {
 /* ── Payload types ── */
 
 export type JobPayload = Partial<
-  Omit<EmployerJob, "id" | "employer_id" | "created_at" | "updated_at" | "stats">
+  Omit<
+    EmployerJob,
+    "id" | "employer_id" | "created_at" | "updated_at" | "stats" | "active_headhunter_ids"
+  >
 >;
 
 export type JobPlanPayload = Omit<
@@ -403,9 +411,10 @@ export const employerApi = {
     request<{ ok: boolean }>(`jobs/${jobId}?${eid()}`, { method: "DELETE" }),
 
   /* candidates (consolidated rows) + talent pool */
-  listCandidates: (jobId?: string) =>
+  listCandidates: (jobId?: string, opts?: { onlySelected?: boolean }) =>
     request<CandidateRow[]>(
-      `talent-pool/candidates?${eid()}${jobId ? `&job_id=${jobId}` : ""}`,
+      `talent-pool/candidates?${eid()}${jobId ? `&job_id=${jobId}` : ""}` +
+        (opts?.onlySelected ? `&only_selected=true` : ""),
     ),
   getCandidate: (candidateUserId: string) =>
     request<CandidateDetail>(`talent-pool/candidates/${candidateUserId}?${eid()}`),
@@ -431,6 +440,11 @@ export const employerApi = {
     }),
   stageHistory: (applicationId: string) =>
     request<StageEvent[]>(`applications/${applicationId}/events?${eid()}`),
+  selectForOffer: (applicationId: string, selected: boolean) =>
+    jsonBody<JobApplication>(`applications/${applicationId}/select-for-offer`, "POST", {
+      employer_id: getUserId(),
+      selected,
+    }),
 
   /* headhunters */
   listHeadhunters: () => request<EmployerHeadhunter[]>(`headhunters?${eid()}`),
@@ -528,6 +542,10 @@ export const employerApi = {
     template_id?: string;
     is_offer?: boolean;
   }) => jsonBody<CommsMessage>(`comms/send`, "POST", { ...payload, employer_id: getUserId() }),
+
+  /* notifications (0004) — nav badge counts */
+  getNotificationCounts: () =>
+    request<{ offers: number; applicants: number }>(`notifications/counts?${eid()}`),
 
   /* suggested actions (0002) — agent-emitted, persisted */
   listSuggestedActions: (status = "open") =>

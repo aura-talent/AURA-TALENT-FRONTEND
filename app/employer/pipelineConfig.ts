@@ -28,6 +28,7 @@ export type PhaseAutomation = "auto" | "manual";
 export type PhaseMetric =
   | "applicants" // # candidates who have applied
   | "evaluated" // # candidates with an evaluation/score
+  | "selected" // # candidates selected for offer (0004) — see below
   | "offers" // # candidates at an offer stage
   | "hires" // # candidates hired (vs plan openings)
   | "manual"; // gate, no auto condition
@@ -47,6 +48,7 @@ export type JobPipelineConfig = {
 export const PHASE_METRICS: { value: PhaseMetric; label: string }[] = [
   { value: "applicants", label: "Applicants received" },
   { value: "evaluated", label: "Candidates evaluated" },
+  { value: "selected", label: "Candidates selected for offer" },
   { value: "offers", label: "Offers at stage" },
   { value: "hires", label: "Candidates hired" },
   { value: "manual", label: "Manual gate (no target)" },
@@ -61,7 +63,7 @@ function defaultTargetFor(phase: PhaseDef, openings: number): PhaseTarget {
     case "open-hiring":
       return { phaseId: phase.id, metric: "applicants", targetCount: 5 };
     case "evaluation":
-      return { phaseId: phase.id, metric: "evaluated", targetCount: 3 };
+      return { phaseId: phase.id, metric: "selected", targetCount: 4 };
     case OFFER_PHASE_ID:
       return { phaseId: phase.id, metric: "hires", targetCount: Math.max(openings, 1) };
     default:
@@ -132,6 +134,10 @@ export type PhaseProgress = {
 const OFFER_STAGE_RE = /offer/i;
 const HIRED_STAGE_RE = /hire|hired/i;
 
+// Falls back to the same default as the backend (pipeline_engine.py's
+// DEFAULT_MINIMUM_OFFER_SCORE) when a job hasn't set one.
+export const DEFAULT_MINIMUM_OFFER_SCORE = 60;
+
 function countApplied(rows: CandidateRow[]): number {
   return rows.filter((row) => row.application).length;
 }
@@ -144,6 +150,24 @@ function countStageMatches(rows: CandidateRow[], re: RegExp): number {
   return rows.filter((row) => row.application && re.test(row.application.stage)).length;
 }
 
+function countSelected(rows: CandidateRow[]): number {
+  return rows.filter((row) => row.application?.selected_for_offer).length;
+}
+
+// Evaluated candidates who've cleared this job's minimum offer score but are
+// neither selected nor rejected yet — mirrors pipeline_engine.py's
+// _unprocessed_qualifying_count. While this is nonzero the "selected" gate
+// can't be met, no matter how many are already selected.
+function countUnprocessedQualifying(rows: CandidateRow[], job: EmployerJob): number {
+  const threshold = job.minimum_offer_score ?? DEFAULT_MINIMUM_OFFER_SCORE;
+  return rows.filter((row) => {
+    const score = row.evaluation?.wlc_score;
+    if (score == null || score < threshold) return false;
+    if (!row.application) return false;
+    return !row.application.is_rejected && !row.application.selected_for_offer;
+  }).length;
+}
+
 function currentForMetric(
   metric: PhaseMetric,
   rows: CandidateRow[],
@@ -154,6 +178,8 @@ function currentForMetric(
       return job.stats?.applicant_count ?? countApplied(rows);
     case "evaluated":
       return countEvaluated(rows);
+    case "selected":
+      return countSelected(rows);
     case "offers":
       return countStageMatches(rows, OFFER_STAGE_RE);
     case "hires":
@@ -178,8 +204,10 @@ export function derivePhaseProgress(
   return config.phases.map((target) => {
     const isManualGate = target.metric === "manual" || target.targetCount <= 0;
     const currentCount = currentForMetric(target.metric, rows, job);
-    const met =
-      !isManualGate && target.targetCount > 0 && currentCount >= target.targetCount;
+    let met = !isManualGate && target.targetCount > 0 && currentCount >= target.targetCount;
+    if (met && target.metric === "selected") {
+      met = countUnprocessedQualifying(rows, job) === 0;
+    }
     return {
       phaseId: target.phaseId,
       metric: target.metric,

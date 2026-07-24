@@ -214,7 +214,7 @@ export default function EmployerJobDetailPage({
                 <h2>Interview</h2>
               </div>
               <Link href={`/employer/interviews/${job.id}/customize`}>
-                Customize interview questions →
+                Customize →
               </Link>
             </div>
             {job.mock_interview_enabled ? (

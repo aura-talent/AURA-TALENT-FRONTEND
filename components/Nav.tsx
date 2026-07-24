@@ -13,15 +13,9 @@ import {
 
 const APP_LINKS = [
   { href: "/dashboard", label: "DASHBOARD" },
-  { href: "/profile", label: "PROFILE" },
-  { href: "/tracker", label: "JOB_TRACKER" },
-  { href: "/evaluate", label: "EVALUATE" },
-  { href: "/worth", label: "YOUR_WORTH" },
-  { href: "/insights", label: "INSIGHTS" },
-  { href: "/jobs", label: "FIND_JOBS" },
+  { href: "/tracker", label: "JOB_HUB" },
+  { href: "/worth", label: "FAIR_PAY_ENGINE" },
   { href: "/bounties", label: "BOUNTIES" },
-  { href: "/scan", label: "SCAN_JOBS" },
-  { href: "/animal", label: "WORK_ANIMAL" },
   { href: "/mock-interview", label: "MOCK_INTERVIEW" },
   { href: "/templates", label: "COMMS_ASSISTANT" },
 ];

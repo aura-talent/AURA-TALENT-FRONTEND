@@ -8,6 +8,7 @@ import { api, type Application, type JobPosting } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import CareerPathNavigator from "@/components/CareerPathNavigator";
+import AnimalEmblem from "@/components/dashboard/AnimalEmblem";
 import {
   bountyApi,
   formatPrize,
@@ -425,6 +426,241 @@ export default function Dashboard() {
 
         {error && <div className="notice notice-error">{error}</div>}
 
+        {/* Live scan — suited jobs */}
+        <div className="panel" data-tour="dashboard-jobs-panel" style={{ padding: "1.25rem 1.5rem", marginBottom: "2rem" }}>
+          <span className="eval-tick eval-tick-tl" />
+          <span className="eval-tick eval-tick-tr" />
+          <span className="eval-tick eval-tick-bl" />
+          <span className="eval-tick eval-tick-br" />
+
+          <div className="page-kicker" style={{ marginBottom: "0.6rem" }}>
+            LIVE_SCAN // PORTALS
+          </div>
+          <h3 style={{ fontSize: "1.15rem", marginBottom: "1.25rem" }}>
+            Suited jobs for you
+          </h3>
+
+          {authLoading && <ScanStatus label="AUTH_CHECK // RUNNING" />}
+
+          {/* Not logged in */}
+          {!authLoading && !user && (
+            <div
+              style={{
+                background: "rgba(78, 63, 216, 0.03)",
+                border: "1.5px dashed var(--iris-12)",
+                borderRadius: "var(--r-s)",
+                padding: "1.25rem",
+                textAlign: "center",
+              }}
+            >
+              <h4 style={{ fontSize: "0.9375rem", fontWeight: 600, marginBottom: "0.35rem" }}>
+                Unlock Recommendations
+              </h4>
+              <p style={{ fontSize: "0.8125rem", color: "var(--ink-72)", marginBottom: "1rem" }}>
+                Sign in and upload your resume to see matching jobs.
+              </p>
+              <Link
+                href="/login?redirect=/dashboard"
+                className="btn btn-primary text-white"
+                style={{ padding: "0.45rem 1rem", fontSize: "0.84rem", width: "100%", justifyContent: "center" }}
+              >
+                Sign in
+              </Link>
+            </div>
+          )}
+
+          {/* Logged in but no resume */}
+          {!authLoading && user && hasResume === false && (
+            <div
+              style={{
+                background: "rgba(185, 125, 20, 0.03)",
+                border: "1.5px dashed rgba(185, 125, 20, 0.2)",
+                borderRadius: "var(--r-s)",
+                padding: "1.25rem",
+                textAlign: "center",
+              }}
+            >
+              <h4 style={{ fontSize: "0.9375rem", fontWeight: 600, marginBottom: "0.35rem" }}>
+                Upload your resume
+              </h4>
+              <p style={{ fontSize: "0.8125rem", color: "var(--ink-72)", marginBottom: "1rem" }}>
+                Aura needs your resume to extract search keywords.
+              </p>
+              <Link
+                href="/onboarding"
+                className="btn btn-primary text-white"
+                style={{ padding: "0.45rem 1rem", fontSize: "0.84rem", width: "100%", justifyContent: "center" }}
+              >
+                Get started
+              </Link>
+            </div>
+          )}
+
+          {/* Logged in with resume */}
+          {!authLoading && user && hasResume === true && (
+            <div>
+              <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.25rem" }}>
+                <input
+                  id="dashboard-loc-loc"
+                  className="input"
+                  style={{ padding: "0.35rem 0.6rem", fontSize: "0.8125rem", height: "32px", flex: 1 }}
+                  placeholder="Malaysia, Remote, Singapore"
+                  aria-label="Target locations"
+                  value={locationInput}
+                  onChange={(e) => {
+                    setLocationInput(e.target.value);
+                    localStorage.setItem("aura_location_filter", e.target.value);
+                  }}
+                />
+                <button
+                  className="btn btn-primary"
+                  style={{ height: "32px", padding: "0 0.75rem", fontSize: "0.8125rem" }}
+                  onClick={handleStartScan}
+                  disabled={scanLoading}
+                >
+                  {scanLoading ? "Scanning…" : "Scan"}
+                </button>
+              </div>
+
+              {cacheLoading && <ScanStatus label="CACHE_FETCH // RUNNING" />}
+
+              {hasNoCache && (
+                <div style={{ textAlign: "center", padding: "1.5rem 0" }}>
+                  <p style={{ fontSize: "0.8125rem", color: "var(--ink-55)", marginBottom: "1rem" }}>
+                    Find open roles that match your profile across company portals.
+                  </p>
+                  <button
+                    className="btn btn-primary text-white"
+                    style={{ padding: "0.5rem 1.5rem", fontSize: "0.875rem" }}
+                    onClick={handleStartScan}
+                  >
+                    Start job search
+                  </button>
+                </div>
+              )}
+
+              {scanLoading && !jobs && (
+                <ScanStatus label="PORTAL_SCAN // RUNNING" />
+              )}
+
+              {scanError && (
+                <div
+                  className="notice notice-error"
+                  style={{ padding: "0.6rem 0.8rem", fontSize: "0.8rem", marginBottom: "0.75rem" }}
+                >
+                  {scanError}
+                </div>
+              )}
+
+              {showJobs && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                  {jobs!.slice(0, 1).map((job) => (
+                    <div
+                      key={job.url}
+                      className="dash-job"
+                      style={{
+                        padding: "0.75rem",
+                        border: "1px solid var(--ink-30)",
+                        background: "var(--surface)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          fontSize: "0.875rem",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                        title={job.title}
+                      >
+                        {job.title}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.78rem",
+                          color: "var(--ink-55)",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          margin: "0.2rem 0",
+                        }}
+                      >
+                        <span style={{ fontWeight: 500 }}>{job.company}</span>
+                        <span>{job.location}</span>
+                      </div>
+                      <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.5rem" }}>
+                        <a
+                          href={job.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-ghost"
+                          style={{
+                            padding: "0.3rem 0.75rem",
+                            fontSize: "0.75rem",
+                            flex: 1,
+                            display: "flex",
+                            justifyContent: "center",
+                          }}
+                        >
+                          View
+                        </a>
+                        <Link
+                          href={`/evaluate?url=${encodeURIComponent(job.url)}`}
+                          className="btn btn-primary text-white"
+                          style={{
+                            padding: "0.3rem 0.75rem",
+                            fontSize: "0.75rem",
+                            flex: 1,
+                            display: "flex",
+                            justifyContent: "center",
+                          }}
+                        >
+                          Score Fit
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!scanLoading && jobs && jobs.length === 0 && (
+                <p style={{ fontSize: "0.875rem", color: "var(--ink-55)" }}>
+                  No matching openings found. Try updating your target archetypes in the resume.
+                </p>
+              )}
+
+              {scannedAt && (
+                <div
+                  style={{
+                    marginTop: "1rem",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "0.5rem",
+                  }}
+                >
+                  {scanLoading ? (
+                    <ScanStatus label="REFRESH // RUNNING" />
+                  ) : (
+                    <span style={{ fontSize: "0.75rem", color: "var(--ink-40)" }}>
+                      {`Last scanned ${formatScannedAt(scannedAt)}`}
+                    </span>
+                  )}
+                  {!scanLoading && (
+                    <button
+                      className="btn btn-ghost"
+                      style={{ padding: "0.2rem 0.6rem", fontSize: "0.75rem" }}
+                      onClick={handleStartScan}
+                    >
+                      Refresh
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <div
           style={{
             display: "grid",
@@ -561,246 +797,20 @@ export default function Dashboard() {
 
           </div>
 
-          {/* RIGHT COLUMN: Company portals matches & Keyword scans */}
-
+          {/* RIGHT COLUMN: Work animal, company portals matches & keyword scans */}
           <div className="dash-col" style={{ minWidth: 0 }}>
-            <div className="panel" data-tour="dashboard-jobs-panel">
-              <span className="eval-tick eval-tick-tl" />
-              <span className="eval-tick eval-tick-tr" />
-              <span className="eval-tick eval-tick-bl" />
-              <span className="eval-tick eval-tick-br" />
-
-              <div className="page-kicker" style={{ marginBottom: "0.6rem" }}>
-                LIVE_SCAN // PORTALS
+            {/* Work Animal — cursor-following porcelain emblem */}
+            <div className="panel" style={{ padding: "1.75rem 1.5rem", marginBottom: "1.5rem" }}>
+              <div className="page-kicker" style={{ marginBottom: "1.25rem" }}>
+                WORK_ANIMAL // WHO ARE YOU AT WORK
               </div>
-              <h3 style={{ fontSize: "1.15rem", marginBottom: "1.25rem" }}>
-                Suited jobs for you
-              </h3>
-
-              {authLoading && <ScanStatus label="AUTH_CHECK // RUNNING" />}
-
-              {/* Not logged in */}
-              {!authLoading && !user && (
-                <div
-                  style={{
-                    background: "rgba(78, 63, 216, 0.03)",
-                    border: "1.5px dashed var(--iris-12)",
-                    borderRadius: "var(--r-s)",
-                    padding: "1.25rem",
-                    textAlign: "center",
-                  }}
-                >
-                  <h4 style={{ fontSize: "0.9375rem", fontWeight: 600, marginBottom: "0.35rem" }}>
-                    Unlock Recommendations
-                  </h4>
-                  <p style={{ fontSize: "0.8125rem", color: "var(--ink-72)", marginBottom: "1rem" }}>
-                    Sign in and upload your resume to see matching jobs.
-                  </p>
-                  <Link
-                    href="/login?redirect=/dashboard"
-                    className="btn btn-primary text-white"
-                    style={{ padding: "0.45rem 1rem", fontSize: "0.84rem", width: "100%", justifyContent: "center" }}
-                  >
-                    Sign in
-                  </Link>
-                </div>
-              )}
-
-              {/* Logged in but no resume */}
-              {!authLoading && user && hasResume === false && (
-                <div
-                  style={{
-                    background: "rgba(185, 125, 20, 0.03)",
-                    border: "1.5px dashed rgba(185, 125, 20, 0.2)",
-                    borderRadius: "var(--r-s)",
-                    padding: "1.25rem",
-                    textAlign: "center",
-                  }}
-                >
-                  <h4 style={{ fontSize: "0.9375rem", fontWeight: 600, marginBottom: "0.35rem" }}>
-                    Upload your resume
-                  </h4>
-                  <p style={{ fontSize: "0.8125rem", color: "var(--ink-72)", marginBottom: "1rem" }}>
-                    Aura needs your resume to extract search keywords.
-                  </p>
-                  <Link
-                    href="/onboarding"
-                    className="btn btn-primary text-white"
-                    style={{ padding: "0.45rem 1rem", fontSize: "0.84rem", width: "100%", justifyContent: "center" }}
-                  >
-                    Get started
-                  </Link>
-                </div>
-              )}
-
-              {/* Logged in with resume */}
-              {!authLoading && user && hasResume === true && (
-                <div>
-                  <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.25rem" }}>
-                    <input
-                      id="dashboard-loc-loc"
-                      className="input"
-                      style={{ padding: "0.35rem 0.6rem", fontSize: "0.8125rem", height: "32px", flex: 1 }}
-                      placeholder="Malaysia, Remote, Singapore"
-                      aria-label="Target locations"
-                      value={locationInput}
-                      onChange={(e) => {
-                        setLocationInput(e.target.value);
-                        localStorage.setItem("aura_location_filter", e.target.value);
-                      }}
-                    />
-                    <button
-                      className="btn btn-primary"
-                      style={{ height: "32px", padding: "0 0.75rem", fontSize: "0.8125rem" }}
-                      onClick={handleStartScan}
-                      disabled={scanLoading}
-                    >
-                      {scanLoading ? "Scanning…" : "Scan"}
-                    </button>
-                  </div>
-
-                  {cacheLoading && <ScanStatus label="CACHE_FETCH // RUNNING" />}
-
-                  {hasNoCache && (
-                    <div style={{ textAlign: "center", padding: "1.5rem 0" }}>
-                      <p style={{ fontSize: "0.8125rem", color: "var(--ink-55)", marginBottom: "1rem" }}>
-                        Find open roles that match your profile across company portals.
-                      </p>
-                      <button
-                        className="btn btn-primary text-white"
-                        style={{ padding: "0.5rem 1.5rem", fontSize: "0.875rem" }}
-                        onClick={handleStartScan}
-                      >
-                        Start job search
-                      </button>
-                    </div>
-                  )}
-
-                  {scanLoading && !jobs && (
-                    <ScanStatus label="PORTAL_SCAN // RUNNING" />
-                  )}
-
-                  {scanError && (
-                    <div
-                      className="notice notice-error"
-                      style={{ padding: "0.6rem 0.8rem", fontSize: "0.8rem", marginBottom: "0.75rem" }}
-                    >
-                      {scanError}
-                    </div>
-                  )}
-
-                  {showJobs && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-                      {jobs!.slice(0, 1).map((job) => (
-                        <div
-                          key={job.url}
-                          className="dash-job"
-                          style={{
-                            padding: "0.75rem",
-                            border: "1px solid var(--ink-30)",
-                            background: "var(--surface)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontWeight: 600,
-                              fontSize: "0.875rem",
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                            title={job.title}
-                          >
-                            {job.title}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: "0.78rem",
-                              color: "var(--ink-55)",
-                              display: "flex",
-                              justifyContent: "space-between",
-                              margin: "0.2rem 0",
-                            }}
-                          >
-                            <span style={{ fontWeight: 500 }}>{job.company}</span>
-                            <span>{job.location}</span>
-                          </div>
-                          <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.5rem" }}>
-                            <a
-                              href={job.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="btn btn-ghost"
-                              style={{
-                                padding: "0.3rem 0.75rem",
-                                fontSize: "0.75rem",
-                                flex: 1,
-                                display: "flex",
-                                justifyContent: "center",
-                              }}
-                            >
-                              View
-                            </a>
-                            <Link
-                              href={`/evaluate?url=${encodeURIComponent(job.url)}`}
-                              className="btn btn-primary text-white"
-                              style={{
-                                padding: "0.3rem 0.75rem",
-                                fontSize: "0.75rem",
-                                flex: 1,
-                                display: "flex",
-                                justifyContent: "center",
-                              }}
-                            >
-                              Score Fit
-                            </Link>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {!scanLoading && jobs && jobs.length === 0 && (
-                    <p style={{ fontSize: "0.875rem", color: "var(--ink-55)" }}>
-                      No matching openings found. Try updating your target archetypes in the resume.
-                    </p>
-                  )}
-
-                  {scannedAt && (
-                    <div
-                      style={{
-                        marginTop: "1rem",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "0.5rem",
-                      }}
-                    >
-                      {scanLoading ? (
-                        <ScanStatus label="REFRESH // RUNNING" />
-                      ) : (
-                        <span style={{ fontSize: "0.75rem", color: "var(--ink-40)" }}>
-                          {`Last scanned ${formatScannedAt(scannedAt)}`}
-                        </span>
-                      )}
-                      {!scanLoading && (
-                        <button
-                          className="btn btn-ghost"
-                          style={{ padding: "0.2rem 0.6rem", fontSize: "0.75rem" }}
-                          onClick={handleStartScan}
-                        >
-                          Refresh
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <AnimalEmblem />
+              </div>
             </div>
 
-
             {/* Paid Bounties Panel */}
-            <div className="panel" data-tour="dashboard-bounties-panel" style={{ marginTop: "2rem" }}>
+            <div className="panel" data-tour="dashboard-bounties-panel" style={{ marginTop: "0" }}>
               <span className="eval-tick eval-tick-tl" />
               <span className="eval-tick eval-tick-tr" />
               <span className="eval-tick eval-tick-bl" />

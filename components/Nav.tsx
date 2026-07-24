@@ -16,6 +16,7 @@ const APP_LINKS = [
   { href: "/bounties", label: "BOUNTIES" },
   { href: "/compare", label: "COMPARE" },
   { href: "/scan", label: "SCAN_JOBS" },
+  { href: "/animal", label: "WORK_ANIMAL" },
   { href: "/mock-interview", label: "MOCK_INTERVIEW" },
   { href: "/templates", label: "COMMS_ASSISTANT" },
 ];

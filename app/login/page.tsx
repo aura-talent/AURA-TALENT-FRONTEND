@@ -31,14 +31,28 @@ function LoginInner() {
       if (userRole === "employer") {
         router.push("/employer");
       } else {
-        router.push(redirect);
+        // New candidate just signed up — send them to onboarding to upload resume
+        const isNewSignup = typeof window !== "undefined" && localStorage.getItem("aura_new_candidate") === "1";
+        if (isNewSignup && redirect === "/dashboard") {
+          router.push("/onboarding");
+        } else {
+          router.push(redirect);
+        }
       }
     }
   }, [user, loading, userRole, router, redirect]);
 
+
   const handleSelectRole = (selectedRole: "candidate" | "employer") => {
     setRole(selectedRole);
+    // Flag new candidate signups so we can redirect to /onboarding after auth
+    if (mode === "signup" && selectedRole === "candidate") {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("aura_new_candidate", "1");
+      }
+    }
   };
+
 
   const handleQuickLogin = async (targetRole: "candidate" | "employer") => {
     const targetEmail = targetRole === "employer" ? "employer@auratalent.com" : "candidate@demo.com";

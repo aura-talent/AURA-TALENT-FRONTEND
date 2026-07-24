@@ -18,6 +18,26 @@ export default function HeadhuntersPage() {
   const [headhunters, setHeadhunters] = useState<EmployerHeadhunter[]>([]);
   const [jobs, setJobs] = useState<EmployerJob[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sourcing, setSourcing] = useState<Set<string>>(new Set());
+  const [sourced, setSourced] = useState<Set<string>>(new Set());
+
+  async function sourceNow(headhunter: EmployerHeadhunter) {
+    const jobId = headhunter.job_ids[0];
+    if (!jobId) return;
+    setSourcing((s) => new Set(s).add(headhunter.id));
+    try {
+      await employerApi.sourceHeadhunter(headhunter.id, jobId);
+      setSourced((s) => new Set(s).add(headhunter.id));
+    } catch (err) {
+      console.error("Failed to start sourcing:", err);
+    } finally {
+      setSourcing((s) => {
+        const next = new Set(s);
+        next.delete(headhunter.id);
+        return next;
+      });
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -156,12 +176,28 @@ export default function HeadhuntersPage() {
                     </td>
                     <td>{timeAgo(headhunter.stats.last_active_at)}</td>
                     <td>
-                      <Link
-                        href={`/employer/headhunters/${headhunter.id}/edit`}
-                        className="table-action"
-                      >
-                        Configure →
-                      </Link>
+                      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", justifyContent: "flex-end" }}>
+                        {headhunter.status === "Active" && headhunter.job_ids.length > 0 && (
+                          <button
+                            className="btn btn-ghost"
+                            disabled={sourcing.has(headhunter.id) || sourced.has(headhunter.id)}
+                            onClick={() => sourceNow(headhunter)}
+                            title="Run this headhunter's sourcing agent over the talent pool"
+                          >
+                            {sourcing.has(headhunter.id)
+                              ? "Sourcing…"
+                              : sourced.has(headhunter.id)
+                                ? "Queued ✓"
+                                : "Source now"}
+                          </button>
+                        )}
+                        <Link
+                          href={`/employer/headhunters/${headhunter.id}/edit`}
+                          className="table-action"
+                        >
+                          Configure →
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 );

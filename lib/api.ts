@@ -505,34 +505,6 @@ export const api = {
 
   getAllApplications: () => request<Application[]>("applications/all"),
 
-  computeWLC: (userId: string, applicationId: string) =>
-    request<{
-      rubric: {
-        technical: number;
-        problem: number;
-        communication: number;
-        culture: number;
-      };
-      metrics: {
-        match: number;
-        depth: number;
-        tenure: number;
-        craft: number;
-        reputation: number;
-        behavioral: number;
-      };
-      wlc_score: number;
-      raw_scores: {
-        match_cv: number;
-        alignment: number;
-        comp: number;
-        culture: number;
-        red_flags: number;
-        global_score: number;
-      };
-      recommendation: string;
-    }>(`applications/${userId}/${applicationId}/wlc`, { method: "POST" }),
-
   /** Employer posts a pipeline stage update for a real candidate. */
   postPipelineUpdate: (candidateUserId: string, payload: PipelineUpdateIn) =>
     postJson<PipelineStageUpdate>(
@@ -559,18 +531,43 @@ export const api = {
         body: JSON.stringify({ status, notes }),
       },
     ),
-};
 
-export const STATUSES = [
-  "Evaluated",
-  "Applied",
-  "Responded",
-  "Interview",
-  "Offer",
-  "Rejected",
-  "Discarded",
-  "SKIP",
-] as const;
+  listTemplates: (role?: string) =>
+    request<any[]>(role ? `templates?role=${encodeURIComponent(role)}` : "templates"),
+
+  generateTemplate: (input: {
+    prompt: string;
+    template_id?: string;
+    role: string;
+    tone?: string;
+    length?: string;
+    language?: string;
+    placeholders?: Record<string, string>;
+  }) => postJson<{ subject: string; body: string }>("templates/generate", input),
+
+  populatePlaceholders: (input: {
+    placeholders: string[];
+    role: string;
+    candidate_user_id?: string;
+    job_id?: string;
+  }) => postJson<{ populated: Record<string, string> }>("templates/populate", input),
+
+  getFavorites: () =>
+    request<{ status: string; favorites: string[] }>(`templates/favorites?user_id=${getUserId()}`),
+
+  toggleFavorite: (templateId: string, isFavorite: boolean) =>
+    postJson<{ status: string }>("templates/favorite", {
+      user_id: getUserId(),
+      template_id: templateId,
+      is_favorite: isFavorite,
+    }),
+
+  trackUsage: (templateId: string) =>
+    request<{ status: string; use_count: number; source?: string }>(`templates/track-usage?template_id=${encodeURIComponent(templateId)}`, { method: "POST" }),
+
+  getPopularTemplates: () =>
+    request<string[]>("templates/popular"),
+};
 
 export interface PipelineStageUpdate {
   id: string;
@@ -611,73 +608,3 @@ export const PIPELINE_REJECTED = {
   icon: "✗",
   color: "#ef4444",
 };
-
-/**
- * Canonical bidirectional mapping between employer pipeline stages and
- * candidate tracker statuses. Single source of truth for both sides.
- */
-export const EMPLOYER_STAGE_TO_CANDIDATE_STATUS: Record<string, string> = {
-  "Application Received": "Applied",
-  "Under Review": "Phone Screen",
-  Shortlisted: "Final Round",
-  "Interview Scheduled": "First Round",
-  Assessment: "Technical Test",
-  "Offer Extended": "Offer",
-  Hired: "Offer",
-  Rejected: "Rejected",
-};
-
-export const CANDIDATE_STATUS_TO_EMPLOYER_STAGE: Record<
-  string,
-  { stage: string; stage_index: number }
-> = {
-  Applied: { stage: "Application Received", stage_index: 0 },
-  "Phone Screen": { stage: "Under Review", stage_index: 1 },
-  "Technical Test": { stage: "Assessment", stage_index: 4 },
-  "First Round": { stage: "Interview Scheduled", stage_index: 3 },
-  "Second Round": { stage: "Interview Scheduled", stage_index: 3 },
-  "Final Round": { stage: "Shortlisted", stage_index: 2 },
-  Offer: { stage: "Offer Extended", stage_index: 5 },
-  Rejected: { stage: "Rejected", stage_index: -1 },
-};
-
-/** Employer candidate list stage-label mapping (for the candidates table). */
-export const EMPLOYER_LIST_STAGE: Record<string, string> = {
-  Applied: "New",
-  "Phone Screen": "Screening",
-  "Technical Test": "Assessment",
-  "First Round": "Interview",
-  "Second Round": "Interview",
-  "Final Round": "Final review",
-  Offer: "Final review",
-  Rejected: "Rejected",
-  Withdrawn: "Rejected",
-};
-
-/** Kanban groups for the candidate tracker board — 4 phase columns. */
-export const KANBAN_GROUPS = [
-  {
-    label: "PREP",
-    icon: "📋",
-    color: "rgba(100,116,139,0.75)",
-    statuses: ["Evaluated", "Saved"],
-  },
-  {
-    label: "ACTIVE",
-    icon: "🎯",
-    color: "rgba(59,130,246,0.8)",
-    statuses: ["Applied", "Phone Screen", "Technical Test"],
-  },
-  {
-    label: "INTERVIEWS",
-    icon: "💬",
-    color: "rgba(139,92,246,0.8)",
-    statuses: ["First Round", "Second Round", "Final Round"],
-  },
-  {
-    label: "CLOSED",
-    icon: "✓",
-    color: "rgba(16,185,129,0.8)",
-    statuses: ["Offer", "Rejected", "Withdrawn"],
-  },
-] as const;

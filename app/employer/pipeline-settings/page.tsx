@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { defaultPipelinePhases } from "@/app/employer/data";
 import { employerApi, type PhaseDef } from "@/lib/employerApi";
@@ -58,9 +57,6 @@ export default function PipelineSettingsPage() {
 
   return (
     <div className="employer-page">
-      <Link href="/employer" className="back-link">
-        ← Overview
-      </Link>
 
       <div className="employer-page-head">
         <div>

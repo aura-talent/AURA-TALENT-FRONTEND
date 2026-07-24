@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { employerApi, type EmployerJob } from "@/lib/employerApi";
 
@@ -70,9 +69,6 @@ export default function InterviewEditor({ job }: { job: EmployerJob }) {
 
   return (
     <div className="employer-page">
-      <Link href="/employer/interviews" className="back-link">
-        ← Interview management
-      </Link>
 
       <div className="employer-page-head">
         <div>

@@ -36,6 +36,41 @@ export default function ProfilePage() {
   );
   const [cultureDraft, setCultureDraft] = useState("");
 
+  // Onboarding importer: prefill the form from a company URL or pasted text.
+  const [importUrl, setImportUrl] = useState("");
+  const [importing, setImporting] = useState(false);
+
+  async function importDetails() {
+    if (!importUrl.trim()) return;
+    setImporting(true);
+    setError(null);
+    try {
+      const draft = await employerApi.importProfile({ source_url: importUrl.trim() });
+      if (draft.company_name) setCompanyName(draft.company_name);
+      if (draft.industry) setIndustry(draft.industry);
+      if (draft.company_size) setCompanySize(draft.company_size);
+      if (draft.headquarters) setHeadquarters(draft.headquarters);
+      if (draft.about) setAbout(draft.about);
+      if (draft.career_growth) setCareerGrowth(draft.career_growth);
+      if (draft.culture_values?.length) {
+        setCustomCultureValues((current) => [
+          ...current,
+          ...draft.culture_values.filter(
+            (v) => ![...suggestedCultureValues, ...current].includes(v),
+          ),
+        ]);
+        setSelectedCultureValues((current) => [
+          ...new Set([...current, ...draft.culture_values]),
+        ]);
+      }
+    } catch (err) {
+      console.error("Failed to import profile:", err);
+      setError(err instanceof Error ? err.message : "Import failed — enter details manually.");
+    } finally {
+      setImporting(false);
+    }
+  }
+
   useEffect(() => {
     let cancelled = false;
     employerApi
@@ -136,6 +171,26 @@ export default function ProfilePage() {
       </div>
 
       {error && <p className="notice notice-error">{error}</p>}
+
+      <section className="panel employer-section" style={{ display: "flex", alignItems: "flex-end", gap: "0.75rem", flexWrap: "wrap" }}>
+        <div className="field" style={{ flex: 1, minWidth: "16rem", marginBottom: 0 }}>
+          <label>Import company details</label>
+          <input
+            className="input"
+            type="url"
+            value={importUrl}
+            onChange={(event) => setImportUrl(event.target.value)}
+            placeholder="Paste your company / about page URL to prefill"
+          />
+        </div>
+        <button
+          className="btn btn-ghost"
+          onClick={importDetails}
+          disabled={!importUrl.trim() || importing}
+        >
+          {importing ? "Importing…" : "✦ Import"}
+        </button>
+      </section>
 
       <div className="profile-layout">
         <main>

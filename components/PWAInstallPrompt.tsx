@@ -7,21 +7,12 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-/** Helper function to trigger PWA install modal from anywhere in the app */
-export function openPWAInstall() {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("aura_pwa_dismissed");
-    window.dispatchEvent(new CustomEvent("aura-open-pwa-install"));
-  }
-}
-
 export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
-  const [showAndroidGuide, setShowAndroidGuide] = useState(false);
 
   useEffect(() => {
     // Check if already running in standalone mode (PWA installed and opened)
@@ -34,37 +25,20 @@ export default function PWAInstallPrompt() {
 
     checkStandalone();
 
+    // Check if user dismissed prompt recently
+    const dismissed = localStorage.getItem("aura_pwa_dismissed");
+    if (dismissed && Date.now() - parseInt(dismissed, 10) < 86400000 * 3) {
+      return;
+    }
+
     // Detect iOS
     const userAgent = window.navigator.userAgent.toLowerCase();
     const ios = /iphone|ipad|ipod/.test(userAgent);
     setIsIOS(ios);
 
-    // Listen for custom trigger event (e.g. user clicked "Install App" in menu)
-    const handleCustomOpen = () => {
-      if (ios) {
-        setShowIOSGuide(true);
-      } else if (deferredPrompt) {
-        deferredPrompt.prompt();
-      } else {
-        setShowAndroidGuide(true);
-      }
-    };
-    window.addEventListener("aura-open-pwa-install", handleCustomOpen);
-
-    // Check if user dismissed prompt recently
-    const dismissed = localStorage.getItem("aura_pwa_dismissed");
-    if (dismissed && Date.now() - parseInt(dismissed, 10) < 86400000 * 3) {
-      return () => {
-        window.removeEventListener("aura-open-pwa-install", handleCustomOpen);
-      };
-    }
-
     if (ios && !isStandalone) {
       const t = setTimeout(() => setShowPrompt(true), 1500);
-      return () => {
-        clearTimeout(t);
-        window.removeEventListener("aura-open-pwa-install", handleCustomOpen);
-      };
+      return () => clearTimeout(t);
     }
 
     // Listen for Chrome/Android/Edge beforeinstallprompt
@@ -76,6 +50,8 @@ export default function PWAInstallPrompt() {
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
+    // Fallback: If on Android/Desktop Chrome without beforeinstallprompt triggered yet (e.g. dev mode or direct visit),
+    // still allow showing prompt button so user knows PWA install is supported!
     const fallbackTimer = setTimeout(() => {
       if (!isStandalone) {
         setShowPrompt(true);
@@ -84,10 +60,9 @@ export default function PWAInstallPrompt() {
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-      window.removeEventListener("aura-open-pwa-install", handleCustomOpen);
       clearTimeout(fallbackTimer);
     };
-  }, [isStandalone, deferredPrompt]);
+  }, [isStandalone]);
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
@@ -100,25 +75,25 @@ export default function PWAInstallPrompt() {
     } else if (isIOS) {
       setShowIOSGuide(true);
     } else {
-      setShowAndroidGuide(true);
+      // Android / Chrome fallback instructions when prompt event didn't fire directly
+      alert("To install Aura on Android:\n1. Tap Chrome's menu (⋮) top-right\n2. Tap 'Add to Home screen' or 'Install app'");
     }
   };
 
   const handleDismiss = () => {
     setShowPrompt(false);
     setShowIOSGuide(false);
-    setShowAndroidGuide(false);
     localStorage.setItem("aura_pwa_dismissed", Date.now().toString());
   };
 
-  if (isStandalone || (!showPrompt && !showIOSGuide && !showAndroidGuide)) {
+  if (isStandalone || (!showPrompt && !showIOSGuide)) {
     return null;
   }
 
   return (
     <>
       {/* PWA Floating Install Banner */}
-      {showPrompt && !showIOSGuide && !showAndroidGuide && (
+      {showPrompt && !showIOSGuide && (
         <div
           role="banner"
           aria-label="Install Aura Talent app"
@@ -211,81 +186,6 @@ export default function PWAInstallPrompt() {
               }}
             >
               ✕
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Android / Desktop Step-by-Step Guide Modal */}
-      {showAndroidGuide && (
-        <div
-          onClick={handleDismiss}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 100,
-            background: "rgba(7,9,20,0.8)",
-            backdropFilter: "blur(8px)",
-            display: "flex",
-            alignItems: "flex-end",
-            justifyContent: "center",
-            padding: "0 16px 24px",
-            animation: "pwa-fade 0.25s ease-out",
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: "min(400px, 100%)",
-              background: "#121633",
-              border: "1px solid rgba(199, 185, 255, 0.3)",
-              borderRadius: 20,
-              padding: "22px 20px",
-              color: "#fafaf8",
-              boxShadow: "0 16px 48px rgba(0,0,0,0.7)",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <div style={{ fontWeight: 700, fontSize: "1.05rem" }}>Install Aura App</div>
-              <button
-                onClick={handleDismiss}
-                style={{ background: "none", border: "none", color: "rgba(250,250,248,0.5)", fontSize: 18, cursor: "pointer" }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 14, fontSize: "0.88rem", color: "rgba(250,250,248,0.8)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(199,185,255,0.15)", color: "#c7b9ff", display: "grid", placeItems: "center", fontWeight: 700, flexShrink: 0 }}>1</span>
-                <span>Tap Chrome/Edge menu (<strong>⋮</strong>) in top-right</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(199,185,255,0.15)", color: "#c7b9ff", display: "grid", placeItems: "center", fontWeight: 700, flexShrink: 0 }}>2</span>
-                <span>Select <strong>Add to Home screen</strong> or <strong>Install app</strong></span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(199,185,255,0.15)", color: "#c7b9ff", display: "grid", placeItems: "center", fontWeight: 700, flexShrink: 0 }}>3</span>
-                <span>Tap <strong>Install</strong> to add Aura to your home screen</span>
-              </div>
-            </div>
-
-            <button
-              onClick={handleDismiss}
-              style={{
-                width: "100%",
-                marginTop: 18,
-                padding: "12px",
-                borderRadius: 12,
-                background: "linear-gradient(135deg, #c7b9ff, #8f7dff)",
-                border: "none",
-                color: "#0b0e1c",
-                fontWeight: 800,
-                fontSize: "0.9rem",
-                cursor: "pointer",
-              }}
-            >
-              Got it!
             </button>
           </div>
         </div>

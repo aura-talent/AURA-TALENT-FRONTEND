@@ -9,6 +9,7 @@ without assets.
 
 | File | Model | Creator | License | Source |
 |---|---|---|---|---|
+| fox-head.glb | Fox Head (dashboard emblem) | sirkitree | CC-BY 3.0 | https://poly.pizza/m/fgxLEMIGshH |
 | owl.glb | Barn owl | Poly by Google | CC-BY 3.0 | https://poly.pizza/m/eSEv3rCMKbg |
 | beaver.glb | Beaver | Poly by Google | CC-BY 3.0 | https://poly.pizza/m/fwtA7VLrXPr |
 | fox.glb | Fox | Quaternius | CC0 1.0 | https://poly.pizza/m/Bc97C66HKi |

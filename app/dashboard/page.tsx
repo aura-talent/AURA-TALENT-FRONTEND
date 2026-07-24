@@ -8,6 +8,7 @@ import { api, type Application, type JobPosting } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import CareerPathNavigator from "@/components/CareerPathNavigator";
+import AnimalEmblem from "@/components/dashboard/AnimalEmblem";
 import {
   bountyApi,
   formatPrize,
@@ -633,14 +634,24 @@ export default function Dashboard() {
 
           </div>
 
-          {/* RIGHT COLUMN: Company portals matches & Keyword scans */}
+          {/* RIGHT COLUMN: Work animal, company portals matches & keyword scans */}
           <div className="dash-col" style={{ minWidth: 0 }}>
+            {/* Work Animal — cursor-following porcelain emblem */}
+            <div className="panel" style={{ padding: "1.75rem 1.5rem", marginBottom: "1.5rem" }}>
+              <div className="page-kicker" style={{ marginBottom: "1.25rem" }}>
+                WORK_ANIMAL // WHO ARE YOU AT WORK
+              </div>
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <AnimalEmblem />
+              </div>
+            </div>
+
             <div className="panel">
               <span className="eval-tick eval-tick-tl" />
               <span className="eval-tick eval-tick-tr" />
               <span className="eval-tick eval-tick-bl" />
               <span className="eval-tick eval-tick-br" />
-              
+
               <div className="page-kicker" style={{ marginBottom: "0.6rem" }}>
                 LIVE_SCAN // PORTALS
               </div>

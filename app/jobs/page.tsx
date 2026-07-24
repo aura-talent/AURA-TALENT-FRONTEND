@@ -73,7 +73,7 @@ export default function ExploreJobsPage() {
             </div>
           </div>
 
-          <div className="jobs-explore-toolbar panel">
+          <div className="jobs-explore-toolbar panel" data-tour="jobs-search">
             <label className="search-field">
               <span>⌕</span>
               <input
@@ -102,7 +102,7 @@ export default function ExploreJobsPage() {
             </div>
             <span className="chip chip-tier-high">Agent refreshed today</span>
           </div>
-          <div className="candidate-job-grid">
+          <div className="candidate-job-grid" data-tour="jobs-grid">
             {visibleJobs.map((job) => (
               <article className="panel candidate-job-card" key={job.id}>
                 <header>

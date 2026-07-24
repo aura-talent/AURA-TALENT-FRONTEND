@@ -66,6 +66,25 @@ export default function JobTracker() {
   const [apps, setApps] = useState<Application[] | null>(null);
   const [error, setError] = useState("");
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+
+  // Job comparison selection (keyed by evaluation_id — only evaluated jobs can be compared)
+  const [compareSelected, setCompareSelected] = useState<Set<number>>(new Set());
+
+  const toggleCompareSelect = useCallback((evaluationId: number | undefined) => {
+    if (evaluationId === undefined || evaluationId === null) return;
+    setCompareSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(evaluationId)) next.delete(evaluationId);
+      else next.add(evaluationId);
+      return next;
+    });
+  }, []);
+
+  const clearCompareSelection = useCallback(() => setCompareSelected(new Set()), []);
+
+  const goToCompare = useCallback(() => {
+    router.push(`/compare?ids=${[...compareSelected].join(",")}`);
+  }, [compareSelected, router]);
   
   // Search & filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -681,7 +700,7 @@ export default function JobTracker() {
         {error && <div className="notice notice-error">{error}</div>}
 
         {/* Tracker Toolbar / Filter Panel */}
-        <div className="tracker-toolbar panel" style={{ display: "flex", flexWrap: "wrap", gap: "1rem", alignItems: "center", justifyContent: "space-between", padding: "1rem", marginBottom: "2rem" }}>
+        <div className="tracker-toolbar panel" data-tour="tracker-toolbar" style={{ display: "flex", flexWrap: "wrap", gap: "1rem", alignItems: "center", justifyContent: "space-between", padding: "1rem", marginBottom: "2rem" }}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", flex: 1, minWidth: "280px" }}>
             {/* Search Input */}
             <div style={{ position: "relative", flex: 1, minWidth: "180px" }}>
@@ -798,6 +817,7 @@ export default function JobTracker() {
           {/* ─── KANBAN BOARD — 4 Phase Groups ─────────────────────────────── */}
           {apps && apps.length > 0 && filteredApps.length > 0 && viewMode === "kanban" && (
             <div
+              data-tour="tracker-board"
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(4, 1fr)",
@@ -958,7 +978,11 @@ export default function JobTracker() {
                                 padding: "0.4rem",
                               }}
                             >
-                              {laneApps.map((app, cardIdx) => (
+                              {laneApps.map((app, cardIdx) => {
+                                const isCompareChecked = app.evaluation_id
+                                  ? compareSelected.has(app.evaluation_id)
+                                  : false;
+                                return (
                                 <div
                                   key={app.id || `${app.company}-${app.role}-${cardIdx}`}
                                   draggable
@@ -973,6 +997,8 @@ export default function JobTracker() {
                                     boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
                                     userSelect: "none",
                                     WebkitUserSelect: "none",
+                                    position: "relative",
+                                    outline: isCompareChecked ? "2px solid var(--iris)" : "none",
                                   }}
                                 >
                                   {/* Card top row */}
@@ -982,21 +1008,41 @@ export default function JobTracker() {
                                       justifyContent: "space-between",
                                       alignItems: "flex-start",
                                       marginBottom: "0.2rem",
+                                      gap: "0.3rem",
                                     }}
                                   >
                                     <span
                                       style={{
-                                        fontSize: "0.6rem",
-                                        textTransform: "uppercase",
-                                        fontWeight: 700,
-                                        color: "var(--ink-40)",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "0.3rem",
+                                        minWidth: 0,
                                         maxWidth: "75%",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                        whiteSpace: "nowrap",
                                       }}
                                     >
-                                      {app.company}
+                                      {app.evaluation_id && (
+                                        <input
+                                          type="checkbox"
+                                          aria-label={`Select ${app.company} ${app.role} for comparison`}
+                                          checked={isCompareChecked}
+                                          onClick={(e) => e.stopPropagation()}
+                                          onChange={() => toggleCompareSelect(app.evaluation_id)}
+                                          style={{ width: 13, height: 13, accentColor: "var(--iris)", flexShrink: 0, cursor: "pointer" }}
+                                        />
+                                      )}
+                                      <span
+                                        style={{
+                                          fontSize: "0.6rem",
+                                          textTransform: "uppercase",
+                                          fontWeight: 700,
+                                          color: "var(--ink-40)",
+                                          overflow: "hidden",
+                                          textOverflow: "ellipsis",
+                                          whiteSpace: "nowrap",
+                                        }}
+                                      >
+                                        {app.company}
+                                      </span>
                                     </span>
                                     {app.priority === "high" && (
                                       <span
@@ -1107,7 +1153,7 @@ export default function JobTracker() {
                                     )}
                                   </div>
                                 </div>
-                              ))}
+                              );})}
                             </div>
                           )}
                         </div>
@@ -1125,6 +1171,7 @@ export default function JobTracker() {
               <table className="table">
                 <thead>
                   <tr>
+                    <th style={{ width: "2rem" }}></th>
                     <th>Date Added</th>
                     <th>Company</th>
                     <th>Role</th>
@@ -1141,6 +1188,17 @@ export default function JobTracker() {
                       onClick={() => { setSelectedApp(a); setDrawerOpen(true); }}
                       style={{ cursor: "pointer" }}
                     >
+                      <td onClick={(e) => e.stopPropagation()}>
+                        {a.evaluation_id && (
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${a.company} ${a.role} for comparison`}
+                            checked={compareSelected.has(a.evaluation_id)}
+                            onChange={() => toggleCompareSelect(a.evaluation_id)}
+                            style={{ width: 14, height: 14, accentColor: "var(--iris)", cursor: "pointer" }}
+                          />
+                        )}
+                      </td>
                       <td className="mono" style={{ fontSize: "0.8rem" }}>{a.date}</td>
                       <td style={{ fontWeight: 600 }}>{a.company}</td>
                       <td>{a.role}</td>
@@ -1914,6 +1972,21 @@ export default function JobTracker() {
         </div>
       )}
 
+      {/* Floating Compare Action Bar */}
+      {compareSelected.size >= 2 && (
+        <div className="compare-action-bar" role="status">
+          <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>
+            {compareSelected.size} jobs selected
+          </span>
+          <button className="btn btn-ghost" style={{ fontSize: "0.8rem", padding: "0.4rem 0.75rem" }} onClick={clearCompareSelection}>
+            Clear
+          </button>
+          <button className="btn btn-primary text-white" style={{ fontSize: "0.8rem", padding: "0.4rem 1rem" }} onClick={goToCompare}>
+            Compare →
+          </button>
+        </div>
+      )}
+
       {toast && (
         <div className={`tracker-toast ${toast.tone}`} role="status" aria-live="polite">
           <div className="tracker-toast-dot" aria-hidden="true" />
@@ -1929,6 +2002,33 @@ export default function JobTracker() {
 
       {/* Styled inline overrides for custom tracker classes */}
       <style>{`
+        .compare-action-bar {
+          position: fixed;
+          bottom: 1.5rem;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 2400;
+          display: flex;
+          align-items: center;
+          gap: 0.85rem;
+          padding: 0.7rem 1rem;
+          border-radius: var(--r-m, 12px);
+          border: 1px solid var(--border);
+          background: var(--surface);
+          color: var(--ink);
+          box-shadow: 0 16px 40px rgba(26, 29, 41, 0.18);
+          animation: compare-bar-in 0.2s ease-out;
+        }
+        @keyframes compare-bar-in {
+          from {
+            opacity: 0;
+            transform: translate(-50%, 10px);
+          }
+          to {
+            opacity: 1;
+            transform: translate(-50%, 0);
+          }
+        }
         .tracker-toast {
           position: fixed;
           top: 1rem;

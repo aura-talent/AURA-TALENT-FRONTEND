@@ -47,23 +47,18 @@ function TourUrlWatcher({ onDetected }: { onDetected: () => void }) {
   const router = useRouter();
 
   useEffect(() => {
-    console.log("[tour] watcher effect fired, tour param =", searchParams.get("tour"), "pathname =", pathname);
     if (searchParams.get("tour") !== "1") return;
     // Deferred via setTimeout(0) rather than called synchronously here —
     // onDetected (which calls setState) and router.replace both run inside
     // this async callback boundary, not in the effect body itself.
     const timer = window.setTimeout(() => {
-      console.log("[tour] calling onDetected (startTour) then stripping param");
       onDetected();
       const params = new URLSearchParams(searchParams);
       params.delete("tour");
       const qs = params.toString();
       router.replace(qs ? `${pathname}?${qs}` : pathname);
     }, 0);
-    return () => {
-      console.log("[tour] watcher effect cleanup — clearing timer");
-      window.clearTimeout(timer);
-    };
+    return () => window.clearTimeout(timer);
   }, [searchParams, pathname, router, onDetected]);
 
   return null;
@@ -88,7 +83,6 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
 
   const startTour = useCallback(() => {
     const pageIdx = TOUR_PAGES.findIndex((p) => p.path === pathname);
-    console.log("[tour] startTour called, pathname =", pathname, "resolved pageIdx =", pageIdx);
     setPageIndex(pageIdx >= 0 ? pageIdx : 0);
     setStepIndex(0);
     setActive(true);

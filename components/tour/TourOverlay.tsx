@@ -13,7 +13,6 @@ export default function TourOverlay() {
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    console.log("[tour] overlay effect fired, active =", active, "currentStep =", currentStep);
     if (!active || !currentStep) return;
 
     let cancelled = false;
@@ -27,7 +26,6 @@ export default function TourOverlay() {
       if (cancelled || !currentStep) return;
       const el = document.querySelector(currentStep.selector);
       if (el) {
-        console.log("[tour] found target for selector", currentStep.selector);
         setRect(el.getBoundingClientRect());
         setNotFound(false);
         el.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -39,7 +37,6 @@ export default function TourOverlay() {
       }
       elapsed += FIND_INTERVAL_MS;
       if (elapsed >= FIND_TIMEOUT_MS) {
-        console.log("[tour] TIMED OUT looking for selector", currentStep.selector, "— advancing");
         setNotFound(true);
         return;
       }

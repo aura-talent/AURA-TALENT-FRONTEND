@@ -250,7 +250,7 @@ export default function Dashboard() {
           .from("job_scans")
           .select("jobs, scanned_at")
           .eq("user_id", userId)
-          .single();
+          .maybeSingle();
 
         if (data) {
           setJobs(data.jobs as JobPosting[]);

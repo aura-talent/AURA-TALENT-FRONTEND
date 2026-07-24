@@ -1,13 +1,15 @@
 -- Bounty Reward Mechanism
 -- Run this against the Supabase project this app points to
 -- (NEXT_PUBLIC_SUPABASE_URL in .env.local) via the SQL editor or `supabase db push`.
--- Assumes a `public.users` table already exists with `id uuid primary key`
--- and a `role` text column ('employer' | 'candidate') — confirmed present,
--- used by components/AuthProvider.tsx today.
+-- Assumes a `public.users` table already exists with `id text primary key`
+-- (confirmed live: users.id is TEXT, not uuid, despite storing Supabase Auth
+-- UUIDs as strings) and a `role` text column ('employer' | 'candidate') —
+-- used by components/AuthProvider.tsx today. auth.uid() returns uuid, so
+-- every RLS comparison against these columns casts it with ::text.
 
 create table if not exists public.bounties (
   id uuid primary key default gen_random_uuid(),
-  employer_id uuid not null references public.users(id),
+  employer_id text not null references public.users(id),
   title text not null,
   tags text[] not null default '{}',
   rules_text text,
@@ -32,7 +34,7 @@ create index if not exists bounties_status_idx on public.bounties (status);
 create table if not exists public.bounty_submissions (
   id uuid primary key default gen_random_uuid(),
   bounty_id uuid not null references public.bounties(id) on delete cascade,
-  candidate_user_id uuid not null references public.users(id),
+  candidate_user_id text not null references public.users(id),
   contact_name text not null,
   contact_email text not null,
   team_members jsonb not null default '[]',
@@ -67,47 +69,47 @@ create policy "bounties_select_published_or_own" on public.bounties
   for select
   using (
     status = 'published'
-    or employer_id = auth.uid()
+    or employer_id = auth.uid()::text
   );
 
 create policy "bounties_insert_own_employer" on public.bounties
   for insert
   to authenticated
   with check (
-    employer_id = auth.uid()
-    and exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'employer')
+    employer_id = auth.uid()::text
+    and exists (select 1 from public.users u where u.id = auth.uid()::text and u.role = 'employer')
   );
 
 create policy "bounties_update_own" on public.bounties
   for update
   to authenticated
-  using (employer_id = auth.uid())
-  with check (employer_id = auth.uid());
+  using (employer_id = auth.uid()::text)
+  with check (employer_id = auth.uid()::text);
 
 create policy "bounties_delete_own" on public.bounties
   for delete
   to authenticated
-  using (employer_id = auth.uid());
+  using (employer_id = auth.uid()::text);
 
 -- bounty_submissions ------------------------------------------------------
 
 create policy "submissions_select_own_owner_or_employer" on public.bounty_submissions
   for select
   using (
-    candidate_user_id = auth.uid()
+    candidate_user_id = auth.uid()::text
     or exists (
       select 1 from public.bounties b
-      where b.id = bounty_submissions.bounty_id and b.employer_id = auth.uid()
+      where b.id = bounty_submissions.bounty_id and b.employer_id = auth.uid()::text
     )
-    or exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'employer')
+    or exists (select 1 from public.users u where u.id = auth.uid()::text and u.role = 'employer')
   );
 
 create policy "submissions_insert_own_candidate" on public.bounty_submissions
   for insert
   to authenticated
   with check (
-    candidate_user_id = auth.uid()
-    and exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'candidate')
+    candidate_user_id = auth.uid()::text
+    and exists (select 1 from public.users u where u.id = auth.uid()::text and u.role = 'candidate')
     and exists (
       select 1 from public.bounties b
       where b.id = bounty_submissions.bounty_id
@@ -119,9 +121,9 @@ create policy "submissions_insert_own_candidate" on public.bounty_submissions
 create policy "submissions_update_own_candidate" on public.bounty_submissions
   for update
   to authenticated
-  using (candidate_user_id = auth.uid())
+  using (candidate_user_id = auth.uid()::text)
   with check (
-    candidate_user_id = auth.uid()
+    candidate_user_id = auth.uid()::text
     and exists (
       select 1 from public.bounties b
       where b.id = bounty_submissions.bounty_id
@@ -139,11 +141,11 @@ create policy "results_select_same_as_submissions" on public.bounty_submission_r
       select 1 from public.bounty_submissions s
       where s.id = bounty_submission_results.submission_id
         and (
-          s.candidate_user_id = auth.uid()
-          or exists (select 1 from public.bounties b where b.id = s.bounty_id and b.employer_id = auth.uid())
+          s.candidate_user_id = auth.uid()::text
+          or exists (select 1 from public.bounties b where b.id = s.bounty_id and b.employer_id = auth.uid()::text)
         )
     )
-    or exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'employer')
+    or exists (select 1 from public.users u where u.id = auth.uid()::text and u.role = 'employer')
   );
 
 create policy "results_insert_bounty_owner" on public.bounty_submission_results
@@ -153,7 +155,7 @@ create policy "results_insert_bounty_owner" on public.bounty_submission_results
     exists (
       select 1 from public.bounty_submissions s
       join public.bounties b on b.id = s.bounty_id
-      where s.id = bounty_submission_results.submission_id and b.employer_id = auth.uid()
+      where s.id = bounty_submission_results.submission_id and b.employer_id = auth.uid()::text
     )
   );
 
@@ -164,14 +166,14 @@ create policy "results_update_bounty_owner" on public.bounty_submission_results
     exists (
       select 1 from public.bounty_submissions s
       join public.bounties b on b.id = s.bounty_id
-      where s.id = bounty_submission_results.submission_id and b.employer_id = auth.uid()
+      where s.id = bounty_submission_results.submission_id and b.employer_id = auth.uid()::text
     )
   )
   with check (
     exists (
       select 1 from public.bounty_submissions s
       join public.bounties b on b.id = s.bounty_id
-      where s.id = bounty_submission_results.submission_id and b.employer_id = auth.uid()
+      where s.id = bounty_submission_results.submission_id and b.employer_id = auth.uid()::text
     )
   );
 
@@ -191,7 +193,7 @@ create policy "bounty_files_select_owner_or_employer" on storage.objects
       or exists (
         select 1 from public.bounties b
         where b.id::text = (storage.foldername(name))[1]
-          and b.employer_id = auth.uid()
+          and b.employer_id = auth.uid()::text
       )
     )
   );

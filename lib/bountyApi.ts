@@ -269,13 +269,14 @@ export const bountyApi = {
   listCandidateHistory: async (candidateUserId: string): Promise<CandidateBountyHistory[]> => {
     const { data: submissions, error } = await supabase
       .from("bounty_submissions")
-      .select("*, bounties(id, title, currency)")
+      .select("*, bounties(id, title, currency, winner_slots)")
       .eq("candidate_user_id", candidateUserId)
       .order("submitted_at", { ascending: false });
     if (error) throw new Error(error.message);
     const rows = (submissions ?? []) as (BountySubmission & {
-      bounties: Pick<Bounty, "id" | "title" | "currency"> | null;
+      bounties: Pick<Bounty, "id" | "title" | "currency" | "winner_slots"> | null;
     })[];
+
     if (rows.length === 0) return [];
 
     const { data: results, error: resultsError } = await supabase

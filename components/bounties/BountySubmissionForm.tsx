@@ -162,18 +162,32 @@ export default function BountySubmissionForm({
             </label>
             {item.description && <small>{item.description}</small>}
             {item.type === "file" ? (
-              <div className="dropzone">
+              <div className="dropzone" style={{ position: "relative", padding: "2rem 1.5rem" }}>
                 <input
                   type="file"
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    opacity: 0,
+                    cursor: "pointer",
+                  }}
                   onChange={(event) =>
                     event.target.files?.[0] && handleFile(item.id, event.target.files[0])
                   }
                 />
-                {uploadingId === item.id
-                  ? "Uploading…"
-                  : response?.type === "file"
-                    ? "File uploaded ✓"
-                    : "Choose a file"}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", pointerEvents: "none" }}>
+                  <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--ink-72)" }}>
+                    {uploadingId === item.id
+                      ? "Uploading…"
+                      : response?.type === "file"
+                        ? "File uploaded ✓"
+                        : "Choose a file"}
+                  </span>
+                </div>
+
               </div>
             ) : item.type === "link" ? (
               <input

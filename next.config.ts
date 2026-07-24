@@ -12,7 +12,9 @@ async function buildConfig() {
   if (isDev) {
     return baseConfig;
   }
+  // @ts-expect-error next-pwa optional dependency
   const withPWAInit = (await import("@ducanh2912/next-pwa")).default;
+
   const withPWA = withPWAInit({
     dest: "public",
     cacheOnFrontEndNav: true,

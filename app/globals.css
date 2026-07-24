@@ -1323,6 +1323,19 @@ button {
   padding: 1.75rem;
 }
 
+@keyframes skeletonPulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-pulse {
+  background: linear-gradient(90deg, var(--ink-06) 25%, var(--ink-12) 50%, var(--ink-06) 75%);
+  background-size: 200% 100%;
+  animation: skeletonPulse 1.5s infinite;
+  border-radius: 4px;
+}
+
+
 .tabs {
   display: inline-flex;
   border: 1px solid var(--ink-30);
@@ -5737,4 +5750,27 @@ textarea.input {
     align-items: center;
   }
 
+}
+
+/* Candidate profile: removable-tag editor (skills, target roles) */
+.tag-input-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+.tag-input-row input {
+  flex: 1;
+}
+.tag-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.tag-chip-list .chip button {
+  margin-left: 0.4rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.85rem;
 }

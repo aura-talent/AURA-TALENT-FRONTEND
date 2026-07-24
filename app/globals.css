@@ -5319,3 +5319,39 @@ textarea.input {
   font-size: 0.85rem;
   font-weight: 600;
 }
+
+/* Bounty marketplace */
+.bounty-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    transform 0.15s,
+    border-color 0.15s;
+}
+.bounty-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--iris);
+}
+.bounty-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.bounty-card h3 {
+  font-size: 1.05rem;
+}
+.bounty-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  color: var(--ink-55);
+  font-size: 0.8rem;
+}
+.bounty-marketplace-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}

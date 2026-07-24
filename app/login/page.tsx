@@ -6,24 +6,87 @@ import { useEffect, Suspense, useState } from "react";
 import Link from "next/link";
 
 function LoginInner() {
-  const { user, loading, signInWithGoogle, signInWithLinkedIn } = useAuth();
+  const { user, loading, role: userRole, signInWithGoogle, signInWithLinkedIn, signInWithPassword } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") ?? "/dashboard";
-  
+
   const initialMode = searchParams.get("mode") === "signup" ? "signup" : "signin";
   const errorParam = searchParams.get("error");
-  
+
   const [mode, setMode] = useState<"signin" | "signup">(initialMode);
   const [role, setRole] = useState<"candidate" | "employer" | null>(null);
   const [signingIn, setSigningIn] = useState<"google" | "linkedin" | null>(null);
 
+  // Demo / Prefill Login state
+  const [email, setEmail] = useState("candidate@demo.com");
+  const [password, setPassword] = useState("demo123456");
+  const [demoRole, setDemoRole] = useState<"candidate" | "employer">("candidate");
+  const [submittingPassword, setSubmittingPassword] = useState<boolean>(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [showManualForm, setShowManualForm] = useState<boolean>(false);
+
   useEffect(() => {
-    if (!loading && user) router.push(redirect);
-  }, [user, loading, router, redirect]);
+    if (!loading && user) {
+      if (userRole === "employer") {
+        router.push("/employer");
+      } else {
+        // New candidate just signed up — send them to onboarding to upload resume
+        const isNewSignup = typeof window !== "undefined" && localStorage.getItem("aura_new_candidate") === "1";
+        if (isNewSignup && redirect === "/dashboard") {
+          router.push("/onboarding");
+        } else {
+          router.push(redirect);
+        }
+      }
+    }
+  }, [user, loading, userRole, router, redirect]);
+
 
   const handleSelectRole = (selectedRole: "candidate" | "employer") => {
     setRole(selectedRole);
+    // Flag new candidate signups so we can redirect to /onboarding after auth
+    if (mode === "signup" && selectedRole === "candidate") {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("aura_new_candidate", "1");
+      }
+    }
+  };
+
+
+  const handleQuickLogin = async (targetRole: "candidate" | "employer") => {
+    const targetEmail = targetRole === "employer" ? "employer@auratalent.com" : "candidate@demo.com";
+    const targetPass = "demo123456";
+
+    setEmail(targetEmail);
+    setPassword(targetPass);
+    setDemoRole(targetRole);
+    setPasswordError(null);
+    setSubmittingPassword(true);
+
+    try {
+      await signInWithPassword(targetEmail, targetPass, targetRole);
+    } catch (err: any) {
+      console.error("Quick login failed:", err);
+      setPasswordError(err?.message || "Failed to log in with prefilled account.");
+    } finally {
+      setSubmittingPassword(false);
+    }
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+    setPasswordError(null);
+    setSubmittingPassword(true);
+    try {
+      await signInWithPassword(email, password, demoRole);
+    } catch (err: any) {
+      console.error("Password login failed:", err);
+      setPasswordError(err?.message || "Invalid credentials.");
+    } finally {
+      setSubmittingPassword(false);
+    }
   };
 
   const handleSignIn = async (provider: "google" | "linkedin") => {
@@ -121,13 +184,13 @@ function LoginInner() {
 
         {/* Auth Tabs */}
         <div className="auth-tabs">
-          <button 
+          <button
             className={`auth-tab ${mode === "signin" ? "active" : ""}`}
             onClick={() => { setMode("signin"); setRole(null); }}
           >
             Sign In
           </button>
-          <button 
+          <button
             className={`auth-tab ${mode === "signup" ? "active" : ""}`}
             onClick={() => setMode("signup")}
           >
@@ -150,11 +213,11 @@ function LoginInner() {
 
           <h1 className="auth-heading">{mode === "signin" ? "Welcome back." : "Join Aura."}</h1>
           <p className="auth-sub">
-            {mode === "signin" 
+            {mode === "signin"
               ? "Know which jobs deserve you."
-              : !role 
+              : !role
                 ? "Are you looking for jobs or hiring talent?"
-                : role === "employer" 
+                : role === "employer"
                   ? "Sign up as an employer to discover top talent."
                   : "Sign up as a candidate to find jobs that deserve you."
             }
@@ -162,8 +225,7 @@ function LoginInner() {
         </div>
 
         <div className="auth-rule" aria-hidden="true" />
-
-        {/* Auth actions */}
+        {/* Auth actions (OAuth / Real Login) */}
         <div className="auth-actions">
           {mode === "signup" && !role ? (
             <>
@@ -185,7 +247,7 @@ function LoginInner() {
               <button
                 id="login-google-btn"
                 onClick={() => handleSignIn("google")}
-                disabled={signingIn !== null}
+                disabled={signingIn !== null || submittingPassword}
                 className="btn btn-ghost auth-btn"
               >
                 {signingIn === "google" ? (
@@ -203,19 +265,79 @@ function LoginInner() {
               <button
                 id="login-linkedin-btn"
                 onClick={() => handleSignIn("linkedin")}
-                disabled={signingIn !== null}
+                disabled={signingIn !== null || submittingPassword}
                 className="btn auth-btn auth-btn-linkedin"
               >
                 {signingIn === "linkedin" ? (
                   <span className="auth-spinner auth-spinner-white" />
                 ) : (
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ flexShrink: 0 }}>
-                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75-1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
                   </svg>
                 )}
                 {signingIn === "linkedin" ? "Authenticating…" : (mode === "signup" ? "Sign up with LinkedIn" : "Continue with LinkedIn")}
               </button>
             </>
+          )}
+        </div>
+
+        {/* Divider line between real login and judge login */}
+        <div className="auth-divider">
+          <span>OR DEMO / JUDGE ACCESS</span>
+        </div>
+
+        {/* Judge & Demo Quick Login Section */}
+        <div className="demo-box">
+          <div className="demo-box-head">
+            <div className="demo-box-title">
+              <span className="demo-status-pulse" />
+              <span>ONE-CLICK INSTANT LOGIN</span>
+            </div>
+            <span className="demo-box-sub">HACKATHON DEMO</span>
+          </div>
+
+          <div className="demo-quick-stack">
+            <button
+              type="button"
+              onClick={() => handleQuickLogin("candidate")}
+              disabled={submittingPassword || signingIn !== null}
+              className="demo-btn demo-btn-cand"
+            >
+              <div className="demo-btn-left">
+                <span className="demo-btn-icon">🚀</span>
+                <div className="demo-btn-meta">
+                  <span className="demo-btn-name">Demo Candidate</span>
+                  <span className="demo-btn-email">candidate@demo.com</span>
+                </div>
+              </div>
+              <span className="demo-btn-arrow">
+                {submittingPassword ? "…" : "Login →"}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleQuickLogin("employer")}
+              disabled={submittingPassword || signingIn !== null}
+              className="demo-btn demo-btn-emp"
+            >
+              <div className="demo-btn-left">
+                <span className="demo-btn-icon">🏢</span>
+                <div className="demo-btn-meta">
+                  <span className="demo-btn-name">Demo Employer</span>
+                  <span className="demo-btn-email">employer@auratalent.com</span>
+                </div>
+              </div>
+              <span className="demo-btn-arrow">
+                {submittingPassword ? "…" : "Login →"}
+              </span>
+            </button>
+          </div>
+
+          {passwordError && (
+            <div className="notice notice-error" style={{ marginTop: "0.85rem", fontSize: "0.8rem" }}>
+              {passwordError}
+            </div>
           )}
         </div>
 
@@ -462,6 +584,149 @@ function LoginInner() {
           font-size: 0.9375rem;
           color: var(--ink-55);
           line-height: 1.55;
+        }
+
+        /* ── Divider between Real Auth & Demo ─────────────── */
+        .auth-divider {
+          display: flex;
+          align-items: center;
+          text-align: center;
+          margin: 1.5rem 0 1.25rem;
+          color: var(--ink-30);
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+          content: '';
+          flex: 1;
+          border-bottom: 1px dashed var(--ink-12);
+        }
+
+        .auth-divider span {
+          padding: 0 0.75rem;
+          font-family: var(--font-space), monospace;
+          font-size: 0.625rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: var(--ink-55);
+        }
+
+        /* ── Demo Quick Access Box ────────────────────────── */
+        .demo-box {
+          background: rgba(26, 29, 41, 0.03);
+          border: 1px solid var(--ink-12);
+          border-radius: var(--r-s);
+          padding: 1.15rem;
+          margin-bottom: 0;
+        }
+
+        .demo-box-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 0.85rem;
+        }
+
+        .demo-box-title {
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          font-family: var(--font-space), monospace;
+          font-size: 0.6875rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          color: var(--ink);
+          text-transform: uppercase;
+        }
+
+        .demo-status-pulse {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--score-strong);
+          box-shadow: 0 0 8px var(--score-strong);
+          animation: auth-pulse 2s infinite ease-in-out;
+        }
+
+        .demo-box-sub {
+          font-family: var(--font-space), monospace;
+          font-size: 0.6rem;
+          letter-spacing: 0.06em;
+          color: var(--ink-55);
+          text-transform: uppercase;
+        }
+
+        .demo-quick-stack {
+          display: flex;
+          flex-direction: column;
+          gap: 0.65rem;
+        }
+
+        .demo-btn {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          padding: 0.8rem 1rem;
+          border-radius: var(--r-s);
+          border: 1px solid var(--ink-12);
+          background: #ffffff;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          text-align: left;
+        }
+
+        .demo-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 16px rgba(26, 29, 41, 0.08);
+          border-color: var(--iris);
+        }
+
+        .demo-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .demo-btn-left {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .demo-btn-icon {
+          font-size: 1.25rem;
+          line-height: 1;
+        }
+
+        .demo-btn-meta {
+          display: flex;
+          flex-direction: column;
+          line-height: 1.25;
+        }
+
+        .demo-btn-name {
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: var(--ink);
+        }
+
+        .demo-btn-email {
+          font-family: var(--font-space), monospace;
+          font-size: 0.6875rem;
+          color: var(--ink-55);
+        }
+
+        .demo-btn-arrow {
+          font-family: var(--font-space), monospace;
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: var(--iris);
+          transition: transform 0.15s ease;
+        }
+
+        .demo-btn:hover .demo-btn-arrow {
+          transform: translateX(3px);
         }
 
         /* ── Auth buttons ─────────────────────────────────── */

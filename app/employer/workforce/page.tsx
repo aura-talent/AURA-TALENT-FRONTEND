@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { planStatusChipClass } from "../data";
+import { phaseMeta, planStatusChipClass } from "../data";
 import {
   employerApi,
   type EmployerJob,
@@ -82,7 +82,7 @@ export default function WorkforcePage() {
           <thead>
             <tr>
               <th>Role</th>
-              <th>Job status</th>
+              <th>Phase</th>
               <th>Plan status</th>
               <th>Priority</th>
               <th>Openings</th>
@@ -101,9 +101,20 @@ export default function WorkforcePage() {
                     <small>{job.team ?? "—"}</small>
                   </td>
                   <td>
-                    <span className={`chip ${job.status === "Active" ? "chip-tier-high" : ""}`}>
-                      {job.status}
-                    </span>
+                    {(() => {
+                      const meta = phaseMeta(job.pipeline_phase);
+                      return (
+                        <span
+                          className="chip"
+                          style={{
+                            background: `color-mix(in srgb, ${meta.color} 14%, transparent)`,
+                            color: meta.color,
+                          }}
+                        >
+                          {meta.label}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td>
                     {plan ? (

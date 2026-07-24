@@ -17,6 +17,8 @@ import {
 } from "@/lib/employerApi";
 import CandidateEmailComposer from "@/components/employer/CandidateEmailComposer";
 import StageTracker from "@/components/employer/StageTracker";
+import { setBreadcrumbLabel } from "@/components/employer/Breadcrumbs";
+import BountyCandidateHistory from "@/components/employer/BountyCandidateHistory";
 
 function scoreTone(score: number) {
   if (score >= 90) return "strong";
@@ -56,6 +58,10 @@ export default function CandidateDetailPage({
     };
   }, [id]);
 
+  useEffect(() => {
+    if (detail) setBreadcrumbLabel(id, detail.full_name ?? detail.email ?? "Candidate");
+  }, [id, detail]);
+
   if (notFound)
     return (
       <div className="employer-page">
@@ -92,9 +98,6 @@ export default function CandidateDetailPage({
 
   return (
     <div className="employer-page">
-      <Link href="/employer/candidates" className="back-link">
-        ← All candidates
-      </Link>
       <div className="candidate-profile-head panel">
         <div className="candidate-profile-top">
           <div className="candidate-profile-person">
@@ -133,6 +136,8 @@ export default function CandidateDetailPage({
               candidateName={name}
               role={row?.job_title ?? "your application"}
               score={wlcScore ?? 0}
+              candidateUserId={detail.candidate_user_id}
+              jobId={row?.job_id}
             />
           </div>
         </div>
@@ -451,6 +456,7 @@ export default function CandidateDetailPage({
                 ))}
             </section>
           )}
+          <BountyCandidateHistory candidateUserId={detail.candidate_user_id} />
           {evaluation && metrics?.redFlags != null && (
             <section className="panel employer-section red-flag-card">
               <div>

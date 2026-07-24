@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError, type CareerMapNode } from "@/lib/api";
 import { CareerMapScene } from "@/lib/career-map/scene";
@@ -37,10 +36,17 @@ const PLAYFUL = [
 ];
 
 export default function CareerMapPage() {
-  const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<CareerMapScene | null>(null);
-  const { map, progress, loading, error, expanding, expandError, expand, regenerate, retry } = useCareerMap();
+  const firstBuild = useRef(true);
+
+  // Resume gate — check BEFORE starting the expensive LLM stream.
+  // "checking" = still verifying | "ready" = resume found | "missing" = no resume
+  const [resumeState, setResumeState] = useState<"checking" | "ready" | "missing">("checking");
+
+  // Don't auto-start the stream; call `start()` only once resume is confirmed.
+  const { map, progress, loading, error, expanding, expandError, expand, regenerate, retry, start } =
+    useCareerMap({ autoStart: false });
 
   const [selected, setSelected] = useState<CareerMapNode | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -50,16 +56,28 @@ export default function CareerMapPage() {
   const [spawn, setSpawn] = useState<{ born: number; total: number } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [playIdx, setPlayIdx] = useState(0);
-  const firstBuild = useRef(true);
 
-  // resume gate — mirrors backend 404 behavior
+  // Step 1: check resume existence
   useEffect(() => {
-    api.getResume().catch((e) => {
-      if (e instanceof ApiError && e.status === 404) router.push("/onboarding");
-    });
-  }, [router]);
+    api
+      .getResume()
+      .then(() => setResumeState("ready"))
+      .catch((e) => {
+        if (e instanceof ApiError && e.status === 404) {
+          setResumeState("missing");
+        } else {
+          // Network error — let the stream surface the error instead
+          setResumeState("ready");
+        }
+      });
+  }, []);
 
-  // scene lifecycle
+  // Step 2: start the stream only when resume is confirmed
+  useEffect(() => {
+    if (resumeState === "ready") start();
+  }, [resumeState, start]);
+
+  // Scene lifecycle
   useEffect(() => {
     if (!containerRef.current || sceneRef.current) return;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -82,7 +100,7 @@ export default function CareerMapPage() {
     };
   }, []);
 
-  // feed maps into the scene
+  // Feed maps into the scene
   useEffect(() => {
     if (!map || !sceneRef.current) return;
     // a cached map streams zero progress events — that's the discriminator
@@ -92,20 +110,19 @@ export default function CareerMapPage() {
     firstBuild.current = false;
   }, [map, progress]);
 
-  // rotate the playful loading lines while the LLM works (index is modulo-cycled,
-  // so no reset is needed between runs)
+  // Rotate the playful loading lines while the LLM works
   useEffect(() => {
     if (!loading) return;
     const t = setInterval(() => setPlayIdx((i) => i + 1), 2400);
     return () => clearInterval(t);
   }, [loading]);
 
-  // pulse the node that's growing new branches as an in-scene beacon
+  // Pulse the node that's growing new branches as an in-scene beacon
   useEffect(() => {
     sceneRef.current?.setDiscovering(expanding);
   }, [expanding]);
 
-  // keep the open node list in sync when the map is rebuilt (expand/regenerate)
+  // Keep the open node list in sync when the map is rebuilt (expand/regenerate)
   useEffect(() => {
     if (!listOpen || !map) return;
     setFocusList(sceneRef.current?.focusList() ?? []);
@@ -131,7 +148,7 @@ export default function CareerMapPage() {
     regenerate();
   }, [regenerate]);
 
-  // transient-error retry (e.g. network blip) — must not force a paid
+  // Transient-error retry (e.g. network blip) — must not force a paid
   // regeneration, so this re-runs the stream rather than calling regenerate().
   const handleRetry = useCallback(() => {
     firstBuild.current = true;
@@ -166,6 +183,69 @@ export default function CareerMapPage() {
         ? `${map.nodes.length} roles mapped from your resume`
         : null;
 
+  // ── No Resume Empty State ──────────────────────────────────────────────────
+  if (resumeState === "missing") {
+    return (
+      <div style={{ position: "fixed", inset: 0, background: "#0b0e1c", color: "rgba(250,250,248,0.78)", zIndex: 40, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 28 }}>
+        <style>{`
+          @keyframes cmap-orb-pulse {
+            0%, 100% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.1); filter: brightness(1.2); }
+          }
+          .cmap-no-resume-back {
+            display: inline-flex; align-items: center; gap: 7px;
+            font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+            color: rgba(250,250,248,0.65); text-decoration: none;
+            border: 1px solid rgba(250,250,248,0.14); border-radius: 99px;
+            padding: 8px 18px; background: rgba(20,24,48,0.45);
+            backdrop-filter: blur(8px); transition: border-color 0.2s, color 0.2s;
+          }
+          .cmap-no-resume-back:hover { border-color: rgba(199,185,255,0.5); color: #fafaf8; }
+          .cmap-no-resume-upload {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+            color: #1a1d29; text-decoration: none;
+            border-radius: 99px; padding: 10px 24px;
+            background: linear-gradient(135deg, #c7b9ff, #8f7dff);
+            font-weight: 700; transition: opacity 0.2s, transform 0.2s;
+          }
+          .cmap-no-resume-upload:hover { opacity: 0.88; transform: translateY(-1px); }
+        `}</style>
+
+        {/* Dim orb */}
+        <div style={{
+          width: 72, height: 72, borderRadius: "50%",
+          background: "radial-gradient(circle at 34% 34%, rgba(255,255,255,0.5) 0%, rgba(199,185,255,0.4) 22%, rgba(78,63,216,0.25) 58%, rgba(78,63,216,0) 75%)",
+          boxShadow: "0 0 40px 10px rgba(143,125,255,0.2)",
+          animation: "cmap-orb-pulse 3s ease-in-out infinite",
+          opacity: 0.6,
+        }} />
+
+        <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+          <div className="mono" style={{ fontSize: 10, letterSpacing: "0.22em", color: "rgba(199,185,255,0.6)", textTransform: "uppercase" }}>
+            AURA · CAREER MAP
+          </div>
+          <h1 style={{ fontSize: "1.4rem", fontWeight: 700, margin: 0, color: "#fafaf8", letterSpacing: "-0.01em" }}>
+            No resume found
+          </h1>
+          <p style={{ fontSize: "0.9rem", color: "rgba(250,250,248,0.45)", maxWidth: "38ch", lineHeight: 1.6, margin: 0 }}>
+            The Career Map needs your resume to chart your career universe. Upload one first and come back here.
+          </p>
+        </div>
+
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+          <Link href="/onboarding" className="cmap-no-resume-upload mono">
+            Upload resume →
+          </Link>
+          <Link href="/dashboard" className="cmap-no-resume-back mono">
+            ← Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Main Map UI ────────────────────────────────────────────────────────────
   return (
     <div style={{ position: "fixed", inset: 0, background: "#0b0e1c", color: "rgba(250,250,248,0.78)", zIndex: 40 }}>
       <style>{`

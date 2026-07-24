@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import JobActions from "@/components/jobs/JobActions";
+import MobileApplyBar from "@/components/jobs/MobileApplyBar";
 import { jobs } from "../mockJobs";
 
 export default async function CandidateJobDetail({
@@ -21,7 +22,7 @@ export default async function CandidateJobDetail({
         <main>
           <section className="panel job-detail-hero">
             <div className="job-detail-company">
-              <div className="job-company-mark large">N</div>
+              <div className="job-company-mark large">{job.company[0]}</div>
               <div>
                 <span>{job.company}</span>
                 <small>{job.team}</small>
@@ -122,6 +123,9 @@ export default async function CandidateJobDetail({
               </div>
             </div>
           </section>
+
+          {/* Mobile-only bottom safe area spacer so content isn't hidden behind sticky bar */}
+          <div className="mobile-apply-spacer" aria-hidden="true" />
         </main>
         <aside>
           <section className="panel sticky-apply-card">
@@ -170,6 +174,13 @@ export default async function CandidateJobDetail({
           </section>
         </aside>
       </div>
+
+      {/* Mobile sticky apply bar — replaces the aside on small screens */}
+      <MobileApplyBar
+        jobId={job.id}
+        fit={job.fit}
+        mockInterviewEnabled={job.mockInterviewEnabled}
+      />
     </div>
   );
 }

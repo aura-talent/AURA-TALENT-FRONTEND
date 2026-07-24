@@ -2157,6 +2157,137 @@ textarea.input {
 .employer-content {
   min-width: 0;
 }
+.employer-breadcrumbs {
+  width: min(100%, 1280px);
+  margin: 0 auto;
+  padding: 1rem clamp(1.25rem, 3vw, 3rem) 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--ink-55);
+}
+.employer-breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.employer-breadcrumbs a {
+  color: var(--ink-55);
+  text-decoration: none;
+}
+.employer-breadcrumbs a:hover {
+  color: var(--iris);
+}
+.employer-breadcrumbs [aria-current="page"] {
+  color: var(--ink-92, var(--ink-72));
+  font-weight: 650;
+}
+.employer-breadcrumb-sep {
+  color: var(--ink-25, var(--ink-55));
+  opacity: 0.6;
+}
+.job-activity-feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.job-activity-feed li {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+}
+.job-activity-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  margin-top: 0.35rem;
+  flex-shrink: 0;
+}
+.job-activity-feed strong {
+  font-size: 0.78rem;
+}
+.job-activity-feed p {
+  margin: 0.1rem 0 0.15rem;
+  font-size: 0.82rem;
+  color: var(--ink-72);
+  line-height: 1.45;
+}
+.job-activity-feed small {
+  font-size: 0.68rem;
+  color: var(--ink-55);
+}
+.job-activity-note {
+  margin: 0.9rem 0 0;
+  font-size: 0.7rem;
+  color: var(--ink-55);
+  font-style: italic;
+}
+.suggested-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.suggested-action-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+.suggested-action-badge {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 0.82rem;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--iris) 14%, transparent);
+  color: var(--iris-deep, var(--iris));
+}
+.suggested-action-badge.peach {
+  background: color-mix(in srgb, var(--peach) 20%, transparent);
+  color: #bc4a2a;
+}
+.suggested-action-badge.mint {
+  background: color-mix(in srgb, #16a34a 16%, transparent);
+  color: #16a34a;
+}
+.suggested-action-badge.warm {
+  background: color-mix(in srgb, #d97706 18%, transparent);
+  color: #b45309;
+}
+.suggested-action-body {
+  flex: 1;
+  min-width: 0;
+}
+.suggested-action-body strong {
+  font-size: 0.9rem;
+}
+.suggested-action-body p {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  color: var(--ink-55);
+  line-height: 1.45;
+}
+.suggested-action-controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+@media (max-width: 640px) {
+  .suggested-action-card {
+    flex-wrap: wrap;
+  }
+  .suggested-action-controls {
+    flex-basis: 100%;
+  }
+}
 .employer-page {
   width: min(100%, 1280px);
   margin: 0 auto;
@@ -2231,6 +2362,7 @@ textarea.input {
   font-size: 0.75rem;
 }
 .employer-dashboard-grid {
+  padding-top: 20px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
@@ -3580,6 +3712,12 @@ textarea.input {
   min-height: 92px;
   resize: vertical;
 }
+.candidate-email-hint {
+  margin: -0.4rem 0 0;
+  font-size: 0.74rem;
+  color: var(--ink-55);
+  line-height: 1.5;
+}
 .candidate-email-fields .candidate-email-body {
   min-height: 220px;
   line-height: 1.55;
@@ -3910,6 +4048,18 @@ textarea.input {
   align-items: center;
   gap: 0.65rem;
 }
+.employer-job-detail-meta {
+  flex-wrap: wrap;
+}
+.employer-job-detail-head > div:first-child {
+  min-width: 0;
+}
+.employer-job-detail-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  max-width: 22rem;
+}
 .employer-job-detail-meta > span:not(.chip) {
   color: var(--ink-55);
   font-size: 0.72rem;
@@ -4009,6 +4159,23 @@ textarea.input {
 .job-detail-stat span {
   color: var(--ink-55);
   font-size: 0.72rem;
+}
+.job-detail-stats-row {
+  display: flex;
+  gap: 0.6rem;
+}
+.job-detail-stats-row .job-detail-stat {
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.15rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--ink-06);
+  border-radius: var(--r-s);
+}
+.job-detail-stats-row .job-detail-stat strong {
+  font-size: 1.5rem;
 }
 .talent-recall-note .attention-icon {
   margin-bottom: 0.8rem;
@@ -5152,4 +5319,422 @@ textarea.input {
 .cpn-fit-num {
   font-size: 0.85rem;
   font-weight: 600;
+}
+
+
+/* Bounty marketplace */
+.bounty-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.bounty-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+.bounty-filter-pill {
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--ink-12);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-72);
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
+}
+.bounty-filter-pill:hover {
+  border-color: var(--iris-12);
+  background: var(--iris-08);
+}
+.bounty-filter-pill.active {
+  border-color: var(--iris);
+  background: var(--iris);
+  color: #fff;
+}
+
+.bounty-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 1.75rem;
+}
+.bounty-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.35rem 0;
+  border-bottom: 1px solid var(--ink-06);
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 0.15s;
+}
+.bounty-list-row:last-child {
+  border-bottom: 0;
+}
+.bounty-list-row:hover {
+  opacity: 0.72;
+}
+.bounty-list-row-main {
+  min-width: 0;
+}
+.bounty-list-row-main h3 {
+  margin-bottom: 0.5rem;
+  font-size: 1.05rem;
+}
+.bounty-list-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--ink-55);
+  font-size: 0.78rem;
+}
+.bounty-list-row-prize {
+  flex-shrink: 0;
+  text-align: right;
+}
+.bounty-list-row-prize strong {
+  display: block;
+  color: var(--iris-deep);
+  font:
+    700 1.1rem var(--font-mono),
+    monospace;
+}
+.bounty-list-row-prize span {
+  color: var(--ink-55);
+  font-size: 0.68rem;
+}
+
+/* Bounty detail layout (public + employer manage pages) */
+.bounty-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.75fr) minmax(280px, 0.9fr);
+  align-items: start;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+.bounty-detail-layout main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+.bounty-detail-layout aside {
+  position: sticky;
+  top: 84px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.bounty-detail-layout aside h3 {
+  margin-bottom: 0.9rem;
+  font-size: 0.9rem;
+}
+@media (max-width: 860px) {
+  .bounty-detail-layout {
+    grid-template-columns: 1fr;
+  }
+  .bounty-detail-layout aside {
+    position: static;
+  }
+}
+
+.bounty-prize-card .bounty-prize-total {
+  font:
+    700 2rem var(--font-display),
+    sans-serif;
+  line-height: 1;
+}
+.bounty-prize-card .bounty-prize-total small {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--ink-55);
+  font:
+    600 0.68rem var(--font-mono),
+    monospace;
+}
+.bounty-prize-ranks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 1.1rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--ink-06);
+}
+.bounty-prize-rank-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+}
+.bounty-prize-rank-row b {
+  color: var(--iris-deep);
+  font:
+    700 0.85rem var(--font-mono),
+    monospace;
+}
+
+.bounty-requirement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.bounty-requirement-item {
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--ink-06);
+}
+.bounty-requirement-item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.bounty-requirement-item strong {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  font-size: 0.84rem;
+}
+.bounty-requirement-item strong b {
+  flex-shrink: 0;
+  color: var(--ink-30);
+  font:
+    600 0.6rem var(--font-mono),
+    monospace;
+  text-transform: uppercase;
+}
+.bounty-requirement-item span {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--ink-55);
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
+/* Bounty submission review */
+.bounty-submission-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 0;
+}
+.bounty-submission-detail ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  list-style: none;
+  padding: 0;
+}
+.bounty-submission-actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+/* ============================================================
+   PWA + Mobile Quick Apply — responsive additions
+   ============================================================ */
+
+/* ── Job card actions row ── */
+.job-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Quick Apply button — subtle on desktop, prominent on mobile */
+.btn-quick-apply {
+  display: none;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: var(--r-s, 8px);
+  border: 1px solid rgba(199,185,255,0.35);
+  background: rgba(143,125,255,0.1);
+  color: #c7b9ff;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, border-color 0.2s;
+}
+.btn-quick-apply:hover {
+  background: rgba(143,125,255,0.2);
+  border-color: rgba(199,185,255,0.6);
+}
+
+/* ── Mobile: single-column job grid + Quick Apply visible ── */
+@media (max-width: 768px) {
+  /* Show Quick Apply button on mobile */
+  .btn-quick-apply {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* Single column job grid */
+  .candidate-job-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Compact hero section */
+  .candidate-jobs-hero {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+  .recommendation-summary {
+    width: 100% !important;
+  }
+
+  /* Jobs toolbar wraps nicely */
+  .jobs-explore-toolbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+  .search-field {
+    width: 100% !important;
+  }
+
+  /* Toolbar buttons full width */
+  .jobs-explore-toolbar .btn-ghost {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Job detail: hide aside on mobile (replaced by sticky bar) */
+  .candidate-job-detail-grid > aside {
+    display: none !important;
+  }
+  .candidate-job-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Spacer so content isn't hidden behind sticky apply bar */
+  .mobile-apply-spacer {
+    height: calc(72px + env(safe-area-inset-bottom, 16px));
+  }
+}
+
+/* ── Mobile Sticky Apply Bar (job detail page) ── */
+.mobile-apply-bar {
+  display: none;
+}
+@media (max-width: 768px) {
+  .mobile-apply-bar {
+    display: flex;
+    position: fixed;
+    bottom: max(12px, env(safe-area-inset-bottom, 12px));
+    left: 12px;
+    right: 12px;
+    z-index: 50;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 10px 16px;
+    background: rgba(14, 18, 42, 0.92);
+    border: 1px solid rgba(199, 185, 255, 0.28);
+    border-radius: 18px;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+  .mobile-apply-bar-fit {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    flex-shrink: 0;
+  }
+  .mobile-apply-bar-pct {
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1;
+    font-family: var(--font-mono), monospace;
+  }
+  .mobile-apply-bar-label {
+    font-size: 0.65rem;
+    color: rgba(250, 250, 248, 0.45);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .mobile-apply-bar-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex: 1;
+    justify-content: flex-end;
+  }
+  .mobile-apply-btn-primary {
+    padding: 0.65rem 1.25rem !important;
+    font-size: 0.88rem !important;
+    border-radius: 12px !important;
+    flex: 1;
+    max-width: 165px;
+    text-align: center;
+  }
+  .mobile-apply-btn-secondary {
+    padding: 0.6rem 0.85rem !important;
+    font-size: 0.78rem !important;
+    border-radius: 12px !important;
+    white-space: nowrap;
+    border: 1px solid rgba(250, 250, 248, 0.14) !important;
+    background: rgba(250, 250, 248, 0.04) !important;
+    color: rgba(250, 250, 248, 0.75) !important;
+  }
+}
+
+
+/* ── General mobile responsiveness ── */
+@media (max-width: 768px) {
+  /* Prevent horizontal overflow */
+  body { overflow-x: hidden; }
+
+  /* Tighten container padding */
+  .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Dashboard grid: single column */
+  .dash-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Nav items condensed */
+  .nav-inner {
+    gap: 0.75rem !important;
+  }
+
+  /* Page heads tighter */
+  .page-head h1 {
+    font-size: clamp(1.6rem, 6vw, 2.4rem) !important;
+  }
+}
+
+/* ── PWA: safe area support for notched phones ── */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .footer {
+    padding-bottom: calc(var(--footer-pb, 1.5rem) + env(safe-area-inset-bottom));
+  }
+}
+
+/* ── Touch target sizes (WCAG 2.5.5) ── */
+@media (pointer: coarse) {
+  .btn, button, [role="button"] {
+    min-height: 44px;
+  }
+  .tab {
+    min-height: 44px;
+  }
+  .nav-link {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
 }

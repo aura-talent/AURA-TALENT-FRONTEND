@@ -3,15 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
+import Breadcrumbs from "@/components/employer/Breadcrumbs";
 
+// Ordered to follow the hiring workflow: plan a role, post it, evaluate and
+// interview applicants, source more, then act on Aura's suggestions.
 const links = [
   { href: "/employer", label: "Overview", icon: "grid" },
+  { href: "/employer/jobs", label: "Job listings", icon: "briefcase" },
   { href: "/employer/workforce", label: "Workforce plan", icon: "chart" },
   { href: "/employer/candidates", label: "Candidates", icon: "people" },
-  { href: "/employer/talent-pool", label: "Talent pool", icon: "archive" },
-  { href: "/employer/headhunters", label: "Headhunters", icon: "scout" },
   { href: "/employer/interviews", label: "Interviews", icon: "spark" },
-  { href: "/employer/jobs", label: "Job listings", icon: "briefcase" },
+  { href: "/employer/talent-pool", label: "Talent pool", icon: "archive" },
+  { href: "/employer/bounties", label: "Bounties", icon: "trophy" },
+  { href: "/employer/headhunters", label: "Headhunters", icon: "scout" },
+  { href: "/employer/suggested-actions", label: "Suggested actions", icon: "bolt" },
   { href: "/employer/profile", label: "Company profile", icon: "building" },
 ];
 
@@ -66,6 +71,24 @@ function Icon({ name }: { name: string }) {
         <circle cx="12" cy="12" r="9" />
         <circle cx="12" cy="12" r="4" />
         <circle cx="12" cy="12" r="1" style={{ fill: "currentColor" }} />
+      </>
+    ),
+    mail: (
+      <>
+        <rect x="3" y="4" width="18" height="16" rx="2" stroke="none" />
+        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" strokeWidth="2" />
+      </>
+    ),
+    bolt: (
+      <>
+        <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
+      </>
+    ),
+    trophy: (
+      <>
+        <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z" />
+        <path d="M7 5H4a1 1 0 0 0-1 1 5 5 0 0 0 4 5M17 5h3a1 1 0 0 1 1 1 5 5 0 0 1-4 5" />
       </>
     ),
   };
@@ -191,7 +214,10 @@ export default function EmployerShell({ children }: { children: React.ReactNode 
           </button>
         </div>
       </aside>
-      <section className="employer-content">{children}</section>
+      <section className="employer-content">
+        <Breadcrumbs />
+        {children}
+      </section>
     </div>
   );
 }

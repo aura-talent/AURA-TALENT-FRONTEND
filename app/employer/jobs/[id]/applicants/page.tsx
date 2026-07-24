@@ -24,6 +24,24 @@ export default function JobApplicantsPage({
   const [job, setJob] = useState<EmployerJob | null>(null);
   const [rows, setRows] = useState<CandidateRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [scoring, setScoring] = useState<Set<string>>(new Set());
+  const [queued, setQueued] = useState<Set<string>>(new Set());
+
+  async function scoreNow(candidateUserId: string) {
+    setScoring((s) => new Set(s).add(candidateUserId));
+    try {
+      await employerApi.triggerEvaluation(id, candidateUserId, "aura");
+      setQueued((q) => new Set(q).add(candidateUserId));
+    } catch (err) {
+      console.error("Failed to trigger evaluation:", err);
+    } finally {
+      setScoring((s) => {
+        const next = new Set(s);
+        next.delete(candidateUserId);
+        return next;
+      });
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -63,9 +81,6 @@ export default function JobApplicantsPage({
 
   return (
     <div className="employer-page">
-      <Link href="/employer/jobs" className="back-link">
-        ← Job listings
-      </Link>
       <div className="employer-page-head">
         <div>
           <p className="eyebrow">
@@ -180,16 +195,34 @@ export default function JobApplicantsPage({
                     </div>
                   </td>
                   <td>
-                    <Link
-                      href={
-                        interviewOnly
-                          ? `/employer/candidates/${row.candidate_user_id}/interview`
-                          : `/employer/candidates/${row.candidate_user_id}`
-                      }
-                      className="table-action"
-                    >
-                      {interviewOnly ? "View interview →" : "Evaluate →"}
-                    </Link>
+                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", justifyContent: "flex-end" }}>
+                      {!interviewOnly && (
+                        <button
+                          className="btn btn-ghost"
+                          disabled={scoring.has(row.candidate_user_id) || queued.has(row.candidate_user_id)}
+                          onClick={() => scoreNow(row.candidate_user_id)}
+                          title="Run the evaluation agent for this candidate"
+                        >
+                          {scoring.has(row.candidate_user_id)
+                            ? "Scoring…"
+                            : queued.has(row.candidate_user_id)
+                              ? "Queued ✓"
+                              : score != null
+                                ? "Re-score"
+                                : "Score now"}
+                        </button>
+                      )}
+                      <Link
+                        href={
+                          interviewOnly
+                            ? `/employer/candidates/${row.candidate_user_id}/interview`
+                            : `/employer/candidates/${row.candidate_user_id}`
+                        }
+                        className="table-action"
+                      >
+                        {interviewOnly ? "View interview →" : "Evaluate →"}
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               );

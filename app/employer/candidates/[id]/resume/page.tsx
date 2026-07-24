@@ -1,7 +1,6 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import Link from "next/link";
 import ReportView from "@/components/ReportView";
 import { Loader } from "@/components/ui/loader";
 import {
@@ -58,9 +57,6 @@ export default function CandidateResumePage({
   if (!detail.resume_markdown)
     return (
       <div className="employer-page">
-        <Link href={`/employer/candidates/${id}`} className="back-link">
-          ← Candidate evaluation
-        </Link>
         <div className="empty-state panel">
           <h3>No resume on file</h3>
           <p>{name} hasn&apos;t uploaded a resume yet.</p>
@@ -70,9 +66,6 @@ export default function CandidateResumePage({
 
   return (
     <div className="employer-page">
-      <Link href={`/employer/candidates/${id}`} className="back-link">
-        ← Candidate evaluation
-      </Link>
 
       <div className="employer-page-head">
         <div>

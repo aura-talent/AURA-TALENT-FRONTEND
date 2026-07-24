@@ -501,7 +501,15 @@ export const api = {
       node_id,
     }),
 
-  selfWorth: (input: { location?: string; currency?: string } = {}) =>
+  selfWorth: (
+    input: {
+      location?: string;
+      currency?: string;
+      university_id?: string;
+      degree_field?: string;
+      country?: string;
+    } = {}
+  ) =>
     postJson<SelfWorthEstimate>("salary/self", {
       user_id: getUserId(),
       ...input,

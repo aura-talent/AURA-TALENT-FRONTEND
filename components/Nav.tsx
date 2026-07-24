@@ -9,8 +9,7 @@ import { createPortal } from "react-dom";
 const APP_LINKS = [
   { href: "/dashboard", label: "DASHBOARD" },
   { href: "/tracker", label: "JOB_HUB" },
-  { href: "/worth", label: "YOUR_WORTH" },
-  { href: "/insights", label: "INSIGHTS" },
+  { href: "/worth", label: "FAIR_PAY_ENGINE" },
   { href: "/bounties", label: "BOUNTIES" },
   { href: "/animal", label: "WORK_ANIMAL" },
   { href: "/mock-interview", label: "MOCK_INTERVIEW" },

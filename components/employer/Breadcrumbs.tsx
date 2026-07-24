@@ -17,7 +17,6 @@ const SEGMENT_LABELS: Record<string, string> = {
   templates: "Communication templates",
   profile: "Company profile",
   "pipeline-settings": "Pipeline phases",
-  "suggested-actions": "Suggested actions",
   stages: "Application stages",
   offers: "Offer console",
   applicants: "Applicants",

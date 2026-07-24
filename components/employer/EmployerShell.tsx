@@ -1,26 +1,61 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import Breadcrumbs from "@/components/employer/Breadcrumbs";
 import AuraChatPanel from "@/components/employer/chat/AuraChatPanel";
 
-// Ordered to follow the hiring workflow: plan a role, post it, evaluate and
-// interview applicants, source more, then act on Aura's suggestions.
-const links = [
-  { href: "/employer", label: "Overview", icon: "grid" },
-  { href: "/employer/jobs", label: "Job listings", icon: "briefcase" },
-  { href: "/employer/workforce", label: "Workforce plan", icon: "chart" },
-  { href: "/employer/candidates", label: "Candidates", icon: "people" },
-  { href: "/employer/interviews", label: "Interviews", icon: "spark" },
-  { href: "/employer/talent-pool", label: "Talent pool", icon: "archive" },
-  { href: "/employer/bounties", label: "Bounties", icon: "trophy" },
-  { href: "/employer/headhunters", label: "Headhunters", icon: "scout" },
-  { href: "/employer/suggested-actions", label: "Suggested actions", icon: "bolt" },
-  { href: "/employer/offers", label: "Offers", icon: "mail" },
-  { href: "/employer/profile", label: "Company profile", icon: "building" },
+type NavLink = { href: string; label: string };
+type NavModule = { label: string; items: NavLink[] };
+type NavSection =
+  | { id: string; label: string; icon: string; href: string }
+  | { id: string; label: string; icon: string; modules: NavModule[] }
+  | { id: string; label: string; icon: string; items: NavLink[] };
+
+// 4 sections: Dashboard and Headhunters are direct links; Jobs groups its
+// links into Planning/Action modules; Talent Pool groups Talent Pool +
+// Bounties (bounties are another candidate-sourcing channel, folded in here
+// rather than kept as its own top-level tab).
+const NAV: NavSection[] = [
+  { id: "dashboard", label: "Dashboard", icon: "grid", href: "/employer" },
+  {
+    id: "jobs",
+    label: "Jobs",
+    icon: "briefcase",
+    modules: [
+      {
+        label: "Planning",
+        items: [
+          { href: "/employer/jobs", label: "Job Listing" },
+          { href: "/employer/workforce", label: "Workforce Plan" },
+        ],
+      },
+      {
+        label: "Action",
+        items: [
+          { href: "/employer/applicants", label: "Applicants" },
+          { href: "/employer/offers", label: "Offers" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "talent-pool",
+    label: "Talent Pool",
+    icon: "archive",
+    items: [
+      { href: "/employer/talent-pool", label: "Talent Pool" },
+      { href: "/employer/bounties", label: "Bounties" },
+    ],
+  },
+  { id: "headhunters", label: "Headhunters", icon: "scout", href: "/employer/headhunters" },
 ];
+
+function isLinkActive(pathname: string, href: string): boolean {
+  return href === "/employer" ? pathname === href : pathname.startsWith(href);
+}
 
 function Icon({ name }: { name: string }) {
   const paths: Record<string, React.ReactNode> = {
@@ -101,6 +136,59 @@ function Icon({ name }: { name: string }) {
   );
 }
 
+// A module is the actual dropdown (e.g. Jobs' "Planning" or "Action") — it
+// expands inline within the sidebar (pushing what's below it down) via a
+// CSS grid-rows transition, not JS height measurement. State lives in this
+// component instance, which persists across client-side navigation (the
+// sidebar doesn't remount between employer pages), so it stays open until
+// its own header is clicked again — navigating to one of its links does not
+// collapse it.
+function ModuleDropdown({ mod, pathname }: { mod: NavModule; pathname: string }) {
+  const [open, setOpen] = useState(false);
+  const active = mod.items.some((item) => isLinkActive(pathname, item.href));
+
+  return (
+    <div className="employer-nav-module">
+      <button
+        type="button"
+        className={`employer-nav-module-head${active ? " is-active" : ""}`}
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span>{mod.label}</span>
+        <svg
+          className={`employer-nav-chevron${open ? " open" : ""}`}
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      <div className={`employer-nav-module-items${open ? " open" : ""}`}>
+        <div className="employer-nav-module-items-inner">
+          {mod.items.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="employer-nav-link"
+              aria-current={isLinkActive(pathname, item.href) ? "page" : undefined}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function getInitials(name: string | null | undefined, email: string | null | undefined): string {
   if (name) {
     const parts = name.trim().split(" ");
@@ -161,20 +249,47 @@ export default function EmployerShell({ children }: { children: React.ReactNode 
           </div>
         </div>
         <nav className="employer-menu" aria-label="Employer navigation">
-          {links.map((link) => {
-            const active =
-              link.href === "/employer"
-                ? pathname === link.href
-                : pathname.startsWith(link.href);
+          {NAV.map((section) => {
+            // A section with a single href IS the clickable item — no
+            // separate static label needed above it (Dashboard, Headhunters).
+            if ("href" in section) {
+              const active = isLinkActive(pathname, section.href);
+              return (
+                <Link key={section.id} href={section.href} aria-current={active ? "page" : undefined}>
+                  <Icon name={section.icon} />
+                  <span>{section.label}</span>
+                </Link>
+              );
+            }
+            // Every other section is just a static label + spacing grouping
+            // its children — never itself clickable. "modules" render as
+            // dropdowns (ModuleDropdown); a flat "items" list renders as
+            // always-visible static links (nothing to collapse).
             return (
-              <Link
-                key={link.href}
-                href={link.href}
-                aria-current={active ? "page" : undefined}
-              >
-                <Icon name={link.icon} />
-                <span>{link.label}</span>
-              </Link>
+              <div key={section.id} className="employer-nav-section">
+                <div className="employer-nav-section-label">
+                  <Icon name={section.icon} />
+                  <span>{section.label}</span>
+                </div>
+                {"modules" in section
+                  ? section.modules.map((mod) => (
+                      <ModuleDropdown key={mod.label} mod={mod} pathname={pathname} />
+                    ))
+                  : (
+                    <div className="employer-nav-static-items">
+                      {section.items.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className="employer-nav-link"
+                          aria-current={isLinkActive(pathname, item.href) ? "page" : undefined}
+                        >
+                          {item.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+              </div>
             );
           })}
         </nav>
@@ -190,30 +305,50 @@ export default function EmployerShell({ children }: { children: React.ReactNode 
               <span>Employer</span>
             </div>
           </div>
-          <button
-            onClick={() => signOut()}
-            title="Sign out"
-            style={{
-              flexShrink: 0,
-              background: "transparent",
-              border: "1px solid var(--ink-12)",
-              borderRadius: "var(--r-s)",
-              padding: "0.35rem 0.5rem",
-              cursor: "pointer",
-              color: "var(--ink-55)",
-              display: "flex",
-              alignItems: "center",
-              transition: "color 0.15s, border-color 0.15s",
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "#bc4a2a"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#bc4a2a"; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "var(--ink-55)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--ink-12)"; }}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </button>
+          <div style={{ display: "flex", gap: "0.35rem", flexShrink: 0 }}>
+            <Link
+              href="/employer/profile"
+              title="Company profile"
+              aria-current={pathname.startsWith("/employer/profile") ? "page" : undefined}
+              style={{
+                background: "transparent",
+                border: "1px solid var(--ink-12)",
+                borderRadius: "var(--r-s)",
+                padding: "0.35rem 0.5rem",
+                color: "var(--ink-55)",
+                display: "flex",
+                alignItems: "center",
+                transition: "color 0.15s, border-color 0.15s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = "var(--iris-deep)"; e.currentTarget.style.borderColor = "var(--iris)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = "var(--ink-55)"; e.currentTarget.style.borderColor = "var(--ink-12)"; }}
+            >
+              <Icon name="building" />
+            </Link>
+            <button
+              onClick={() => signOut()}
+              title="Sign out"
+              style={{
+                background: "transparent",
+                border: "1px solid var(--ink-12)",
+                borderRadius: "var(--r-s)",
+                padding: "0.35rem 0.5rem",
+                cursor: "pointer",
+                color: "var(--ink-55)",
+                display: "flex",
+                alignItems: "center",
+                transition: "color 0.15s, border-color 0.15s",
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "#bc4a2a"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#bc4a2a"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "var(--ink-55)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--ink-12)"; }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+          </div>
         </div>
       </aside>
       <section className="employer-content">

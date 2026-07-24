@@ -134,6 +134,7 @@ export default function JobEditor({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [closing, setClosing] = useState(false);
 
   // ── Create wizard: step 2 is workforce planning ──────────────────────────
   const [step, setStep] = useState(1);
@@ -270,6 +271,20 @@ export default function JobEditor({
       console.error("Failed to create job:", err);
       setError(err instanceof Error ? err.message : "Failed to create job");
       setSaving(false);
+    }
+  }
+
+  async function closeJob() {
+    if (!initialJob) return;
+    if (!window.confirm(`Close "${initialJob.title}"? It will stop appearing as an active role and Aura will stop working on it.`)) return;
+    setClosing(true);
+    try {
+      await employerApi.updateJob(initialJob.id, { pipeline_phase: "closed" });
+      router.push("/employer/jobs");
+    } catch (err) {
+      console.error("Failed to close job:", err);
+      setError(err instanceof Error ? err.message : "Failed to close job");
+      setClosing(false);
     }
   }
 
@@ -468,6 +483,29 @@ export default function JobEditor({
             />
           </aside>
         </div>
+      )}
+
+      {mode === "edit" && initialJob && initialJob.pipeline_phase !== "closed" && (
+        <section className="panel employer-section employer-danger-zone">
+          <div className="employer-section-head">
+            <div>
+              <p className="eyebrow">Danger zone</p>
+              <h2>Close this job</h2>
+              <p>
+                The role stops appearing as active and Aura stops working on it.
+                This can&apos;t be undone from here.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn btn-ghost employer-danger-button"
+              disabled={closing}
+              onClick={closeJob}
+            >
+              {closing ? "Closing…" : "Close job"}
+            </button>
+          </div>
+        </section>
       )}
 
       {creationAssist && (

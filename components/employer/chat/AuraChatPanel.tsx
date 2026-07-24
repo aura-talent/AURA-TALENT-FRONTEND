@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   employerApi,
   type ChatMessage,
+  type ChatProgressEvent,
   type ChatThread,
   type SuggestedAction,
 } from "@/lib/employerApi";
@@ -16,26 +19,32 @@ const QUICK_ACTIONS = [
 
 export default function AuraChatPanel() {
   const [open, setOpen] = useState(false);
-  const [thread, setThread] = useState<ChatThread | null>(null);
+  const [threads, setThreads] = useState<ChatThread[]>([]);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [showSessions, setShowSessions] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draftsByAction, setDraftsByAction] = useState<Record<string, SuggestedAction>>({});
   const [executed, setExecuted] = useState<Set<string>>(new Set());
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [progressSteps, setProgressSteps] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const loading = open && !thread;
+  const loading = open && !activeThreadId;
 
-  // Load (or create) the standing thread + its history the first time the
+  // Load every session + the most recent one's history the first time the
   // panel opens — not on every page mount, so it costs nothing until asked.
   useEffect(() => {
-    if (!open || thread) return;
+    if (!open || activeThreadId) return;
     let cancelled = false;
     employerApi
-      .getChatThread()
-      .then(async (t) => {
+      .listChatThreads()
+      .then(async (list) => {
         if (cancelled) return;
-        setThread(t);
-        const msgs = await employerApi.listChatMessages(t.id);
+        if (!list.length) list = [await employerApi.createChatThread()];
+        if (cancelled) return;
+        setThreads(list);
+        setActiveThreadId(list[0].id);
+        const msgs = await employerApi.listChatMessages(list[0].id);
         if (cancelled) return;
         setMessages(msgs);
         const ids = msgs.flatMap((m) => m.proposed_action_ids);
@@ -45,11 +54,11 @@ export default function AuraChatPanel() {
     return () => {
       cancelled = true;
     };
-  }, [open, thread]);
+  }, [open, activeThreadId]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+  }, [messages, progressSteps]);
 
   async function hydrateDrafts(ids: string[]) {
     try {
@@ -67,26 +76,87 @@ export default function AuraChatPanel() {
     }
   }
 
+  async function loadMessagesFor(threadId: string) {
+    setMessages([]);
+    setDraftsByAction({});
+    setExecuted(new Set());
+    try {
+      const msgs = await employerApi.listChatMessages(threadId);
+      setMessages(msgs);
+      const ids = msgs.flatMap((m) => m.proposed_action_ids);
+      if (ids.length) await hydrateDrafts(ids);
+    } catch (err) {
+      console.error("Failed to load session messages:", err);
+    }
+  }
+
+  async function selectThread(threadId: string) {
+    if (threadId === activeThreadId) {
+      setShowSessions(false);
+      return;
+    }
+    setActiveThreadId(threadId);
+    setShowSessions(false);
+    setProgressSteps([]);
+    await loadMessagesFor(threadId);
+  }
+
+  async function startNewThread() {
+    try {
+      const t = await employerApi.createChatThread();
+      setThreads((current) => [t, ...current]);
+      setActiveThreadId(t.id);
+      setMessages([]);
+      setDraftsByAction({});
+      setExecuted(new Set());
+      setProgressSteps([]);
+      setShowSessions(false);
+    } catch (err) {
+      console.error("Failed to start a new Aura chat session:", err);
+    }
+  }
+
+  async function removeThread(threadId: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    try {
+      await employerApi.deleteChatThread(threadId);
+    } catch (err) {
+      console.error("Failed to delete chat session:", err);
+      return;
+    }
+    const remaining = threads.filter((t) => t.id !== threadId);
+    setThreads(remaining);
+    if (threadId === activeThreadId) {
+      if (remaining.length) await selectThread(remaining[0].id);
+      else await startNewThread();
+    }
+  }
+
   async function send(text: string) {
     const content = text.trim();
-    if (!content || !thread || sending) return;
+    if (!content || !activeThreadId || sending) return;
+    const threadId = activeThreadId;
     setInput("");
     setSending(true);
+    setProgressSteps([]);
     setMessages((current) => [
       ...current,
-      { id: `local-${Date.now()}`, thread_id: thread.id, role: "user", content, proposed_action_ids: [], created_at: new Date().toISOString() },
+      { id: `local-${Date.now()}`, thread_id: threadId, role: "user", content, proposed_action_ids: [], created_at: new Date().toISOString() },
     ]);
     try {
-      const reply = await employerApi.sendChatMessage(thread.id, content);
+      const reply = await employerApi.streamChatMessage(threadId, content, (evt: ChatProgressEvent) => {
+        setProgressSteps((current) => [...current, evt.message]);
+      });
       setMessages((current) => [...current, reply]);
       if (reply.proposed_action_ids.length) await hydrateDrafts(reply.proposed_action_ids);
+      employerApi.listChatThreads().then(setThreads).catch(() => {});
     } catch (err) {
       console.error("Aura chat send failed:", err);
       setMessages((current) => [
         ...current,
         {
           id: `local-error-${Date.now()}`,
-          thread_id: thread.id,
+          thread_id: threadId,
           role: "assistant",
           content: "Sorry, something went wrong sending that — try again.",
           proposed_action_ids: [],
@@ -95,6 +165,7 @@ export default function AuraChatPanel() {
       ]);
     } finally {
       setSending(false);
+      setProgressSteps([]);
     }
   }
 
@@ -149,7 +220,54 @@ export default function AuraChatPanel() {
               <strong>Ask Aura</strong>
               <span>Your HR co-pilot — she asks before sending anything.</span>
             </div>
+            <div className="aura-chat-head-actions">
+              <button
+                type="button"
+                className="aura-chat-icon-btn"
+                onClick={() => setShowSessions((v) => !v)}
+                aria-label="Chat sessions"
+                title="Sessions"
+              >
+                🕘
+              </button>
+              <button
+                type="button"
+                className="aura-chat-icon-btn"
+                onClick={startNewThread}
+                aria-label="New chat"
+                title="New chat"
+              >
+                +
+              </button>
+            </div>
           </header>
+
+          {showSessions && (
+            <div className="aura-chat-sessions">
+              {threads.length === 0 ? (
+                <p className="aura-chat-empty">No sessions yet.</p>
+              ) : (
+                threads.map((t) => (
+                  <div
+                    key={t.id}
+                    className={`aura-chat-session${t.id === activeThreadId ? " is-active" : ""}`}
+                    onClick={() => selectThread(t.id)}
+                  >
+                    <span className="aura-chat-session-title">{t.title || "New conversation"}</span>
+                    <button
+                      type="button"
+                      className="aura-chat-session-delete"
+                      onClick={(e) => removeThread(t.id, e)}
+                      aria-label="Delete session"
+                      title="Delete session"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
 
           <div className="aura-chat-body" ref={scrollRef}>
             {loading ? (
@@ -161,7 +279,9 @@ export default function AuraChatPanel() {
             ) : (
               messages.map((m) => (
                 <div key={m.id} className={`aura-chat-msg aura-chat-msg-${m.role}`}>
-                  <p>{m.content}</p>
+                  <div className="aura-chat-bubble">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+                  </div>
                   {m.proposed_action_ids.map((id) => {
                     const draft = draftsByAction[id];
                     if (!draft) return null;
@@ -183,7 +303,13 @@ export default function AuraChatPanel() {
                 </div>
               ))
             )}
-            {sending && <p className="aura-chat-empty">Aura is thinking…</p>}
+            {sending && (
+              <div className="aura-chat-progress">
+                <p key={progressSteps.length} className="aura-chat-step">
+                  {progressSteps.length ? progressSteps[progressSteps.length - 1] : "Thinking..."}
+                </p>
+              </div>
+            )}
           </div>
 
           {messages.length === 0 && !loading && (
@@ -208,7 +334,7 @@ export default function AuraChatPanel() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask Aura anything about your pipeline…"
-              disabled={sending || !thread}
+              disabled={sending || !activeThreadId}
             />
             <button className="btn btn-primary" type="submit" disabled={sending || !input.trim()}>
               Send

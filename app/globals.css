@@ -2039,7 +2039,7 @@ textarea.input {
 .employer-shell {
   min-height: calc(100vh - 65px);
   display: grid;
-  grid-template-columns: 232px minmax(0, 1fr);
+  grid-template-columns: 264px minmax(0, 1fr);
 }
 .employer-sidebar {
   position: sticky;
@@ -2132,6 +2132,108 @@ textarea.input {
   font:
     600 0.68rem var(--font-mono),
     monospace;
+}
+/* A section (Jobs, Talent Pool) is never itself clickable — just a static
+   label that groups what's under it, with a little breathing room above it. */
+.employer-nav-section {
+  margin-top: 0.7rem;
+}
+.employer-nav-section:first-child {
+  margin-top: 0;
+}
+.employer-nav-section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.7rem 0.25rem;
+  color: var(--ink-40);
+  font-family: var(--font-space), monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.employer-nav-section-label .employer-icon {
+  width: 14px;
+  height: 14px;
+}
+/* Flat, always-visible links directly under a section (e.g. Talent Pool) —
+   one indent level in from the section label, nothing to expand/collapse. */
+.employer-nav-static-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0 0 0.3rem 1.9rem;
+}
+/* A module (Jobs' "Planning"/"Action") is the actual dropdown. */
+.employer-nav-module-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 36px;
+  padding: 0.4rem 0.7rem 0.4rem 1.9rem;
+  background: transparent;
+  border: none;
+  color: var(--ink-72);
+  font-size: 0.83rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--r-s);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.employer-nav-module-head:hover {
+  color: var(--ink);
+  background: var(--ink-06);
+}
+.employer-nav-module-head.is-active {
+  color: var(--iris-deep);
+}
+.employer-nav-chevron {
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+.employer-nav-chevron.open {
+  transform: rotate(180deg);
+}
+/* CSS-only expand/collapse (grid-template-rows 0fr -> 1fr) — animates
+   smoothly without measuring content height in JS. */
+.employer-nav-module-items {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.22s ease;
+}
+.employer-nav-module-items.open {
+  grid-template-rows: 1fr;
+}
+.employer-nav-module-items-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0.15rem 0 0.3rem 3rem;
+}
+.employer-nav-link {
+  display: block;
+  padding: 0.4rem 0.6rem;
+  min-height: 32px;
+  color: var(--ink-55);
+  font-size: 0.83rem;
+  font-weight: 550;
+  text-decoration: none;
+  border-radius: var(--r-s);
+  transition: color 0.15s, background 0.15s;
+}
+.employer-nav-link:hover {
+  color: var(--ink);
+  background: var(--ink-06);
+}
+.employer-nav-link[aria-current="page"] {
+  color: var(--iris-deep);
+  background: var(--iris-08);
 }
 .employer-sidebar-foot {
   margin-top: auto;
@@ -2227,6 +2329,18 @@ textarea.input {
   color: var(--ink-55);
   font-style: italic;
 }
+.job-activity-feed small.job-activity-detail {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--ink-55);
+  margin: 0 0 0.15rem;
+}
+.job-activity-idle-hint {
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px dashed var(--ink-12);
+  font-style: normal;
+}
 .suggested-actions-list {
   display: flex;
   flex-direction: column;
@@ -2299,6 +2413,90 @@ textarea.input {
   display: flex;
   gap: 0.5rem;
   flex-shrink: 0;
+}
+.alert-board-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.alert-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--ink-06);
+  border-left: 3px solid var(--ink-30);
+  border-radius: var(--r-s);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+.alert-row:hover {
+  background: var(--iris-08);
+  transform: translateX(2px);
+}
+.alert-priority-high {
+  border-left-color: var(--score-weak);
+}
+.alert-priority-medium {
+  border-left-color: var(--score-fair);
+}
+.alert-priority-low {
+  border-left-color: var(--iris);
+}
+.alert-row-priority {
+  flex-shrink: 0;
+  width: 4.2rem;
+  font-family: var(--font-space), monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+}
+.alert-priority-high .alert-row-priority {
+  color: var(--score-weak);
+}
+.alert-priority-medium .alert-row-priority {
+  color: var(--score-fair);
+}
+.alert-priority-low .alert-row-priority {
+  color: var(--iris);
+}
+.alert-row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.alert-row-body strong {
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.alert-row-body small {
+  font-size: 0.76rem;
+  color: var(--ink-55);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.alert-row-badge {
+  flex-shrink: 0;
+  min-width: 1.8rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--ink-06);
+  text-align: center;
+  font:
+    650 0.72rem var(--font-mono),
+    monospace;
+  color: var(--ink-72);
 }
 @media (max-width: 640px) {
   .suggested-action-card {
@@ -3259,6 +3457,10 @@ textarea.input {
 .aura-chat-head {
   padding: 0.9rem 1rem;
   border-bottom: 1px solid var(--ink-06);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 .aura-chat-head strong {
   display: block;
@@ -3267,6 +3469,95 @@ textarea.input {
 .aura-chat-head span {
   font-size: 0.72rem;
   color: var(--ink-55);
+}
+.aura-chat-head-actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+.aura-chat-icon-btn {
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  border: 1px solid var(--ink-12);
+  background: var(--surface);
+  color: var(--ink-55);
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.aura-chat-icon-btn:hover {
+  border-color: var(--iris);
+  color: var(--iris);
+}
+
+.aura-chat-sessions {
+  max-height: 40%;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--ink-06);
+  padding: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.aura-chat-session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+.aura-chat-session:hover {
+  background: var(--ink-06);
+}
+.aura-chat-session.is-active {
+  background: var(--iris-08);
+  color: var(--iris-deep);
+}
+.aura-chat-session-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+.aura-chat-session-delete {
+  border: none;
+  background: transparent;
+  color: var(--ink-55);
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0 0.2rem;
+  flex-shrink: 0;
+}
+.aura-chat-session-delete:hover {
+  color: #bc4a2a;
+}
+
+.aura-chat-progress {
+  padding: 0.3rem 0.75rem;
+}
+.aura-chat-step {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--iris);
+  font-weight: 600;
+  animation: aura-step-fade 0.2s ease;
+}
+@keyframes aura-step-fade {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .aura-chat-body {
@@ -3285,26 +3576,86 @@ textarea.input {
   margin-top: 1rem;
 }
 
-.aura-chat-msg p {
-  margin: 0;
+.aura-chat-bubble {
   padding: 0.55rem 0.75rem;
   border-radius: 0.7rem;
   font-size: 0.83rem;
   line-height: 1.45;
-  white-space: pre-wrap;
   max-width: 90%;
 }
 .aura-chat-msg-user {
   display: flex;
   justify-content: flex-end;
 }
-.aura-chat-msg-user p {
+.aura-chat-msg-user .aura-chat-bubble {
   background: var(--iris);
   color: #fff;
 }
-.aura-chat-msg-assistant p {
+.aura-chat-msg-assistant .aura-chat-bubble {
   background: var(--ink-06);
   color: var(--ink);
+}
+
+/* Markdown content inside a chat bubble — compact spacing, no default
+   browser margins, code/tables scoped to the bubble width. */
+.aura-chat-bubble > :first-child { margin-top: 0; }
+.aura-chat-bubble > :last-child { margin-bottom: 0; }
+.aura-chat-bubble p {
+  margin: 0.4rem 0;
+}
+.aura-chat-bubble ul,
+.aura-chat-bubble ol {
+  margin: 0.4rem 0;
+  padding-left: 1.1rem;
+}
+.aura-chat-bubble li {
+  margin: 0.15rem 0;
+}
+.aura-chat-bubble strong {
+  font-weight: 600;
+}
+.aura-chat-bubble code {
+  font-size: 0.78em;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.3rem;
+}
+.aura-chat-msg-user .aura-chat-bubble code {
+  background: rgba(255, 255, 255, 0.18);
+}
+.aura-chat-bubble pre {
+  margin: 0.4rem 0;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.5rem;
+  background: rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
+}
+.aura-chat-bubble pre code {
+  background: none;
+  padding: 0;
+}
+.aura-chat-bubble a {
+  color: inherit;
+  text-decoration: underline;
+}
+.aura-chat-bubble table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 0.4rem 0;
+  font-size: 0.9em;
+}
+.aura-chat-bubble th,
+.aura-chat-bubble td {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+}
+.aura-chat-bubble blockquote {
+  margin: 0.4rem 0;
+  padding-left: 0.6rem;
+  border-left: 2px solid currentColor;
+  opacity: 0.85;
 }
 
 .aura-chat-draft {
@@ -4237,13 +4588,77 @@ textarea.input {
   flex-shrink: 0;
   max-width: 22rem;
 }
+.action-menu {
+  position: relative;
+  display: inline-flex;
+}
+.action-menu-trigger {
+  padding: 0.5rem 0.65rem;
+}
+.action-menu-list {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  z-index: 20;
+  min-width: 11rem;
+  background: var(--surface);
+  border: 1px solid var(--ink-12);
+  border-radius: var(--r-s);
+  box-shadow: var(--shadow-lift);
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.action-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+.action-menu-item:hover {
+  background: var(--ink-06);
+}
+.action-menu-item.is-danger {
+  color: #dc2626;
+}
+.action-menu-item:disabled {
+  color: var(--ink-38, var(--ink-55));
+  cursor: not-allowed;
+}
 .employer-job-detail-meta > span:not(.chip) {
   color: var(--ink-55);
   font-size: 0.72rem;
 }
+.employer-job-description-toggle {
+  border: none;
+  background: none;
+  padding: 0;
+  margin-left: 0.4rem;
+  color: var(--iris);
+  font-size: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.employer-job-description-toggle:hover {
+  text-decoration: underline;
+}
+.job-drawer-description {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-72);
+  line-height: 1.6;
+}
 .employer-job-facts {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 0.8rem;
   margin-bottom: 1rem;
 }
@@ -4354,15 +4769,52 @@ textarea.input {
 .job-detail-stats-row .job-detail-stat strong {
   font-size: 1.5rem;
 }
-.talent-recall-note .attention-icon {
+.job-pipeline-status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
   margin-bottom: 0.8rem;
 }
-.talent-recall-note h3 {
-  margin-bottom: 0.45rem;
+.job-pipeline-progress-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  color: var(--ink-72);
 }
-.talent-recall-note p {
-  color: var(--ink-55);
-  font-size: 0.76rem;
+.job-pipeline-progress-bar {
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--ink-06);
+  overflow: hidden;
+  margin-bottom: 0.9rem;
+}
+.job-pipeline-progress-bar > div {
+  height: 100%;
+  background: var(--iris);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+.job-pipeline-advance-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.employer-danger-zone {
+  margin-top: 1rem;
+  border-color: rgba(220, 38, 38, 0.25);
+}
+.employer-danger-zone .employer-section-head {
+  align-items: center;
+}
+.employer-danger-zone h2 {
+  color: #dc2626;
+}
+.employer-danger-button {
+  color: #dc2626;
+  border-color: rgba(220, 38, 38, 0.35);
+  flex-shrink: 0;
+}
+.employer-danger-button:hover {
+  background: rgba(220, 38, 38, 0.08);
 }
 
 @media (max-width: 900px) {

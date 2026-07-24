@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { planStatusChipClass } from "@/app/employer/data";
+import { useRouter } from "next/navigation";
 import {
   currentPhaseProgress,
   getJobConfig,
@@ -12,15 +12,12 @@ import {
 } from "@/app/employer/pipelineConfig";
 import {
   employerApi,
-  formatSalary,
   type CandidateRow,
   type EmployerJob,
   type EmployerJobPlan,
   type PhaseDef,
 } from "@/lib/employerApi";
 import KanbanBoard, { type KanbanColumn } from "@/components/kanban";
-import SideDrawer from "@/components/drawer";
-import JobActivityFeed from "@/components/employer/JobActivityFeed";
 
 const PLANNING_EMPTY_CONTENT = (
   <>
@@ -41,8 +38,8 @@ export default function HiringPipelineBoard({
   plans: EmployerJobPlan[];
   candidates?: CandidateRow[];
 }) {
+  const router = useRouter();
   const [phaseOverrides, setPhaseOverrides] = useState<Record<string, string>>({});
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   // Guards deterministic auto-advance so a given job never advances twice out
   // of the same phase within a session (keyed `${jobId}:${fromPhase}`).
@@ -52,7 +49,6 @@ export default function HiringPipelineBoard({
   const phaseLabel: Record<string, string> = Object.fromEntries(
     phases.map((phase) => [phase.id, phase.label]),
   );
-  const hasClosedPhase = phases.some((phase) => phase.id === "closed");
 
   function effectivePhase(job: EmployerJob): string {
     return phaseOverrides[job.id] ?? job.pipeline_phase;
@@ -133,8 +129,6 @@ export default function HiringPipelineBoard({
     return () => window.clearTimeout(timer);
   }, [toast]);
 
-  const selectedJob = jobs.find((job) => job.id === selectedId);
-  const selectedPlan = selectedJob ? plansByJob[selectedJob.id] : undefined;
   const applicants = (job: EmployerJob) => job.stats?.applicant_count ?? 0;
 
   const metricNoun: Record<PhaseProgress["metric"], string> = {
@@ -208,7 +202,7 @@ export default function HiringPipelineBoard({
         items={jobs}
         getItemId={(job) => job.id}
         getItemColumnId={effectivePhase}
-        onCardClick={(job) => setSelectedId(job.id)}
+        onCardClick={(job) => router.push(`/employer/jobs/${job.id}`)}
         onMove={handleMove}
         emptyLabel="No jobs in this phase."
         renderCard={(job) => (
@@ -231,120 +225,6 @@ export default function HiringPipelineBoard({
           </>
         )}
       />
-
-      <SideDrawer open={!!selectedJob} onClose={() => setSelectedId(null)}>
-        {selectedJob && (
-          <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-            <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid var(--ink-06)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
-              <div style={{ minWidth: 0 }}>
-                <p className="eyebrow" style={{ marginBottom: "0.4rem" }}>
-                  {phaseLabel[effectivePhase(selectedJob)] ?? effectivePhase(selectedJob)}
-                </p>
-                <h2 style={{ fontSize: "1.2rem" }}>{selectedJob.title}</h2>
-              </div>
-              <button className="btn btn-ghost" onClick={() => setSelectedId(null)}>
-                ✕ Close
-              </button>
-            </div>
-
-            <div style={{ flex: 1, overflowY: "auto", padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", background: "rgba(26,29,41,0.015)", padding: "1rem", borderRadius: "var(--r-s)", border: "1px solid var(--ink-06)" }}>
-                <div>
-                  <span style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: "var(--ink-55)", marginBottom: "0.25rem" }}>TEAM</span>
-                  <strong style={{ fontSize: "0.85rem" }}>{selectedJob.team ?? "—"}</strong>
-                </div>
-                <div>
-                  <span style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: "var(--ink-55)", marginBottom: "0.25rem" }}>LOCATION</span>
-                  <strong style={{ fontSize: "0.85rem" }}>{selectedJob.location ?? "—"}</strong>
-                </div>
-                <div>
-                  <span style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: "var(--ink-55)", marginBottom: "0.25rem" }}>SALARY</span>
-                  <strong style={{ fontSize: "0.85rem" }}>{formatSalary(selectedJob)}</strong>
-                </div>
-                <div>
-                  <span style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: "var(--ink-55)", marginBottom: "0.25rem" }}>CANDIDATES</span>
-                  <strong style={{ fontSize: "0.85rem" }}>{applicants(selectedJob)}</strong>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", background: "rgba(26,29,41,0.015)", padding: "0.85rem 1rem", borderRadius: "var(--r-s)", border: "1px solid var(--ink-06)" }}>
-                <div>
-                  <span style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: "var(--ink-55)", marginBottom: "0.35rem" }}>WORKFORCE PLAN</span>
-                  {selectedPlan ? (
-                    <span className={`chip ${planStatusChipClass(selectedPlan.status)}`}>
-                      {selectedPlan.status} · {selectedPlan.openings} opening{selectedPlan.openings === 1 ? "" : "s"}
-                    </span>
-                  ) : (
-                    <span className="signal-missing">No plan yet</span>
-                  )}
-                </div>
-                <Link className="table-action" href={`/employer/workforce/${selectedJob.id}`}>
-                  {selectedPlan ? "Open plan →" : "Start planning →"}
-                </Link>
-              </div>
-
-              {(() => {
-                const progress = progressFor(selectedJob);
-                const to = nextPhaseId(effectivePhase(selectedJob), phases);
-                if (!to) return null;
-                const showTarget = progress && !progress.isManualGate;
-                return (
-                  <div style={{ background: "rgba(26,29,41,0.015)", padding: "0.85rem 1rem", borderRadius: "var(--r-s)", border: "1px solid var(--ink-06)" }}>
-                    <span style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: "var(--ink-55)", marginBottom: "0.5rem" }}>ADVANCE PHASE</span>
-                    {showTarget && (
-                      <p style={{ margin: "0 0 0.6rem", fontSize: "0.76rem", color: progress!.met ? "#16a34a" : "var(--ink-55)", fontWeight: 600 }}>
-                        {progress!.currentCount}/{progress!.targetCount} {metricNoun[progress!.metric]}
-                        {progress!.met ? " · target met ✓" : " · target not met yet"}
-                      </p>
-                    )}
-                    <button
-                      className="btn btn-primary"
-                      style={{ width: "100%", justifyContent: "center" }}
-                      onClick={() => handleMove(selectedJob.id, to)}
-                    >
-                      Advance to {phaseLabel[to] ?? to} →
-                    </button>
-                  </div>
-                );
-              })()}
-
-              <div>
-                <p style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--ink-55)", marginBottom: "0.5rem" }}>DESCRIPTION</p>
-                <p style={{ fontSize: "0.85rem", color: "var(--ink-72)", lineHeight: 1.6 }}>{selectedJob.description ?? "No description yet."}</p>
-              </div>
-
-              <div>
-                <p style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--ink-55)", marginBottom: "0.5rem" }}>KEYWORDS</p>
-                <div className="talent-pool-tags">
-                  {selectedJob.keywords.map((keyword) => (
-                    <span key={keyword}>{keyword}</span>
-                  ))}
-                </div>
-              </div>
-
-              <JobActivityFeed job={selectedJob} compact />
-            </div>
-
-            <div style={{ padding: "1rem 1.5rem", borderTop: "1px solid var(--ink-06)", display: "flex", flexWrap: "wrap", gap: "0.6rem" }}>
-              <Link className="btn btn-ghost" href={`/employer/jobs/${selectedJob.id}/applicants`} style={{ flex: 1, justifyContent: "center" }}>
-                View applicants
-              </Link>
-              <Link className="btn btn-primary" href={`/employer/jobs/${selectedJob.id}`} style={{ flex: 1, justifyContent: "center" }}>
-                Full job page →
-              </Link>
-              {hasClosedPhase && effectivePhase(selectedJob) !== "closed" && (
-                <button
-                  className="btn btn-ghost"
-                  style={{ flexBasis: "100%", justifyContent: "center", color: "#dc2626" }}
-                  onClick={() => handleMove(selectedJob.id, "closed")}
-                >
-                  Close this job
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-      </SideDrawer>
     </>
   );
 }

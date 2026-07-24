@@ -29,6 +29,9 @@ type CandidateEmailComposerProps = {
   buttonClassName?: string;
   /** Bias the template list toward a category (e.g. "Offer"). */
   categoryFilter?: string;
+  /** Called after a successful send (e.g. so a parent list can mark this
+   * candidate's offer as sent without waiting for a reload). */
+  onSent?: () => void;
 };
 
 // Maps a selected template to the communication writer's `kind` — the offer
@@ -59,6 +62,7 @@ export default function CandidateEmailComposer({
   buttonLabel = "Email candidate",
   buttonClassName = "btn btn-primary",
   categoryFilter,
+  onSent,
 }: CandidateEmailComposerProps) {
   const [open, setOpen] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -69,9 +73,14 @@ export default function CandidateEmailComposer({
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
 
+  const [sendError, setSendError] = useState<string | null>(null);
+  const isOffer = (categoryFilter ?? "").toLowerCase() === "offer";
+
   // Load the shared template library the first time the composer opens.
+  // Skipped for the offer flow — Aura always drafts offers from real
+  // candidate context, never a template, so there's nothing to preload.
   useEffect(() => {
-    if (!open || templates.length) return;
+    if (!open || templates.length || isOffer) return;
     let cancelled = false;
     api
       .listTemplates("employer")
@@ -91,7 +100,7 @@ export default function CandidateEmailComposer({
     return () => {
       cancelled = true;
     };
-  }, [open, templates.length, categoryFilter]);
+  }, [open, templates.length, categoryFilter, isOffer]);
 
   const selectedTemplate = templates.find((template) => template.id === templateId);
 
@@ -126,9 +135,6 @@ export default function CandidateEmailComposer({
     setSubject(applyPlaceholders(template.subject_template, values));
     setBody(applyPlaceholders(template.body_template, values));
   }
-
-  const [sendError, setSendError] = useState<string | null>(null);
-  const isOffer = (categoryFilter ?? "").toLowerCase() === "offer";
 
   async function generate() {
     setBusy(true);
@@ -186,6 +192,7 @@ export default function CandidateEmailComposer({
         is_offer: isOffer,
       });
       setSent(true);
+      onSent?.();
       window.setTimeout(() => {
         setOpen(false);
         setSent(false);
@@ -227,26 +234,30 @@ export default function CandidateEmailComposer({
             </header>
 
             <div className="candidate-email-fields">
-              <label>
-                <span>Start from a template</span>
-                <select
-                  className="input"
-                  value={templateId}
-                  onChange={(event) => applyTemplate(event.target.value)}
-                >
-                  <option value="">No template — write from scratch</option>
-                  {templates.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.category ? `${template.category} · ` : ""}
-                      {template.purpose}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {selectedTemplate?.recommended_case && (
-                <p className="candidate-email-hint">
-                  {selectedTemplate.recommended_case}
-                </p>
+              {!isOffer && (
+                <>
+                  <label>
+                    <span>Start from a template</span>
+                    <select
+                      className="input"
+                      value={templateId}
+                      onChange={(event) => applyTemplate(event.target.value)}
+                    >
+                      <option value="">No template — write from scratch</option>
+                      {templates.map((template) => (
+                        <option key={template.id} value={template.id}>
+                          {template.category ? `${template.category} · ` : ""}
+                          {template.purpose}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {selectedTemplate?.recommended_case && (
+                    <p className="candidate-email-hint">
+                      {selectedTemplate.recommended_case}
+                    </p>
+                  )}
+                </>
               )}
               <label>
                 <span>Tell Aura what this email should accomplish</span>

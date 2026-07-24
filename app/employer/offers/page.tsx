@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   candidateInitials,
   employerApi,
@@ -26,6 +26,7 @@ function offerKey(jobId: string, candidateUserId: string) {
 }
 
 function OffersHub() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const jobParam = searchParams.get("job");
 
@@ -131,22 +132,12 @@ function OffersHub() {
       .sort((a, b) => b.candidates.length - a.candidates.length);
   }, [sorted, jobsById]);
 
-  async function sendOffer(row: CandidateRow, job: EmployerJob) {
-    const key = offerKey(row.job_id, row.candidate_user_id);
-    setSentKeys((current) => new Set(current).add(key));
-    try {
-      await employerApi.createOffer(job.id, row.candidate_user_id);
-    } catch (err) {
-      console.error("Failed to record offer:", err);
-      setSentKeys((current) => {
-        const next = new Set(current);
-        next.delete(key);
-        return next;
-      });
-      return;
-    }
-    // Advance the candidate's application to the offer stage if the job has
-    // one configured — keeps the pipeline and the offer hub in sync.
+  // Fires after CandidateEmailComposer actually sends the offer — the only
+  // send path now. The composer's backend call already upserts the offers
+  // row; this keeps this page's "Offer sent" status in sync without a
+  // reload, and advances the candidate to the job's offer stage if it has one.
+  async function markOfferSent(row: CandidateRow, job: EmployerJob) {
+    setSentKeys((current) => new Set(current).add(offerKey(row.job_id, row.candidate_user_id)));
     const offerStage = job.job_application_stages?.find(
       (stage) => !stage.is_rejected && /offer/i.test(stage.label),
     );
@@ -285,7 +276,11 @@ function OffersHub() {
                     const key = offerKey(row.job_id, row.candidate_user_id);
                     const offerSent = offeredKeys.has(key) || sentKeys.has(key);
                     return (
-                      <tr key={row.candidate_user_id}>
+                      <tr
+                        key={row.candidate_user_id}
+                        onClick={() => router.push(`/employer/candidates/${row.candidate_user_id}`)}
+                        style={{ cursor: "pointer" }}
+                      >
                         <td>
                           <div className="candidate-cell">
                             <span className="candidate-avatar">
@@ -312,7 +307,7 @@ function OffersHub() {
                             {score != null ? `${Math.round(score)}%` : "—"}
                           </span>
                         </td>
-                        <td>
+                        <td onClick={(event) => event.stopPropagation()}>
                           <div
                             style={{
                               display: "flex",
@@ -321,6 +316,7 @@ function OffersHub() {
                               justifyContent: "flex-end",
                             }}
                           >
+                            {offerSent && <span className="chip chip-tier-high">Offer sent ✓</span>}
                             <CandidateEmailComposer
                               candidateName={row.full_name ?? row.email ?? "Candidate"}
                               role={job.title}
@@ -330,14 +326,8 @@ function OffersHub() {
                               categoryFilter="Offer"
                               buttonLabel="Draft offer"
                               buttonClassName="btn btn-ghost"
+                              onSent={() => markOfferSent(row, job)}
                             />
-                            <button
-                              className="btn btn-primary"
-                              disabled={offerSent}
-                              onClick={() => sendOffer(row, job)}
-                            >
-                              {offerSent ? "Offer sent ✓" : "Send offer"}
-                            </button>
                           </div>
                         </td>
                       </tr>

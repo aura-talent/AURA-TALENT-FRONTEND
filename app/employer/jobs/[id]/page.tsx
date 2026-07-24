@@ -4,7 +4,9 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader } from "@/components/ui/loader";
 import { setBreadcrumbLabel } from "@/components/employer/Breadcrumbs";
+import ActionMenu from "@/components/employer/ActionMenu";
 import JobActivityFeed from "@/components/employer/JobActivityFeed";
+import JobDescription from "@/components/employer/JobDescription";
 import { headhunterInitials, phaseMeta, planStatusChipClass } from "@/app/employer/data";
 import {
   candidateInitials,
@@ -68,18 +70,6 @@ export default function EmployerJobDetailPage({
     if (job) setBreadcrumbLabel(id, job.title);
   }, [id, job]);
 
-  async function closeJob() {
-    if (!job) return;
-    const previous = job.pipeline_phase;
-    setJob({ ...job, pipeline_phase: "closed" });
-    try {
-      await employerApi.updateJob(job.id, { pipeline_phase: "closed" });
-    } catch (err) {
-      console.error("Failed to close job:", err);
-      setJob({ ...job, pipeline_phase: previous });
-    }
-  }
-
   if (notFound)
     return (
       <div className="employer-page">
@@ -128,23 +118,18 @@ export default function EmployerJobDetailPage({
             <span>Created {timeAgo(job.created_at)}</span>
           </div>
           <h1>{job.title}</h1>
-          <p>{job.description}</p>
+          {job.description && <JobDescription text={job.description} />}
         </div>
         <div className="employer-job-detail-actions">
-          <Link className="btn btn-ghost" href={`/employer/jobs/${job.id}/applicants`}>
-            View applicants
-          </Link>
-          <Link className="btn btn-ghost" href={`/employer/jobs/${job.id}/stages`}>
-            Configure stages
-          </Link>
           <Link className="btn btn-primary" href={`/employer/jobs/${job.id}/edit`}>
             Edit job
           </Link>
-          {job.pipeline_phase !== "closed" && (
-            <button className="btn btn-ghost" style={{ color: "#dc2626" }} onClick={closeJob}>
-              Close job
-            </button>
-          )}
+          <ActionMenu
+            items={[
+              { type: "link", href: `/employer/jobs/${job.id}/applicants`, label: "View applicants" },
+              { type: "link", href: `/employer/jobs/${job.id}/stages`, label: "Configure stages" },
+            ]}
+          />
         </div>
       </div>
 
@@ -153,6 +138,8 @@ export default function EmployerJobDetailPage({
         <article className="panel"><span>Employment</span><strong>{job.employment_type ?? "—"}</strong></article>
         <article className="panel"><span>Compensation</span><strong>{formatSalary(job)}</strong></article>
         <article className="panel"><span>Applicants</span><strong>{job.stats?.applicant_count ?? 0}</strong></article>
+        <article className="panel"><span>Interviews</span><strong>{job.stats?.interview_count ?? 0}</strong></article>
+        <article className="panel"><span>Questions</span><strong>{job.interview_questions.length}</strong></article>
       </div>
 
       <div className="employer-job-detail-grid">
@@ -218,15 +205,37 @@ export default function EmployerJobDetailPage({
         </main>
 
         <aside>
-          <section className="panel employer-section">
-            <p className="eyebrow">Hiring activity</p>
-            <div className="job-detail-stats-row">
-              <div className="job-detail-stat"><strong>{job.stats?.applicant_count ?? 0}</strong><span>Candidates</span></div>
-              <div className="job-detail-stat"><strong>{job.stats?.interview_count ?? 0}</strong><span>Interviews</span></div>
-              <div className="job-detail-stat"><strong>{job.interview_questions.length}</strong><span>Questions</span></div>
-            </div>
-          </section>
           <JobActivityFeed job={job} />
+
+          <section className="panel employer-section">
+            <div className="employer-section-head">
+              <div>
+                <p className="eyebrow">Evaluation</p>
+                <h2>Interview</h2>
+              </div>
+              <Link href={`/employer/interviews/${job.id}/customize`}>
+                Customize interview questions →
+              </Link>
+            </div>
+            {job.mock_interview_enabled ? (
+              <>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.8rem" }}>
+                  <span className="chip chip-tier-high">Mock interview on</span>
+                  <span className="chip">{job.interview_questions.length} questions</span>
+                </div>
+                <div className="job-detail-stat">
+                  <strong>{job.stats?.interview_count ?? 0}</strong>
+                  <span>Attempts so far</span>
+                </div>
+              </>
+            ) : (
+              <p style={{ color: "var(--ink-55)", fontSize: "0.82rem" }}>
+                Mock interview is off for this role. Customize and enable it so
+                applicants get an interview step before you review them.
+              </p>
+            )}
+          </section>
+
           <section className="panel employer-section">
             <div className="employer-section-head">
               <div>
@@ -286,11 +295,6 @@ export default function EmployerJobDetailPage({
                 ))}
               </div>
             )}
-          </section>
-          <section className="panel employer-section talent-recall-note">
-            <span className="attention-icon">✦</span>
-            <h3>Why talent recall matters</h3>
-            <p>These candidates already invested in your hiring process. Re-engagement starts with context and a warmer conversation.</p>
           </section>
         </aside>
       </div>

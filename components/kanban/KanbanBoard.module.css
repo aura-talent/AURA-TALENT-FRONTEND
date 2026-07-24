@@ -1,21 +1,18 @@
 .scrollContainer {
-  overflow-x: auto;
   padding-bottom: 1rem;
 }
 
 .board {
   display: flex;
-  gap: 0.75rem;
-  min-width: max-content;
+  flex-direction: column;
+  gap: 0.9rem;
 }
 
 .column {
-  flex: 1 0 250px;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  min-height: 550px;
-  padding: 0.75rem;
+  padding: 0.9rem 1rem 1rem;
   background: rgba(26, 29, 41, 0.015);
   border: 1.5px dashed var(--ink-12);
   border-radius: var(--r-s);
@@ -60,15 +57,15 @@
 }
 
 .cardStack {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 0.6rem;
-  min-height: 450px;
+  min-height: 70px;
 }
 
 .columnEmpty {
-  padding: 1rem 0.5rem;
+  grid-column: 1 / -1;
+  padding: 0.75rem 0.5rem;
   color: var(--ink-40);
   font-size: 0.74rem;
   line-height: 1.5;

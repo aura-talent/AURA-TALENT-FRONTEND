@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader } from "@/components/ui/loader";
 import ReportView from "@/components/ReportView";
+import ActionMenu, { type ActionMenuItem } from "@/components/employer/ActionMenu";
 import BountySubmissionsPanel from "@/components/employer/BountySubmissionsPanel";
 import {
   bountyApi,
@@ -128,22 +129,9 @@ export default function EmployerBountyDetailPage({
           )}
         </div>
         <div className="employer-job-detail-actions">
-          <Link className="btn btn-ghost" href={`/employer/bounties/${bounty.id}/edit`}>
-            Edit
-          </Link>
           {bounty.status === "draft" && (
-            <>
-              <button className="btn btn-primary" disabled={busy} onClick={() => transition("publish")}>
-                Publish
-              </button>
-              <button className="btn btn-ghost" disabled={busy} onClick={handleDelete}>
-                Delete draft
-              </button>
-            </>
-          )}
-          {bounty.status === "published" && (
-            <button className="btn btn-ghost" disabled={busy} onClick={() => transition("close")}>
-              Close bounty
+            <button className="btn btn-primary" disabled={busy} onClick={() => transition("publish")}>
+              Publish
             </button>
           )}
           {bounty.status === "closed" && (
@@ -155,6 +143,17 @@ export default function EmployerBountyDetailPage({
               Announce winners
             </button>
           )}
+          <ActionMenu
+            items={[
+              { type: "link", href: `/employer/bounties/${bounty.id}/edit`, label: "Edit" } satisfies ActionMenuItem,
+              ...(bounty.status === "draft"
+                ? [{ type: "button", label: "Delete draft", onClick: handleDelete, danger: true, disabled: busy } satisfies ActionMenuItem]
+                : []),
+              ...(bounty.status === "published"
+                ? [{ type: "button", label: "Close bounty", onClick: () => transition("close"), disabled: busy } satisfies ActionMenuItem]
+                : []),
+            ]}
+          />
         </div>
       </div>
 

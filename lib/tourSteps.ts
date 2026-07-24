@@ -31,17 +31,32 @@ export const TOUR_PAGES: TourPage[] = [
     ],
   },
   {
-    path: "/jobs",
+    path: "/tracker",
     steps: [
       {
-        selector: "[data-tour='jobs-search']",
-        title: "Search and filter",
-        body: "Narrow down roles by keyword, or toggle to only see the ones Aura recommends for you.",
+        selector: "[data-tour='tracker-quick-actions']",
+        title: "Everything job hunting, one hub",
+        body: "Find jobs, scan portals, evaluate a posting, or compare your evaluated offers side by side — all from here.",
       },
       {
-        selector: "[data-tour='jobs-grid']",
-        title: "Every role, ranked",
-        body: "Each card shows your match score. Click into a role for the full breakdown, or Quick Apply straight from here.",
+        selector: "[data-tour='tracker-toolbar']",
+        title: "Search and filter your pipeline",
+        body: "Find any application by company, role, priority, or tag.",
+      },
+      {
+        selector: "[data-tour='tracker-board']",
+        title: "Your hiring pipeline",
+        body: "Drag applications between stages as they progress. Click any card for the full timeline and notes.",
+      },
+    ],
+  },
+  {
+    path: "/worth",
+    steps: [
+      {
+        selector: "[data-tour='worth-form']",
+        title: "Know your market rate",
+        body: "Aura prices your resume against the live market and your university's real graduate outcomes, so you know what you're worth before you negotiate.",
       },
     ],
   },
@@ -61,6 +76,31 @@ export const TOUR_PAGES: TourPage[] = [
     ],
   },
   {
+    path: "/mock-interview",
+    steps: [
+      {
+        selector: "[data-tour='mock-interview-input']",
+        title: "Practice before it counts",
+        body: "Enter the role you're targeting and Aura runs a live mock interview, reading what you say, how you say it, and your on-camera presence.",
+      },
+    ],
+  },
+  {
+    path: "/jobs",
+    steps: [
+      {
+        selector: "[data-tour='jobs-search']",
+        title: "Search and filter",
+        body: "Narrow down roles by keyword, or toggle to only see the ones Aura recommends for you.",
+      },
+      {
+        selector: "[data-tour='jobs-grid']",
+        title: "Every role, ranked",
+        body: "Each card shows your match score. Click into a role for the full breakdown, or Quick Apply straight from here.",
+      },
+    ],
+  },
+  {
     path: "/evaluate",
     steps: [
       {
@@ -72,21 +112,6 @@ export const TOUR_PAGES: TourPage[] = [
         selector: "[data-tour='evaluate-submit']",
         title: "Score your fit",
         body: "This scores the role against your real résumé and tells you honestly whether it's worth your time.",
-      },
-    ],
-  },
-  {
-    path: "/tracker",
-    steps: [
-      {
-        selector: "[data-tour='tracker-toolbar']",
-        title: "Search and filter your pipeline",
-        body: "Find any application by company, role, priority, or tag.",
-      },
-      {
-        selector: "[data-tour='tracker-board']",
-        title: "Your hiring pipeline",
-        body: "Drag applications between stages as they progress. Click any card for the full timeline and notes.",
       },
     ],
   },

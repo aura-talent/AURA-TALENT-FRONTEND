@@ -204,7 +204,7 @@ export default function WorthPage() {
           </div>
         )}
 
-        <div className="panel worth-form">
+        <div className="panel worth-form" data-tour="worth-form">
           <div className="field" style={{ marginBottom: "1rem" }}>
             <label htmlFor="worth-loc">
               Target market{" "}

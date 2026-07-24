@@ -692,7 +692,7 @@ export default function JobTracker() {
         <div className="page-kicker mb-4">(02) // CAREER_PLANNING</div>
 
         {/* Job Hub — quick-action tiles */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8" data-tour="tracker-quick-actions">
           {[
             { href: "/jobs", label: "Find Jobs", Icon: Search, desc: "Browse open roles for you" },
             { href: "/scan", label: "Scan Jobs", Icon: Radar, desc: "Pull postings from job boards" },

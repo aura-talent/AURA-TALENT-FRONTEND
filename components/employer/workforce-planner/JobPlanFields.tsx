@@ -51,6 +51,7 @@ export default function JobPlanFields({
   pipelineConfig,
   onConfig,
   startNumber = 1,
+  hideAutomation = false,
 }: {
   plan: JobPlanPayload;
   onPlan: (patch: Partial<JobPlanPayload>) => void;
@@ -60,6 +61,8 @@ export default function JobPlanFields({
   onConfig: (config: JobPipelineConfig) => void;
   /** First section number, so a host can offset the numbering. */
   startNumber?: number;
+  /** Hide the automation switch when the host already shows it elsewhere (job-creation step 1). */
+  hideAutomation?: boolean;
 }) {
   const num = (offset: number) => String(startNumber + offset).padStart(2, "0");
 
@@ -281,11 +284,20 @@ export default function JobPlanFields({
       <section className={`panel employer-section ${jobEditorStyles.section}`}>
         <SectionHeader
           number={num(6)}
-          title="Automation & targets"
-          description="Choose whether Aura advances this job automatically or waits for you, and set the target that lets it leave each phase."
+          title={hideAutomation ? "Phase targets" : "Automation & targets"}
+          description={
+            hideAutomation
+              ? "Set the target that lets this job leave each phase — automation level is set above, in step 1."
+              : "Choose whether Aura advances this job automatically or waits for you, and set the target that lets it leave each phase."
+          }
         />
         {pipelineConfig ? (
-          <PipelineTargetsSection phases={phases} config={pipelineConfig} onChange={onConfig} />
+          <PipelineTargetsSection
+            phases={phases}
+            config={pipelineConfig}
+            onChange={onConfig}
+            showAutomation={!hideAutomation}
+          />
         ) : (
           <p className={styles.statusHint}>Loading pipeline targets…</p>
         )}

@@ -43,54 +43,60 @@ export default function ScanPage() {
   const root = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const [keywords, setKeywords] = useState("");
-  const [locationInput, setLocationInput] = useState("");
+  const [locationInput, setLocationInput] = useState(() => {
+    if (typeof window === "undefined") return "";
+    const saved = localStorage.getItem("aura_location_filter");
+    if (saved !== null) return saved;
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      const guessed = guessCountry();
+      return guessed ? `${guessed}, Remote` : "Remote";
+    }
+    return "";
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [scanErrors, setScanErrors] = useState<string[]>([]);
   const [jobs, setJobs] = useState<JobPosting[] | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem("aura_location_filter");
-    if (saved !== null) {
-      setLocationInput(saved);
-    } else {
-      if (typeof navigator !== "undefined" && navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            try {
-              const { latitude, longitude } = position.coords;
-              const res = await fetch(
-                `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
-              );
-              if (res.ok) {
-                const data = await res.json();
-                const city = data.city || data.locality || data.principalSubdivision || "";
-                if (city) {
-                  const val = `${city}, Remote`;
-                  setLocationInput(val);
-                  localStorage.setItem("aura_location_filter", val);
-                  return;
-                }
-              }
-            } catch (e) {
-              console.error("Geocoding lookup failed:", e);
+    // The initial value already covers "saved in localStorage" and "no
+    // geolocation available" synchronously (see useState initializer above);
+    // this effect only handles the async geolocation lookup.
+    if (typeof window !== "undefined" && localStorage.getItem("aura_location_filter") !== null) {
+      return;
+    }
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const res = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            const city = data.city || data.locality || data.principalSubdivision || "";
+            if (city) {
+              const val = `${city}, Remote`;
+              setLocationInput(val);
+              localStorage.setItem("aura_location_filter", val);
+              return;
             }
-            const guessed = guessCountry();
-            const fallback = guessed ? `${guessed}, Remote` : "Remote";
-            setLocationInput(fallback);
-          },
-          (err) => {
-            console.warn("Geolocation permission denied or failed:", err);
-            const guessed = guessCountry();
-            const fallback = guessed ? `${guessed}, Remote` : "Remote";
-            setLocationInput(fallback);
           }
-        );
-      } else {
+        } catch (e) {
+          console.error("Geocoding lookup failed:", e);
+        }
+        const guessed = guessCountry();
+        const fallback = guessed ? `${guessed}, Remote` : "Remote";
+        setLocationInput(fallback);
+      },
+      (err) => {
+        console.warn("Geolocation permission denied or failed:", err);
         const guessed = guessCountry();
         const fallback = guessed ? `${guessed}, Remote` : "Remote";
         setLocationInput(fallback);
       }
-    }
+    );
   }, []);
 
   const handleLocationChange = (val: string) => {
@@ -131,6 +137,7 @@ export default function ScanPage() {
 
   async function run() {
     setError("");
+    setScanErrors([]);
     setBusy(true);
     setJobs(null);
     try {
@@ -141,6 +148,10 @@ export default function ScanPage() {
         ...(locs.length ? { location_keywords: locs } : {}),
       });
       setJobs(r.jobs);
+      // The backend returns 200 with an empty job list even when it never
+      // actually scanned anything (e.g. misconfigured portals.yml) — surface
+      // those errors instead of letting them masquerade as "no roles found".
+      if (r.errors?.length) setScanErrors(r.errors);
     } catch {
       setError("Scan failed — is the backend running?");
     } finally {
@@ -213,11 +224,26 @@ export default function ScanPage() {
                 {jobs.length === 0 ? "0 ROLES_FOUND" : `${jobs.length} ROLES_FOUND`}
               </span>
             </div>
-            {jobs.length === 0 && (
+            {jobs.length === 0 && scanErrors.length === 0 && (
               <p style={{ marginBottom: "1rem", color: "var(--ink-72)" }}>
                 No matching roles right now — try broader keywords or check back
                 in a few days.
               </p>
+            )}
+            {/* Per-company skip/404 noise is normal even on a successful scan —
+                only worth surfacing as an error when it explains a genuinely
+                empty result, otherwise it'd alarm users over 30+ real hits. */}
+            {jobs.length === 0 && scanErrors.length > 0 && (
+              <div className="notice notice-error" style={{ marginBottom: "1rem" }}>
+                <p style={{ margin: 0, fontWeight: 600 }}>
+                  The scan didn&apos;t run correctly — this isn&apos;t &quot;no roles found&quot;.
+                </p>
+                <ul style={{ margin: "0.4rem 0 0", paddingLeft: "1.2rem" }}>
+                  {scanErrors.map((e, i) => (
+                    <li key={i}>{e}</li>
+                  ))}
+                </ul>
+              </div>
             )}
             <div>
               {jobs.map((j) => (

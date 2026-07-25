@@ -45,7 +45,6 @@ function EvaluateInner() {
   const [mode, setMode] = useState<"url" | "text">("url");
   const [url, setUrl] = useState(params.get("url") ?? "");
   const [text, setText] = useState("");
-  const [hasResume, setHasResume] = useState<boolean | null>(null);
   const [activeTab, setActiveTab] = useState<"fit" | "report" | "insights">("fit");
 
   const {
@@ -70,28 +69,27 @@ function EvaluateInner() {
   const [keywordsCovered, setKeywordsCovered] = useState<string[]>([]);
   const [pdfDownloading, setPdfDownloading] = useState(false);
 
-  const [windowWidth, setWindowWidth] = useState(1200);
+  const [windowWidth, setWindowWidth] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth : 1200
+  );
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setWindowWidth(window.innerWidth);
-      const handleResize = () => setWindowWidth(window.innerWidth);
-      window.addEventListener("resize", handleResize);
-      return () => window.removeEventListener("resize", handleResize);
-    }
+    if (typeof window === "undefined") return;
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const isDesktop = windowWidth > 960;
 
+  const [resumeCheck, setResumeCheck] = useState<boolean | null>(null);
+
   useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        setHasResume(false);
-      } else {
-        api.getResume().then(() => setHasResume(true)).catch(() => setHasResume(false));
-      }
-    }
+    if (authLoading || !user) return;
+    api.getResume().then(() => setResumeCheck(true)).catch(() => setResumeCheck(false));
   }, [user, authLoading]);
+
+  const hasResumeComputed = authLoading ? null : !user ? false : resumeCheck;
 
   function run() {
     const input = mode === "url" ? { jd_url: url.trim() } : { jd_text: text };
@@ -624,7 +622,7 @@ function EvaluateInner() {
           <p>Paste a job link or the description itself. Aura scores your fit and writes the full report — about a minute.</p>
         </div>
 
-        {hasResume === false && (
+        {hasResumeComputed === false && (
           <div className="notice notice-warn">
             No resume on file yet — <Link href="/onboarding" style={{ fontWeight: 600 }}>add yours first</Link> so Aura has something to match against.
           </div>
@@ -669,7 +667,7 @@ function EvaluateInner() {
           <button
             className="btn btn-primary"
             data-tour="evaluate-submit"
-            disabled={hasResume === false || (mode === "url" ? !url.trim().startsWith("http") : text.trim().length < 200)}
+            disabled={hasResumeComputed === false || (mode === "url" ? !url.trim().startsWith("http") : text.trim().length < 200)}
             onClick={run}
           >
             Score this job

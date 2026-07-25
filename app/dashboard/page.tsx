@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
-import { api, type Application, type JobPosting } from "@/lib/api";
+import { api, ApiError, type Application, type JobPosting } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import CareerPathNavigator from "@/components/CareerPathNavigator";
@@ -140,7 +140,15 @@ export default function Dashboard() {
     api
       .listApplications()
       .then(setApps)
-      .catch(() => setError("Could not load your tracker data."));
+      .catch((err) => {
+        // A brand-new account with zero applications yet is not an error —
+        // resolve to an empty list either way so the page doesn't get stuck
+        // on the loading gate (`apps === null`) forever.
+        setApps([]);
+        if (!(err instanceof ApiError && err.status === 404)) {
+          setError("Could not load your tracker data.");
+        }
+      });
   }, [authLoading, user]);
 
   useEffect(() => {

@@ -216,7 +216,15 @@ export interface Application {
   date: string;
   company: string;
   role: string;
+  company_name?: string;
+  job_title?: string;
   score: number;
+  rounds?: {
+    name?: string;
+    scheduled_at?: string;
+    interviewer?: string;
+  }[];
+
   /** Raw LLM score breakdown: match_cv, alignment, comp, culture, red_flags, global_score (1-5 scale) */
   scores?: {
     match_cv?: number;
@@ -416,6 +424,52 @@ export interface CareerMapOut {
   generated_at: string;
 }
 
+/* ── Work-animal module ── */
+
+export interface AnimalTraits {
+  social: number;
+  motion: number;
+  visibility: number;
+  environment: number;
+  autonomy: number;
+  north_star: number;
+}
+
+export interface AnimalCard {
+  id: string;
+  company: string;
+  title: string;
+  url: string;
+  location: string;
+  source: string;
+  traits: AnimalTraits;
+}
+
+export interface AnimalCopy {
+  headline: string;
+  why: string;
+  play: string;
+}
+
+export interface AnimalState {
+  animal: string;
+  confidence: number;
+  temperament: string;
+  alignment: number | null;
+  vector: AnimalTraits;
+  swipe_count: number;
+  history: { animal: string; at: string }[];
+  copy: AnimalCopy | null;
+  is_new_animal: boolean;
+}
+
+export interface AnimalSwipePayload {
+  card: AnimalCard;
+  direction: "left" | "right";
+  decision_ms: number;
+  direction_changes: number;
+}
+
 /* ── Endpoints ── */
 
 export const api = {
@@ -455,7 +509,15 @@ export const api = {
       node_id,
     }),
 
-  selfWorth: (input: { location?: string; currency?: string } = {}) =>
+  selfWorth: (
+    input: {
+      location?: string;
+      currency?: string;
+      university_id?: string;
+      degree_field?: string;
+      country?: string;
+    } = {}
+  ) =>
     postJson<SelfWorthEstimate>("salary/self", {
       user_id: getUserId(),
       ...input,
@@ -583,6 +645,23 @@ export const api = {
         body: JSON.stringify({ status, notes }),
       },
     ),
+
+  animalDeck: (count = 15) =>
+    postJson<{ cards: AnimalCard[] }>("animal/deck", {
+      user_id: getUserId(),
+      count,
+    }),
+
+  animalSwipes: (swipes: AnimalSwipePayload[]) =>
+    postJson<AnimalState>("animal/swipes", {
+      user_id: getUserId(),
+      swipes,
+    }),
+
+  animalState: () => request<AnimalState>(`animal/${getUserId()}`),
+
+  animalShortlist: () =>
+    request<{ cards: AnimalCard[] }>(`animal/${getUserId()}/shortlist`),
 
   listTemplates: (role?: string) =>
     request<any[]>(role ? `templates?role=${encodeURIComponent(role)}` : "templates"),

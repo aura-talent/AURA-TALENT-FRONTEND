@@ -15,8 +15,14 @@ export default function AuthCallback() {
         if (role === "employer") {
           router.push("/employer");
         } else {
-          // Candidates go to dashboard; if no role yet, default to candidate flow
-          router.push("/dashboard");
+          // New candidate signups (flagged on /login before the OAuth
+          // redirect) go to onboarding to upload a resume first — this is
+          // the only place that redirect actually happens, since OAuth
+          // never returns to /login itself.
+          const isNewSignup =
+            typeof window !== "undefined" &&
+            localStorage.getItem("aura_new_candidate") === "1";
+          router.push(isNewSignup ? "/onboarding" : "/dashboard");
         }
       } else {
         router.push("/login");

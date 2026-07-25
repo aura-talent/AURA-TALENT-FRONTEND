@@ -61,104 +61,107 @@ export default function BountyMarketplacePage() {
   const visible = tagFilter ? bounties.filter((b) => b.tags.includes(tagFilter)) : bounties;
 
   return (
-    <div className="container">
-      <div className="employer-page-head">
-        <div>
-          <p className="eyebrow">Bounty marketplace</p>
-          <h1>Bounties</h1>
-          <p>Real paid work from real companies. Win cash, or build a public track record.</p>
+    <div className="container" style={{ minHeight: "calc(100vh - 220px)", display: "flex", flexDirection: "column", paddingBottom: "4rem" }}>
+      <div style={{ flex: 1 }}>
+        <div className="employer-page-head">
+          <div>
+            <p className="eyebrow">Bounty marketplace</p>
+            <h1>Bounties</h1>
+            <p>Real paid work from real companies. Win cash, or build a public track record.</p>
+          </div>
         </div>
-      </div>
 
-      {/* Two Independent Tabs */}
-      <div
-        style={{
-          display: "flex",
-          gap: "0.5rem",
-          borderBottom: "1px solid var(--ink-10)",
-          marginBottom: "1.75rem",
-          whiteSpace: "nowrap",
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => setActiveTab("recent")}
+        {/* Two Independent Tabs */}
+        <div
+          data-tour="bounties-tabs"
           style={{
-            padding: "0.65rem 1.25rem",
-            border: "none",
-            borderBottom: activeTab === "recent" ? "2px solid var(--iris)" : "2px solid transparent",
-            background: activeTab === "recent" ? "var(--iris-08)" : "transparent",
-            color: activeTab === "recent" ? "var(--iris)" : "var(--ink-70)",
-            fontFamily: "var(--font-space), monospace",
-            fontSize: "0.85rem",
-            fontWeight: 700,
-            cursor: "pointer",
-            borderRadius: "4px 4px 0 0",
-            transition: "all 0.2s ease",
+            display: "flex",
+            gap: "0.5rem",
+            borderBottom: "1px solid var(--ink-10)",
+            marginBottom: "1.75rem",
+            whiteSpace: "nowrap",
           }}
         >
-          Recent Bounties
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("submitted")}
-          style={{
-            padding: "0.65rem 1.25rem",
-            border: "none",
-            borderBottom: activeTab === "submitted" ? "2px solid var(--iris)" : "2px solid transparent",
-            background: activeTab === "submitted" ? "var(--iris-08)" : "transparent",
-            color: activeTab === "submitted" ? "var(--iris)" : "var(--ink-70)",
-            fontFamily: "var(--font-space), monospace",
-            fontSize: "0.85rem",
-            fontWeight: 700,
-            cursor: "pointer",
-            borderRadius: "4px 4px 0 0",
-            transition: "all 0.2s ease",
-          }}
-        >
-          Submitted Bounties {submissions.length > 0 ? `(${submissions.length})` : ""}
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab("recent")}
+            style={{
+              padding: "0.65rem 1.25rem",
+              border: "none",
+              borderBottom: activeTab === "recent" ? "2px solid var(--iris)" : "2px solid transparent",
+              background: activeTab === "recent" ? "var(--iris-08)" : "transparent",
+              color: activeTab === "recent" ? "var(--iris)" : "var(--ink-70)",
+              fontFamily: "var(--font-space), monospace",
+              fontSize: "0.85rem",
+              fontWeight: 700,
+              cursor: "pointer",
+              borderRadius: "4px 4px 0 0",
+              transition: "all 0.2s ease",
+            }}
+          >
+            Recent Bounties
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("submitted")}
+            style={{
+              padding: "0.65rem 1.25rem",
+              border: "none",
+              borderBottom: activeTab === "submitted" ? "2px solid var(--iris)" : "2px solid transparent",
+              background: activeTab === "submitted" ? "var(--iris-08)" : "transparent",
+              color: activeTab === "submitted" ? "var(--iris)" : "var(--ink-70)",
+              fontFamily: "var(--font-space), monospace",
+              fontSize: "0.85rem",
+              fontWeight: 700,
+              cursor: "pointer",
+              borderRadius: "4px 4px 0 0",
+              transition: "all 0.2s ease",
+            }}
+          >
+            Submitted Bounties {submissions.length > 0 ? `(${submissions.length})` : ""}
+          </button>
+        </div>
 
-      {/* Tab 1: Recent Bounties */}
-      {activeTab === "recent" && (
-        <>
-          {tags.length > 0 && (
-            <div className="bounty-filter-bar">
-              <button
-                className={`bounty-filter-pill ${tagFilter === null ? "active" : ""}`}
-                onClick={() => setTagFilter(null)}
-              >
-                All
-              </button>
-              {tags.map((tag) => (
+        {/* Tab 1: Recent Bounties */}
+        {activeTab === "recent" && (
+          <div data-tour="bounties-list">
+            {tags.length > 0 && (
+              <div className="bounty-filter-bar" style={{ marginBottom: "1.25rem" }}>
                 <button
-                  key={tag}
-                  className={`bounty-filter-pill ${tagFilter === tag ? "active" : ""}`}
-                  onClick={() => setTagFilter(tag)}
+                  className={`bounty-filter-pill ${tagFilter === null ? "active" : ""}`}
+                  onClick={() => setTagFilter(null)}
                 >
-                  {tag}
+                  All
                 </button>
-              ))}
-            </div>
-          )}
+                {tags.map((tag) => (
+                  <button
+                    key={tag}
+                    className={`bounty-filter-pill ${tagFilter === tag ? "active" : ""}`}
+                    onClick={() => setTagFilter(tag)}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            )}
 
-          {loading ? (
-            <Loader label="Loading bounties…" />
-          ) : visible.length === 0 ? (
-            <div className="empty-state panel">
-              <h3>No open bounties right now</h3>
-              <p>Check back soon — new bounties are published regularly.</p>
-            </div>
-          ) : (
-            <div className="panel bounty-list">
-              {visible.map((bounty) => (
-                <BountyCard key={bounty.id} bounty={bounty} />
-              ))}
-            </div>
-          )}
-        </>
-      )}
+            {loading ? (
+              <Loader label="Loading bounties…" />
+            ) : visible.length === 0 ? (
+              <div className="empty-state panel">
+                <h3>No open bounties right now</h3>
+                <p>Check back soon — new bounties are published regularly.</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                {visible.map((bounty) => (
+                  <BountyCard key={bounty.id} bounty={bounty} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
 
       {/* Tab 2: Submitted Bounties */}
       {activeTab === "submitted" && (
@@ -233,7 +236,9 @@ export default function BountyMarketplacePage() {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }
+
 

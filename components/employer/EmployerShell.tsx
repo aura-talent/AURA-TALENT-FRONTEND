@@ -8,9 +8,7 @@ import Breadcrumbs from "@/components/employer/Breadcrumbs";
 import AuraChatPanel from "@/components/employer/chat/AuraChatPanel";
 import { employerApi } from "@/lib/employerApi";
 
-type NotificationCounts = { offers: number; applicants: number };
-
-type NavLink = { href: string; label: string; icon?: string; badgeKey?: keyof NotificationCounts };
+type NavLink = { href: string; label: string; icon?: string };
 type NavModule = { label: string; icon?: string; items: NavLink[] };
 type NavSection =
   | { id: string; label: string; icon: string; href: string }
@@ -37,8 +35,8 @@ const NAV: NavSection[] = [
         label: "Action",
         icon: "zap",
         items: [
-          { href: "/employer/applicants", label: "Applicants", icon: "people", badgeKey: "applicants" },
-          { href: "/employer/offers", label: "Offers", icon: "bolt", badgeKey: "offers" },
+          { href: "/employer/applicants", label: "Applicants", icon: "people" },
+          { href: "/employer/offers", label: "Offers", icon: "bolt" },
         ],
       },
     ],

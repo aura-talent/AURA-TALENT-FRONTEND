@@ -8,7 +8,9 @@ import Breadcrumbs from "@/components/employer/Breadcrumbs";
 import AuraChatPanel from "@/components/employer/chat/AuraChatPanel";
 import { employerApi } from "@/lib/employerApi";
 
-type NavLink = { href: string; label: string; icon?: string };
+type NotificationCounts = { offers: number; applicants: number };
+
+type NavLink = { href: string; label: string; icon?: string; badgeKey?: keyof NotificationCounts };
 type NavModule = { label: string; icon?: string; items: NavLink[] };
 type NavSection =
   | { id: string; label: string; icon: string; href: string }
@@ -35,8 +37,8 @@ const NAV: NavSection[] = [
         label: "Action",
         icon: "zap",
         items: [
-          { href: "/employer/applicants", label: "Applicants", icon: "people" },
-          { href: "/employer/offers", label: "Offers", icon: "bolt" },
+          { href: "/employer/applicants", label: "Applicants", icon: "people", badgeKey: "applicants" },
+          { href: "/employer/offers", label: "Offers", icon: "bolt", badgeKey: "offers" },
         ],
       },
     ],
@@ -179,7 +181,15 @@ function NavIcon({ name, size = 18, className = "" }: { name: string; size?: num
 }
 
 // Collapsible Module (e.g. Planning, Action)
-function ModuleDropdown({ mod, pathname }: { mod: NavModule; pathname: string }) {
+function ModuleDropdown({
+  mod,
+  pathname,
+  counts,
+}: {
+  mod: NavModule;
+  pathname: string;
+  counts: NotificationCounts | null;
+}) {
   const isModuleActive = mod.items.some((item) => isLinkActive(pathname, item.href));
   const [open, setOpen] = useState(true);
 
@@ -215,6 +225,7 @@ function ModuleDropdown({ mod, pathname }: { mod: NavModule; pathname: string })
         <div className="nav-module-links">
           {mod.items.map((item) => {
             const active = isLinkActive(pathname, item.href);
+            const badgeCount = item.badgeKey ? counts?.[item.badgeKey] ?? 0 : 0;
             return (
               <Link
                 key={item.href}
@@ -225,6 +236,12 @@ function ModuleDropdown({ mod, pathname }: { mod: NavModule; pathname: string })
                 {active && <span className="nav-active-pill" aria-hidden="true" />}
                 {item.icon && <NavIcon name={item.icon} size={15} />}
                 <span>{item.label}</span>
+                {badgeCount > 0 && (
+                  <span
+                    className="employer-nav-badge"
+                    title={`${badgeCount} item${badgeCount === 1 ? "" : "s"} need attention`}
+                  />
+                )}
               </Link>
             );
           })}
@@ -335,11 +352,10 @@ export default function EmployerShell({ children }: { children: React.ReactNode 
                   <NavIcon name={section.icon} size={15} />
                   <span>{section.label}</span>
                 </div>
-
                 {"modules" in section ? (
                   <div className="nav-section-modules nav-dotted-flow">
                     {section.modules.map((mod) => (
-                      <ModuleDropdown key={mod.label} mod={mod} pathname={pathname} />
+                      <ModuleDropdown key={mod.label} mod={mod} pathname={pathname} counts={counts} />
                     ))}
                   </div>
                 ) : (

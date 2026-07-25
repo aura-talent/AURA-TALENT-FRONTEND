@@ -2447,7 +2447,7 @@ textarea.input {
   margin-top: auto;
   padding-top: 1rem;
   border-top: 1px solid var(--ink-06);
-
+}
 /* Legacy icon class kept for any references still using it */
 .employer-icon {
   width: 18px;
@@ -2489,6 +2489,17 @@ textarea.input {
 .employer-company-mark {
   width: 34px;
   height: 34px;
+}
+/* Nav badge dot — used by ModuleDropdown's Applicants/Offers items to flag
+   open items needing attention (notification counts, see EmployerShell.tsx). */
+.employer-nav-badge {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 0.4rem;
+  border-radius: 50%;
+  background: #e0433a;
+  vertical-align: middle;
 }
 
 /* ── Content area ─────────────────────────────────────────── */

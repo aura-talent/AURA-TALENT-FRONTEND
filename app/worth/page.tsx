@@ -6,7 +6,7 @@ import gsap from "gsap";
 import {
   api,
   ApiError,
-  type SelfWorthEstimate,
+  type FairPayResult,
   type EmployabilityDataset,
   type EmployabilityUniversity,
   type EmployabilityDegree,
@@ -16,26 +16,22 @@ import SalaryBandBar from "@/components/insights/SalaryBandBar";
 import { rateColor } from "@/components/insights/PercentDial";
 import WorldPicker from "@/components/worth/WorldPicker";
 import UniversityTiles from "@/components/worth/UniversityTiles";
+import BreakdownReceipt from "@/components/worth/BreakdownReceipt";
+import TrajectoryChart from "@/components/worth/TrajectoryChart";
+import AlternateRoles from "@/components/worth/AlternateRoles";
 
-const PERIOD_SUFFIX: Record<SelfWorthEstimate["period"], string> = {
-  year: "/yr",
-  month: "/mo",
-  hour: "/hr",
-};
-
-const CONF_LABEL: Record<SelfWorthEstimate["confidence"], string> = {
+const CONF_LABEL: Record<FairPayResult["confidence"]["level"], string> = {
   high: "HIGH_CONFIDENCE",
   medium: "MEDIUM_CONFIDENCE",
-  low: "LOW_CONFIDENCE // DATA_THIN",
+  low: "LOW_CONFIDENCE",
 };
+
+const LIVE_COUNTRIES = new Set(["MY", "SG"]);
 
 function fmt(n: number, currency: string): string {
   try {
     return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency,
-      notation: "compact",
-      maximumFractionDigits: 1,
+      style: "currency", currency, notation: "compact", maximumFractionDigits: 1,
     }).format(n);
   } catch {
     return `${currency} ${Math.round(n).toLocaleString()}`;
@@ -46,22 +42,34 @@ export default function WorthPage() {
   const root = useRef<HTMLDivElement>(null);
   const { user, loading: authLoading } = useAuth();
 
-  const [location, setLocation] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [noResume, setNoResume] = useState(false);
-  const [result, setResult] = useState<SelfWorthEstimate | null>(null);
+  const [result, setResult] = useState<FairPayResult | null>(null);
   const [dataset, setDataset] = useState<EmployabilityDataset | null>(null);
+
   const [country, setCountry] = useState<string | null>(null);
+  const [countryName, setCountryName] = useState("");
+  const [roleId, setRoleId] = useState("");
+  const [years, setYears] = useState<number>(0);
   const [uniId, setUniId] = useState("");
   const [degreeField, setDegreeField] = useState("");
+  const [cityRefine, setCityRefine] = useState("");
+  const [headline, setHeadline] = useState("");
+
+  const isLive = country !== null && LIVE_COUNTRIES.has(country);
 
   useEffect(() => {
-    const saved = localStorage.getItem("aura_location_filter");
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage is browser-only; standard mount-time init
-    if (saved) setLocation(saved);
-    // university graduate-outcomes dataset (curated, cited, no LLM); best-effort
     api.employabilityDataset().then(setDataset).catch(() => {});
+    // prefill role + years from the parsed resume; best-effort
+    api
+      .getResume()
+      .then((res) => {
+        const p = (res.profile ?? {}) as { headline?: string; years_of_experience?: number };
+        if (typeof p.years_of_experience === "number") setYears(p.years_of_experience);
+        if (p.headline) setHeadline(p.headline);
+      })
+      .catch(() => {});
   }, []);
 
   const selectedUni = useMemo(
@@ -73,60 +81,65 @@ export default function WorthPage() {
     [selectedUni, degreeField]
   );
 
-  /** University grounding, derived purely from the curated dataset (no API). */
-  const grounding = useMemo(() => {
-    if (!dataset || !selectedUni) return null;
-    const rate = selectedDegree?.employment_rate_pct ?? selectedUni.employment_rate_pct ?? null;
-    const band = selectedDegree?.salary ?? null;
-    let rank: number | null = null;
-    let total = 0;
-    let leaderboard: { name: string; rate: number; you: boolean }[] = [];
-    if (selectedDegree) {
-      const peers = dataset.universities
-        .map((u) => ({ u, d: u.degrees.find((d) => d.field === selectedDegree.field) }))
-        .filter(
-          (x): x is { u: EmployabilityUniversity; d: EmployabilityDegree } =>
-            !!x.d && x.d.employment_rate_pct !== null
-        )
-        .sort((a, b) => (b.d.employment_rate_pct as number) - (a.d.employment_rate_pct as number));
-      total = peers.length;
-      const idx = peers.findIndex((p) => p.u.id === selectedUni.id);
-      rank = idx >= 0 ? idx + 1 : null;
-      leaderboard = peers.slice(0, 3).map((p) => ({
+  /** naive client-side guess: longest role title contained in the headline.
+   * The server re-matches with aliases when role_id is not sent. Runs once
+   * both the roles dataset and the resume headline have arrived (either can
+   * land first), so it can't be starved by the mount-time race. */
+  useEffect(() => {
+    if (!dataset || !headline) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- data-driven prefill: fires once both the async dataset and resume headline have resolved, not on every render
+    setRoleId((current) => {
+      if (current) return current;
+      const h = headline.toLowerCase();
+      const hit = dataset.roles
+        .filter((r) => h.includes(r.title.toLowerCase()))
+        .sort((a, b) => b.title.length - a.title.length)[0];
+      return hit?.id ?? "";
+    });
+  }, [dataset, headline]);
+
+  /** Rank leaderboard vs peers offering the same degree (dataset-only). */
+  const leaderboard = useMemo(() => {
+    if (!dataset || !selectedUni || !selectedDegree) return null;
+    const peers = dataset.universities
+      .map((u) => ({ u, d: u.degrees.find((d) => d.field === selectedDegree.field) }))
+      .filter(
+        (x): x is { u: EmployabilityUniversity; d: EmployabilityDegree } =>
+          !!x.d && x.d.employment_rate_pct !== null
+      )
+      .sort((a, b) => (b.d.employment_rate_pct as number) - (a.d.employment_rate_pct as number));
+    const idx = peers.findIndex((p) => p.u.id === selectedUni.id);
+    return {
+      rank: idx >= 0 ? idx + 1 : null,
+      total: peers.length,
+      field: selectedDegree.field,
+      rows: peers.slice(0, 3).map((p) => ({
         name: p.u.name,
         rate: p.d.employment_rate_pct as number,
         you: p.u.id === selectedUni.id,
-      }));
-    }
-    const ids = new Set<string>([
-      ...(selectedDegree?.source_ids ?? []),
-      ...(band?.source_ids ?? []),
-      ...selectedUni.source_ids,
-    ]);
-    const sources = dataset.sources.filter((s) => ids.has(s.id));
-    return { uni: selectedUni, field: selectedDegree?.field ?? null, rate, band, rank, total, leaderboard, sources };
+      })),
+    };
   }, [dataset, selectedUni, selectedDegree]);
 
   async function run() {
+    if (!country) return;
     setError("");
     setNoResume(false);
     setBusy(true);
     setResult(null);
     try {
-      const r = await api.selfWorth({
-        ...(location ? { location } : {}),
+      const r = await api.fairPay({
+        country,
+        years,
+        ...(roleId ? { role_id: roleId } : {}),
         ...(uniId ? { university_id: uniId } : {}),
         ...(degreeField ? { degree_field: degreeField } : {}),
-        ...(country ? { country } : {}),
+        ...(cityRefine ? { city_refine: cityRefine } : {}),
       });
       setResult(r);
     } catch (e) {
-      // 404 = no résumé for this user; guide to onboarding rather than alarm
-      if (e instanceof ApiError && e.status === 404) {
-        setNoResume(true);
-      } else {
-        setError("Could not estimate — please try again, or check the backend is running.");
-      }
+      if (e instanceof ApiError && e.status === 404) setNoResume(true);
+      else setError("Could not estimate — please try again, or check the backend is running.");
     } finally {
       setBusy(false);
     }
@@ -147,20 +160,15 @@ export default function WorthPage() {
     return () => mm.revert();
   }, []);
 
-  /* result reveal: band sweeps, deltas file in */
+  /* result reveal */
   useEffect(() => {
     if (!result) return;
     const mm = gsap.matchMedia(root);
     mm.add("(prefers-reduced-motion: no-preference)", () => {
       const q = gsap.utils.selector(root);
-      const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.6 } });
-      tl.from(q(".worth-result > *"), { y: 20, autoAlpha: 0, stagger: 0.1 })
-        .from(
-          q(".worth-band-fill"),
-          { scaleX: 0, transformOrigin: "left center", duration: 0.9, ease: "power3.inOut" },
-          "-=0.3"
-        )
-        .from(q(".worth-delta"), { x: -16, autoAlpha: 0, stagger: 0.07 }, "-=0.4");
+      gsap.timeline({ defaults: { ease: "power3.out", duration: 0.6 } })
+        .from(q(".worth-result > *"), { y: 20, autoAlpha: 0, stagger: 0.1 })
+        .from(q(".worth-receipt-row"), { x: -14, autoAlpha: 0, stagger: 0.06 }, "-=0.35");
     });
     return () => mm.revert();
   }, [result]);
@@ -182,14 +190,14 @@ export default function WorthPage() {
 
   return (
     <div className="app-sheet" ref={root}>
-      <div className="container" style={{ maxWidth: 680, paddingBottom: "4rem" }}>
+      <div className="container" style={{ maxWidth: 760, paddingBottom: "4rem" }}>
         <div className="page-head">
           <div className="page-kicker">(01) // FAIR_PAY_ENGINE</div>
           <h1>What you&apos;re worth</h1>
           <p>
-            Aura prices your resume against the live market and grounds it in
-            your university&apos;s real graduate outcomes — your band, where you
-            sit, and the moves that raise it.
+            Pick where you&apos;ll work, confirm your role and experience, and Aura
+            computes your band from published market data — then explains every
+            factor, forecasts your trajectory, and prices the roles next door.
           </p>
         </div>
 
@@ -197,54 +205,86 @@ export default function WorthPage() {
         {noResume && (
           <div className="notice notice-warn">
             No résumé on file for your account yet —{" "}
-            <Link href="/onboarding" style={{ fontWeight: 600 }}>
-              upload it first
-            </Link>{" "}
+            <Link href="/onboarding" style={{ fontWeight: 600 }}>upload it first</Link>{" "}
             so Aura has something to price.
           </div>
         )}
 
         <div className="panel worth-form">
           <div className="field" style={{ marginBottom: "1rem" }}>
-            <label htmlFor="worth-loc">
-              Target market{" "}
-              <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 400, color: "var(--ink-55)" }}>
-                (set from the map · edit to refine, e.g. Remote)
-              </span>
-            </label>
-            <input
-              id="worth-loc"
-              className="input"
-              placeholder="Remote, Singapore, London…"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !busy && run()}
-            />
-          </div>
-
-          <div className="field" style={{ marginBottom: "1rem" }}>
-            <label>
-              Where did you study?{" "}
-              <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 400, color: "var(--ink-55)" }}>
-                (optional · SG/MY)
-              </span>
-            </label>
+            <label>Where will you work?</label>
             <div style={{ border: "1px solid var(--ink-30)", background: "var(--surface)" }}>
               <WorldPicker
                 selected={country}
                 onSelect={(c) => {
                   setCountry(c.code);
-                  setLocation(c.name); // the map also sets the target market
+                  setCountryName(c.name);
                   setUniId("");
                   setDegreeField("");
                 }}
               />
             </div>
+            {country && !isLive && (
+              <p className="mono worth-llm-note">
+                // {countryName.toUpperCase()} — LLM_ESTIMATE // NO_LOCAL_DATA — band will be
+                model-estimated at low confidence
+              </p>
+            )}
           </div>
 
-          {country && (
+          <div className="worth-form-grid">
+            <div className="field">
+              <label htmlFor="worth-role">Role to price</label>
+              <select
+                id="worth-role"
+                className="input"
+                value={roleId}
+                onChange={(e) => setRoleId(e.target.value)}
+              >
+                <option value="">Other / not listed (auto-detect)</option>
+                {(dataset?.roles ?? []).map((r) => (
+                  <option key={r.id} value={r.id}>{r.title}</option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="worth-years">Years of experience</label>
+              <input
+                id="worth-years"
+                className="input"
+                type="number"
+                min={0}
+                max={40}
+                step={0.5}
+                value={years}
+                onChange={(e) => setYears(Math.max(0, Number(e.target.value) || 0))}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="worth-city">
+                City / remote{" "}
+                <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 400, color: "var(--ink-55)" }}>
+                  (optional)
+                </span>
+              </label>
+              <input
+                id="worth-city"
+                className="input"
+                placeholder="Kuala Lumpur, Remote…"
+                value={cityRefine}
+                onChange={(e) => setCityRefine(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {isLive && (
             <div className="field" style={{ marginBottom: "1rem" }}>
-              <label>University</label>
+              <label>
+                Where did you study?{" "}
+                <span style={{ textTransform: "none", letterSpacing: 0, fontWeight: 400, color: "var(--ink-55)" }}>
+                  (optional · strongest for your first ~3 years)
+                </span>
+              </label>
               <UniversityTiles
                 country={country as "SG" | "MY"}
                 selectedId={uniId}
@@ -255,8 +295,13 @@ export default function WorthPage() {
               />
             </div>
           )}
+          {country && !isLive && (
+            <p className="mono worth-llm-note" style={{ marginBottom: "1rem" }}>
+              // UNI_GROUNDING // MY_SG_ONLY
+            </p>
+          )}
 
-          {selectedUni && selectedUni.degrees.length > 0 && (
+          {isLive && selectedUni && selectedUni.degrees.length > 0 && (
             <div className="field" style={{ marginBottom: "1rem" }}>
               <label>Degree / field</label>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
@@ -270,11 +315,7 @@ export default function WorthPage() {
                         key={d.field}
                         type="button"
                         onClick={() => setDegreeField(d.field)}
-                        className={`font-[family-name:var(--font-space)] uppercase text-[0.68rem] tracking-[0.05em] px-3 py-[6px] border transition-colors ${
-                          on
-                            ? "bg-[var(--iris)] text-white border-[color:var(--iris)]"
-                            : "bg-[var(--surface)] text-[color:var(--ink-72)] border-[color:var(--ink-30)] hover:border-[color:var(--iris)] hover:text-[color:var(--iris)]"
-                        }`}
+                        className={`worth-chip${on ? " is-on" : ""}`}
                       >
                         {d.field}
                       </button>
@@ -283,147 +324,77 @@ export default function WorthPage() {
               </div>
             </div>
           )}
-
-          {selectedUni && selectedUni.degrees.length === 0 && (
-            <p className="mono" style={{ fontSize: "0.72rem", color: "var(--ink-55)", marginBottom: "1rem" }}>
-              // NO_PER_DEGREE_SALARY_DATA_FOR_THIS_SCHOOL — showing overall employment rate
+          {isLive && selectedUni && selectedUni.degrees.length === 0 && (
+            <p className="mono worth-llm-note" style={{ marginBottom: "1rem" }}>
+              // NO_PER_DEGREE_SALARY_DATA_FOR_THIS_SCHOOL — employment-rate context only
             </p>
           )}
 
-          <button className="btn btn-primary" onClick={run} disabled={busy}>
-            {busy ? "Pricing…" : result ? "Recalculate" : "Calculate my worth"}
+          <button className="btn btn-primary" onClick={run} disabled={busy || !country}>
+            {busy ? "Pricing…" : result ? "Recalculate" : country ? "Calculate my worth" : "Pick a country first"}
           </button>
           {busy && (
             <div className="scan-status" style={{ marginTop: "1rem" }}>
               <span className="scan-spinner" />
-              PRICING // READING_RESUME × MARKET
+              PRICING // RESUME × MARKET_DATA
             </div>
           )}
         </div>
 
-        {grounding && grounding.rate !== null && (
-          <div className="panel" style={{ marginTop: "1.25rem" }}>
-            <div className="page-kicker" style={{ marginBottom: "1.25rem" }}>
-              UNIVERSITY_GROUNDING // {grounding.uni.name.toUpperCase()}
-            </div>
-
-            <div style={{ display: "grid", gap: "1.75rem" }}>
-              <div>
-                <div className="mono" style={{ fontSize: "0.68rem", letterSpacing: "0.08em", color: "var(--ink-55)", textTransform: "uppercase", marginBottom: "0.45rem" }}>
-                  {grounding.field ? `${grounding.field} · employed within 6 months` : "Overall employment rate"}
-                </div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
-                  <span style={{ fontFamily: "var(--font-space), monospace", fontWeight: 700, fontSize: "2.6rem", lineHeight: 1, color: rateColor(grounding.rate) }}>
-                    {grounding.rate.toFixed(1)}
-                  </span>
-                  <span className="mono" style={{ fontSize: "0.8rem", color: "var(--ink-55)" }}>% employed</span>
-                </div>
-              </div>
-
-              {grounding.band && (
-                <div>
-                  <div className="mono" style={{ fontSize: "0.68rem", letterSpacing: "0.08em", color: "var(--ink-55)", textTransform: "uppercase", marginBottom: "0.65rem" }}>
-                    Fresh-grad starting salary
-                  </div>
-                  <SalaryBandBar band={grounding.band} />
-                </div>
-              )}
-
-              {grounding.rank && grounding.field && (
-                <div>
-                  <div className="mono" style={{ fontSize: "0.68rem", letterSpacing: "0.08em", color: "var(--ink-55)", textTransform: "uppercase", marginBottom: "0.65rem" }}>
-                    Rank #{grounding.rank} of {grounding.total} · {grounding.field}
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                    {grounding.leaderboard.map((row, i) => (
-                      <div
-                        key={row.name}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          fontFamily: "var(--font-space), monospace",
-                          fontSize: "0.78rem",
-                          padding: "0.45rem 0.7rem",
-                          border: `1px solid ${row.you ? "var(--iris)" : "var(--ink-12)"}`,
-                          background: row.you ? "var(--iris-08)" : "transparent",
-                          color: row.you ? "var(--iris-deep)" : "var(--ink-72)",
-                        }}
-                      >
-                        <span>
-                          {i + 1}. {row.name}
-                          {row.you ? " (you)" : ""}
-                        </span>
-                        <span style={{ color: rateColor(row.rate), fontWeight: 700 }}>{row.rate.toFixed(1)}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {grounding.sources.length > 0 && (
-              <div className="sal-footer" style={{ marginTop: "1.25rem" }}>
-                <span className="sal-source">{grounding.sources.map((s) => s.label).join(" · ")}</span>
-              </div>
-            )}
-          </div>
-        )}
-
         {result && (
           <div className="worth-result">
+            {/* A. Verdict */}
             <div className="panel worth-band-panel">
               <span className="eval-tick eval-tick-tl" />
               <span className="eval-tick eval-tick-tr" />
               <span className="eval-tick eval-tick-bl" />
               <span className="eval-tick eval-tick-br" />
+              {result.grounding_mode === "llm" && (
+                <div className="worth-llm-banner">LLM_ESTIMATE // NO_LOCAL_DATA</div>
+              )}
               <div className="page-kicker" style={{ marginBottom: "0.4rem" }}>
-                MARKET_BAND // {result.headline_role.toUpperCase()}
+                YOUR_BAND // {result.role_title.toUpperCase()} // {result.country}
               </div>
 
               <div className="worth-figure">
-                {fmt(result.worth.mid, result.currency)}
-                <span className="worth-figure-suffix">
-                  {PERIOD_SUFFIX[result.period]} median
-                </span>
+                {fmt(result.point, result.band.currency)}
+                <span className="worth-figure-suffix">/mo · ≈{fmt(result.point * 12, result.band.currency)}/yr</span>
               </div>
 
-              <div className="worth-ruler">
-                <div className="worth-band-fill" />
-                <span className="worth-median" />
+              <div style={{ margin: "0.75rem 0 0.5rem" }}>
+                <SalaryBandBar band={result.band} />
               </div>
-              <div className="worth-ruler-labels">
-                <span>{fmt(result.worth.low, result.currency)}</span>
-                <span>{fmt(result.worth.high, result.currency)}</span>
-              </div>
-
-              {result.total_comp_high && (
-                <p className="worth-tc">
-                  Total comp ceiling ≈ {fmt(result.total_comp_high, result.currency)}
-                  {PERIOD_SUFFIX[result.period]} with bonus/equity
-                </p>
-              )}
+              <p className="worth-percentile">
+                You price at ~P{result.percentile.toFixed(0)} of this band.
+              </p>
 
               <p className="worth-summary">{result.summary}</p>
 
               <div className="sal-footer">
-                <span className="sal-conf" data-conf={result.confidence}>
+                <span className="sal-conf" data-conf={result.confidence.level}>
                   <span className="sal-conf-dot" />
-                  {CONF_LABEL[result.confidence]}
+                  {CONF_LABEL[result.confidence.level]} // {result.confidence.reason}
                 </span>
                 <span className="sal-source">
-                  {result.sources.join(" · ")} // {result.location_basis} // {result.as_of}
+                  {result.sources.join(" · ")} // {result.as_of}
                 </span>
               </div>
             </div>
 
-            {result.skill_deltas.length > 0 && (
-              <div className="panel worth-deltas-panel">
-                <div className="page-kicker" style={{ marginBottom: "1rem" }}>
-                  LEVERAGE // WHAT_MOVES_THE_NUMBER
-                </div>
-                <div className="worth-deltas">
-                  {result.skill_deltas.map((d) => (
+            {/* B. Receipt */}
+            <div className="panel">
+              <div className="page-kicker" style={{ marginBottom: "1rem" }}>
+                BREAKDOWN // WHY_THIS_NUMBER
+              </div>
+              <BreakdownReceipt
+                receipt={result.receipt}
+                band={result.band}
+                point={result.point}
+                currency={result.band.currency}
+              />
+              {result.leverage.length > 0 && (
+                <div className="worth-deltas" style={{ marginTop: "1.25rem" }}>
+                  {result.leverage.map((d) => (
                     <div className="worth-delta" key={d.skill}>
                       <span className="worth-delta-pct">+{d.delta_pct}%</span>
                       <div>
@@ -433,9 +404,87 @@ export default function WorthPage() {
                     </div>
                   ))}
                 </div>
-                <Link href="/onboarding" className="btn btn-ghost" style={{ marginTop: "1.25rem" }}>
-                  Update my resume →
-                </Link>
+              )}
+              <Link href="/onboarding" className="btn btn-ghost" style={{ marginTop: "1.25rem" }}>
+                Update my resume →
+              </Link>
+            </div>
+
+            {/* C. Trajectory */}
+            <div className="panel">
+              <div className="page-kicker" style={{ marginBottom: "1rem" }}>
+                TRAJECTORY // NOW_+1Y_+3Y_+5Y
+              </div>
+              <TrajectoryChart
+                trajectory={result.trajectory}
+                currency={result.band.currency}
+                llmOnly={result.grounding_mode === "llm"}
+              />
+            </div>
+
+            {/* D. Alternates */}
+            {result.alternates.length > 0 && (
+              <div className="panel">
+                <div className="page-kicker" style={{ marginBottom: "1rem" }}>
+                  IF_YOU_MOVED // ADJACENT_ROLES
+                </div>
+                <AlternateRoles alternates={result.alternates} />
+              </div>
+            )}
+
+            {/* E. University grounding (demoted, only when a uni is selected) */}
+            {result.uni_context && result.uni_context.rate !== null && (
+              <div className="panel">
+                <div className="page-kicker" style={{ marginBottom: "1.25rem" }}>
+                  UNIVERSITY_GROUNDING // {result.uni_context.name.toUpperCase()}
+                </div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+                  <span style={{ fontFamily: "var(--font-space), monospace", fontWeight: 700, fontSize: "2.6rem", lineHeight: 1, color: rateColor(result.uni_context.rate) }}>
+                    {result.uni_context.rate.toFixed(1)}
+                  </span>
+                  <span className="mono" style={{ fontSize: "0.8rem", color: "var(--ink-55)" }}>
+                    % employed{result.uni_context.field ? ` · ${result.uni_context.field}` : ""}
+                  </span>
+                </div>
+                {selectedDegree?.salary && (
+                  <div style={{ marginTop: "1rem" }}>
+                    <div className="mono" style={{ fontSize: "0.68rem", letterSpacing: "0.08em", color: "var(--ink-55)", textTransform: "uppercase", marginBottom: "0.65rem" }}>
+                      Fresh-grad starting salary
+                    </div>
+                    <SalaryBandBar band={selectedDegree.salary} />
+                  </div>
+                )}
+                {leaderboard && leaderboard.rank && (
+                  <div style={{ marginTop: "1.25rem" }}>
+                    <div className="mono" style={{ fontSize: "0.68rem", letterSpacing: "0.08em", color: "var(--ink-55)", textTransform: "uppercase", marginBottom: "0.65rem" }}>
+                      Rank #{leaderboard.rank} of {leaderboard.total} · {leaderboard.field}
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                      {leaderboard.rows.map((row, i) => (
+                        <div
+                          key={row.name}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            fontFamily: "var(--font-space), monospace",
+                            fontSize: "0.78rem",
+                            padding: "0.45rem 0.7rem",
+                            border: `1px solid ${row.you ? "var(--iris)" : "var(--ink-12)"}`,
+                            background: row.you ? "var(--iris-08)" : "transparent",
+                            color: row.you ? "var(--iris-deep)" : "var(--ink-72)",
+                          }}
+                        >
+                          <span>
+                            {i + 1}. {row.name}
+                            {row.you ? " (you)" : ""}
+                          </span>
+                          <span style={{ color: rateColor(row.rate), fontWeight: 700 }}>{row.rate.toFixed(1)}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

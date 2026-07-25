@@ -286,6 +286,9 @@ function EvaluateInner() {
       <div className="app-sheet" ref={root}>
       <div className="container" style={{ maxWidth: "var(--maxw)", paddingBottom: "4rem" }}>
         <div className="page-head">
+          <Link href="/tracker" style={{ color: "var(--ink-55)", fontSize: "0.875rem", textDecoration: "none", display: "inline-block", marginBottom: "1rem" }}>
+            ← Back to tracker
+          </Link>
           <div className="page-kicker">(02) // EVALUATION_REPORT</div>
           <h1>{result.company} — {result.role}</h1>
           <p>{result.archetype}</p>
@@ -616,6 +619,9 @@ function EvaluateInner() {
     <div className="app-sheet" ref={root}>
     <div className="container" style={{ maxWidth: 760, paddingBottom: "4rem" }}>
       <div className="page-head">
+        <Link href="/tracker" style={{ color: "var(--ink-55)", fontSize: "0.875rem", textDecoration: "none", display: "inline-block", marginBottom: "1rem" }}>
+          ← Back to tracker
+        </Link>
         <div className="page-kicker">(01) // INPUT</div>
         <h1>Evaluate a job</h1>
         <p>Paste a job link or the description itself. Aura scores your fit and writes the full report — about a minute.</p>

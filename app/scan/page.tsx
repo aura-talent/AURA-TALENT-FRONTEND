@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import { api, type JobPosting } from "@/lib/api";
@@ -151,8 +152,11 @@ export default function ScanPage() {
     <div className="app-sheet" ref={root}>
     <div className="container" style={{ maxWidth: 820, paddingBottom: "4rem" }}>
       <div className="page-head">
+        <Link href="/tracker" style={{ color: "var(--ink-55)", fontSize: "0.875rem", textDecoration: "none", display: "inline-block", marginBottom: "1rem" }}>
+          ← Back to tracker
+        </Link>
         <div className="page-kicker">(01) // PORTAL_SCAN</div>
-        <h1>Find open roles</h1>
+        <h1>Search live postings</h1>
         <p>
           Aura checks the live job boards of tracked companies directly —
           no stale listings, no scraping middlemen.

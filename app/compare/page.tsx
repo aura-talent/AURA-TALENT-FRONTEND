@@ -185,6 +185,9 @@ function CompareInner() {
           style={{ maxWidth: 820, paddingBottom: "4rem" }}
         >
           <div className="page-head">
+            <Link href="/tracker" style={{ color: "var(--ink-55)", fontSize: "0.875rem", textDecoration: "none", display: "inline-block", marginBottom: "1rem" }}>
+              ← Back to tracker
+            </Link>
             <div className="page-kicker">(02) // HEAD_TO_HEAD</div>
             <h1>Head to head</h1>
           </div>
@@ -217,6 +220,9 @@ function CompareInner() {
         style={{ maxWidth: 760, paddingBottom: "4rem" }}
       >
         <div className="page-head">
+          <Link href="/tracker" style={{ color: "var(--ink-55)", fontSize: "0.875rem", textDecoration: "none", display: "inline-block", marginBottom: "1rem" }}>
+            ← Back to tracker
+          </Link>
           <div className="page-kicker">(01) // SELECTION</div>
           <h1>Compare offers</h1>
 

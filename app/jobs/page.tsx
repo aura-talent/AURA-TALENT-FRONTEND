@@ -54,6 +54,9 @@ export default function ExploreJobsPage() {
         <div className="container candidate-jobs-page">
           <div className="candidate-jobs-hero">
             <div>
+              <Link href="/tracker" style={{ color: "var(--ink-55)", fontSize: "0.875rem", textDecoration: "none", display: "inline-block", marginBottom: "1rem" }}>
+                ← Back to tracker
+              </Link>
               <p className="eyebrow">(01) // AGENT_MATCHED</p>
               <h1>Jobs that fit where you&apos;re going.</h1>
               <p>

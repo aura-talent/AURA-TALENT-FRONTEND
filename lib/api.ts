@@ -128,19 +128,61 @@ export interface SkillDelta {
   note: string;
 }
 
-/** Candidate's own market worth, profile-driven (the "Your worth" page). */
-export interface SelfWorthEstimate {
+export interface FairPayBand {
+  p25: number;
+  p50: number;
+  p75: number;
   currency: string;
-  period: "year" | "month" | "hour";
-  worth: SalaryBand;
-  total_comp_high?: number;
-  confidence: "high" | "medium" | "low";
+  period: string; // "month"
+}
+
+export interface FairPayConfidence {
+  level: "high" | "medium" | "low";
+  reason: string; // e.g. "JOBSTREET+HAYS_BAND", "ADZUNA_N=41", "LLM_ONLY"
+}
+
+export interface FairPayReceiptRow {
+  id: "base_band" | "experience" | "university" | "resume";
+  label: string;
+  effect: string;
+  reasoning: string;
+  source?: string | null;
+}
+
+export interface FairPayTrajectoryPoint {
+  offset_years: number; // 0 | 1 | 3 | 5
+  point: number;
+  band: FairPayBand;
+  annotation?: string | null;
+}
+
+export interface FairPayAlternate {
+  role_id: string;
+  title: string;
+  band: FairPayBand;
+  delta_pct: number;
+  note: string;
+}
+
+/** Fair Pay result — every number computed server-side; LLM only narrates. */
+export interface FairPayResult {
+  grounding_mode: "data" | "llm";
+  role_id: string | null;
+  role_title: string;
+  country: string;
+  years: number;
+  point: number;
+  percentile: number;
+  band: FairPayBand;
+  confidence: FairPayConfidence;
+  receipt: FairPayReceiptRow[];
+  trajectory: FairPayTrajectoryPoint[];
+  alternates: FairPayAlternate[];
+  leverage: SkillDelta[];
+  summary: string;
+  uni_context?: { name: string; rate: number | null; field: string | null } | null;
   sources: string[];
   as_of: string;
-  location_basis: string;
-  headline_role: string;
-  summary: string;
-  skill_deltas: SkillDelta[];
 }
 
 export interface SalaryComparisonInsight {
@@ -509,19 +551,16 @@ export const api = {
       node_id,
     }),
 
-  selfWorth: (
-    input: {
-      location?: string;
-      currency?: string;
-      university_id?: string;
-      degree_field?: string;
-      country?: string;
-    } = {}
-  ) =>
-    postJson<SelfWorthEstimate>("salary/self", {
-      user_id: getUserId(),
-      ...input,
-    }),
+  fairPay: (input: {
+    country: string;
+    role_id?: string;
+    years?: number;
+    university_id?: string;
+    degree_field?: string;
+    city_refine?: string;
+    currency?: string;
+  }) =>
+    postJson<FairPayResult>("salary/self", { user_id: getUserId(), ...input }),
 
   suggestions: (input: { jd_text?: string; jd_url?: string }) =>
     postJson<{ suggestions_markdown: string }>("resume/suggestions", {

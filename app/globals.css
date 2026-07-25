@@ -2012,6 +2012,53 @@ textarea.input {
 .worth-delta-skill { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.15rem; }
 .worth-delta-note { font-size: 0.85rem; color: var(--ink-72); line-height: 1.5; }
 
+/* ── Fair Pay revamp ── */
+.worth-form-grid { display: grid; grid-template-columns: 2fr 1fr 1.4fr; gap: 1rem; margin-bottom: 1rem; align-items: end; }
+@media (max-width: 720px) { .worth-form-grid { grid-template-columns: 1fr; } }
+
+.worth-llm-note { font-size: 0.72rem; color: var(--score-fair); margin-top: 0.5rem; }
+.worth-llm-banner {
+  font-family: var(--font-space), monospace; font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.08em; color: var(--score-fair);
+  border: 1px dashed var(--score-fair); padding: 0.35rem 0.7rem;
+  display: inline-block; margin-bottom: 1rem;
+}
+.worth-percentile { font-family: var(--font-space), monospace; font-size: 0.75rem; color: var(--ink-55); margin: 0.35rem 0 0; }
+
+.worth-chip {
+  font-family: var(--font-space), monospace; text-transform: uppercase;
+  font-size: 0.68rem; letter-spacing: 0.05em; padding: 6px 12px;
+  border: 1px solid var(--ink-30); background: var(--surface); color: var(--ink-72);
+  cursor: pointer; transition: border-color .15s ease, color .15s ease, background .15s ease;
+}
+.worth-chip:hover { border-color: var(--iris); color: var(--iris); }
+.worth-chip.is-on { background: var(--iris); color: #fff; border-color: var(--iris); }
+
+.worth-receipt { display: flex; flex-direction: column; }
+.worth-receipt-row {
+  display: grid; grid-template-columns: 110px 170px 1fr; gap: 1rem;
+  padding: 0.65rem 0; border-bottom: 1px dashed var(--ink-12); align-items: baseline;
+}
+.worth-receipt-label { font-family: var(--font-space), monospace; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-55); }
+.worth-receipt-effect { font-family: var(--font-space), monospace; font-size: 0.85rem; font-weight: 700; color: var(--ink); }
+.worth-receipt-why { font-size: 0.8rem; color: var(--ink-72); }
+.worth-receipt-why em { color: var(--ink-55); font-style: normal; }
+.worth-receipt-total { border-bottom: none; border-top: 2px solid var(--ink); margin-top: 0.25rem; }
+.worth-receipt-total .worth-receipt-label, .worth-receipt-total .worth-receipt-effect { color: var(--iris-deep); }
+@media (max-width: 640px) { .worth-receipt-row { grid-template-columns: 1fr; gap: 0.2rem; } }
+
+.worth-traj-notes { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 1rem; }
+.worth-traj-note { display: flex; gap: 0.75rem; font-size: 0.8rem; color: var(--ink-72); align-items: baseline; }
+.worth-traj-note-yr { font-family: var(--font-space), monospace; font-size: 0.66rem; font-weight: 700; color: var(--iris); min-width: 34px; }
+
+.worth-alts { display: flex; flex-direction: column; gap: 1.1rem; }
+.worth-alt-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.45rem; }
+.worth-alt-title { font-weight: 600; font-size: 0.9rem; }
+.worth-alt-delta { font-family: var(--font-space), monospace; font-size: 0.78rem; font-weight: 700; }
+.worth-alt-delta.is-up { color: var(--score-strong); }
+.worth-alt-delta.is-down { color: var(--score-weak); }
+.worth-alt-note { font-size: 0.78rem; color: var(--ink-55); margin: 0.4rem 0 0; }
+
 /* scan results */
 .scan-results-head {
   display: flex;

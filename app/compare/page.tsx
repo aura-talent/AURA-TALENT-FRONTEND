@@ -217,6 +217,9 @@ function CompareInner() {
         style={{ maxWidth: 760, paddingBottom: "4rem" }}
       >
         <div className="page-head">
+          <Link href="/tracker" className="back-link">
+            ← Jobs
+          </Link>
           <div className="page-kicker">(01) // SELECTION</div>
           <h1>Compare offers</h1>
 

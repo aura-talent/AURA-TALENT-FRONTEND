@@ -2,6 +2,7 @@
  * Client-side API helpers. Everything goes through the /api/backend proxy
  * so the backend API key never reaches the browser.
  */
+import { CandidateJob } from "@/app/jobs/mockJobs";
 import { supabase } from "./supabaseClient";
 
 let activeUserId: string | null = null;
@@ -540,6 +541,10 @@ export const api = {
       "scan",
       input,
     ),
+
+  listAllJobs: (): Promise<CandidateJob[]> => request<CandidateJob[]>(`jobs/list-all-jobs`),
+
+  getJobById: (jobId: string) => request<CandidateJob>(`jobs/${jobId}`),
 
   listApplications: () => request<Application[]>(`applications/${getUserId()}`),
 

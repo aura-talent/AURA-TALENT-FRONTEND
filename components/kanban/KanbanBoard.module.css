@@ -24,12 +24,58 @@
   border: 2px dashed var(--iris) !important;
 }
 
+/* A collapsed column keeps its header as the drop target, so hiding a phase
+   never costs you the ability to drag a card into it. */
+.columnCollapsed {
+  gap: 0;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border-style: solid;
+  border-color: var(--ink-06);
+}
+
 .columnHead {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--ink-12);
+}
+
+.columnHeadButton {
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0 0 0.5rem;
+  text-align: left;
+  color: inherit;
+  border-radius: 4px;
+}
+
+.columnCollapsed .columnHead {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.columnChevron {
+  display: inline-block;
+  width: 0.7rem;
+  margin-right: 0.1rem;
+  color: var(--ink-30);
+  font-size: 0.9rem;
+  line-height: 1;
+  transform: rotate(90deg);
+  transition: transform 0.18s ease;
+}
+
+.columnCollapsed .columnChevron {
+  transform: rotate(0deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .columnChevron {
+    transition: none;
+  }
 }
 
 .columnTitle {

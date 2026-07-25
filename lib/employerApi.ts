@@ -545,7 +545,7 @@ export const employerApi = {
 
   /* notifications (0004) — nav badge counts */
   getNotificationCounts: () =>
-    request<{ offers: number; applicants: number }>(`notifications/counts?${eid()}`),
+    request<{ offers: number; shortlists: number }>(`notifications/counts?${eid()}`),
 
   /* suggested actions (0002) — agent-emitted, persisted */
   listSuggestedActions: (status = "open") =>

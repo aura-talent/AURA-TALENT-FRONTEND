@@ -210,7 +210,7 @@ export default function WorthPage() {
           </div>
         )}
 
-        <div className="panel worth-form">
+        <div className="panel worth-form" data-tour="worth-form">
           <div className="field" style={{ marginBottom: "1rem" }}>
             <label>Where will you work?</label>
             <div style={{ border: "1px solid var(--ink-30)", background: "var(--surface)" }}>

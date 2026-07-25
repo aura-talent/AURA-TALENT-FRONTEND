@@ -13,8 +13,11 @@ export default function KanbanBoard<T>({
   onCardClick,
   onMove,
   emptyLabel = "No cards here yet.",
+  collapsible = false,
+  initialCollapsed = [],
 }: KanbanBoardProps<T>) {
   const [draggedOverColumn, setDraggedOverColumn] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(initialCollapsed));
   // Ref (not state) for the dragged item id — state causes a stale closure
   // in handleDrop, since the drop handler closes over the render it was
   // created in, not the latest one.
@@ -45,6 +48,15 @@ export default function KanbanBoard<T>({
     onMove(itemId, columnId);
   }
 
+  function toggleColumn(columnId: string) {
+    setCollapsed((current) => {
+      const next = new Set(current);
+      if (next.has(columnId)) next.delete(columnId);
+      else next.add(columnId);
+      return next;
+    });
+  }
+
   return (
     <div className={styles.scrollContainer}>
       <div className={styles.board}>
@@ -53,51 +65,79 @@ export default function KanbanBoard<T>({
             (item) => getItemColumnId(item) === column.id,
           );
           const isOver = draggedOverColumn === column.id;
+          const isCollapsed = collapsible && collapsed.has(column.id);
+          const stackId = `kanban-stack-${column.id}`;
+
+          const head = (
+            <>
+              <span className={styles.columnTitle}>
+                {collapsible && (
+                  <span className={styles.columnChevron} aria-hidden="true">
+                    ›
+                  </span>
+                )}
+                <span
+                  className={styles.columnDot}
+                  style={{ "--dot-color": column.color } as React.CSSProperties}
+                />
+                {column.label}
+              </span>
+              <span className={styles.columnCount}>{columnItems.length}</span>
+            </>
+          );
 
           return (
             <div
               key={column.id}
-              className={`${styles.column} ${isOver ? styles.columnOver : ""}`}
+              className={`${styles.column} ${isOver ? styles.columnOver : ""} ${
+                isCollapsed ? styles.columnCollapsed : ""
+              }`}
               onDragOver={(event) => handleDragOver(event, column.id)}
               onDragLeave={handleDragLeave}
               onDrop={(event) => handleDrop(event, column.id)}
             >
-              <div className={styles.columnHead}>
-                <span className={styles.columnTitle}>
-                  <span
-                    className={styles.columnDot}
-                    style={{ "--dot-color": column.color } as React.CSSProperties}
-                  />
-                  {column.label}
-                </span>
-                <span className={styles.columnCount}>{columnItems.length}</span>
-              </div>
+              {collapsible ? (
+                <button
+                  type="button"
+                  className={`${styles.columnHead} ${styles.columnHeadButton}`}
+                  aria-expanded={!isCollapsed}
+                  aria-controls={stackId}
+                  onClick={() => toggleColumn(column.id)}
+                >
+                  {head}
+                </button>
+              ) : (
+                <div className={styles.columnHead}>{head}</div>
+              )}
 
-              <div
-                className={styles.cardStack}
-                onDragOver={(event) => handleDragOver(event, column.id)}
-                onDrop={(event) => handleDrop(event, column.id)}
-              >
-                {columnItems.length === 0 && (
-                  <div className={styles.columnEmpty}>
-                    {column.emptyContent ?? emptyLabel}
-                  </div>
-                )}
-                {columnItems.map((item) => {
-                  const itemId = getItemId(item);
-                  return (
-                    <div
-                      key={itemId}
-                      draggable
-                      onDragStart={(event) => handleDragStart(event, itemId)}
-                      onClick={() => onCardClick?.(item)}
-                      className={styles.card}
-                    >
-                      {renderCard(item)}
+              {!isCollapsed && (
+                <div
+                  id={stackId}
+                  className={styles.cardStack}
+                  onDragOver={(event) => handleDragOver(event, column.id)}
+                  onDrop={(event) => handleDrop(event, column.id)}
+                >
+                  {columnItems.length === 0 && (
+                    <div className={styles.columnEmpty}>
+                      {column.emptyContent ?? emptyLabel}
                     </div>
-                  );
-                })}
-              </div>
+                  )}
+                  {columnItems.map((item) => {
+                    const itemId = getItemId(item);
+                    return (
+                      <div
+                        key={itemId}
+                        draggable
+                        onDragStart={(event) => handleDragStart(event, itemId)}
+                        onClick={() => onCardClick?.(item)}
+                        className={styles.card}
+                      >
+                        {renderCard(item)}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })}

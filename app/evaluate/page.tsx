@@ -123,7 +123,7 @@ function EvaluateInner() {
         try {
           const errData = await res.json();
           if (errData.detail) msg = typeof errData.detail === "string" ? errData.detail : JSON.stringify(errData.detail);
-        } catch {}
+        } catch { }
         throw new Error(msg);
       }
 
@@ -142,7 +142,7 @@ function EvaluateInner() {
         for (const frame of frames) {
           const trimmed = frame.trim();
           if (!trimmed) continue;
-          
+
           const lines = trimmed.split("\n");
           let eventType = "";
           let dataStr = "";
@@ -200,7 +200,7 @@ function EvaluateInner() {
         try {
           const errData = await res.json();
           if (errData.detail) msg = typeof errData.detail === "string" ? errData.detail : JSON.stringify(errData.detail);
-        } catch {}
+        } catch { }
         throw new Error(msg);
       }
 
@@ -263,20 +263,20 @@ function EvaluateInner() {
   if (loading) {
     return (
       <div className="app-sheet">
-      <div className="container" style={{ maxWidth: 820 }}>
-        <div className="page-head">
-          <div className="page-kicker">EVALUATION_AGENT // RUNNING</div>
-          <h1>Evaluating</h1>
+        <div className="container" style={{ maxWidth: 820 }}>
+          <div className="page-head">
+            <div className="page-kicker">EVALUATION_AGENT // RUNNING</div>
+            <h1>Evaluating</h1>
+          </div>
+          <div className="panel">
+            <StreamProgress
+              title="Evaluation agent"
+              progress={progress}
+              fallbackLines={EVALUATION_FALLBACK_LINES}
+            />
+          </div>
+          {error && <div className="notice notice-error" style={{ marginTop: "1rem" }}>{error}</div>}
         </div>
-        <div className="panel">
-          <StreamProgress
-            title="Evaluation agent"
-            progress={progress}
-            fallbackLines={EVALUATION_FALLBACK_LINES}
-          />
-        </div>
-        {error && <div className="notice notice-error" style={{ marginTop: "1rem" }}>{error}</div>}
-      </div>
       </div>
     );
   }
@@ -284,401 +284,398 @@ function EvaluateInner() {
   if (result) {
     return (
       <div className="app-sheet" ref={root}>
-      <div className="container" style={{ maxWidth: "var(--maxw)", paddingBottom: "4rem" }}>
-        <div className="page-head">
-          <Link href="/tracker" style={{ color: "var(--ink-55)", fontSize: "0.875rem", textDecoration: "none", display: "inline-block", marginBottom: "1rem" }}>
-            ← Back to tracker
-          </Link>
-          <div className="page-kicker">(02) // EVALUATION_REPORT</div>
-          <h1>{result.company} — {result.role}</h1>
-          <p>{result.archetype}</p>
-        </div>
+        <div className="container" style={{ maxWidth: "var(--maxw)", paddingBottom: "4rem" }}>
+          <div className="page-head">
+            <div className="page-kicker">(02) // EVALUATION_REPORT</div>
+            <h1>{result.company} — {result.role}</h1>
+            <p>{result.archetype}</p>
+          </div>
 
-        {/* 3 Main View Tabs */}
-        <div
-          style={{
-            display: "flex",
-            gap: "0.5rem",
-            borderBottom: "1px solid var(--ink-10)",
-            marginBottom: "1.75rem",
-            overflowX: "auto",
-            whiteSpace: "nowrap",
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setActiveTab("fit")}
-            style={{
-              padding: "0.6rem 1rem",
-              border: "none",
-              borderBottom: activeTab === "fit" ? "2px solid var(--iris)" : "2px solid transparent",
-              background: activeTab === "fit" ? "var(--iris-08)" : "transparent",
-              color: activeTab === "fit" ? "var(--iris)" : "var(--ink-70)",
-              fontFamily: "var(--font-space), monospace",
-              fontSize: "0.825rem",
-              fontWeight: 700,
-              cursor: "pointer",
-              borderRadius: "4px 4px 0 0",
-              whiteSpace: "nowrap",
-              transition: "all 0.2s ease",
-            }}
-          >
-            FIT_SCORE
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("report")}
-            style={{
-              padding: "0.6rem 1rem",
-              border: "none",
-              borderBottom: activeTab === "report" ? "2px solid var(--iris)" : "2px solid transparent",
-              background: activeTab === "report" ? "var(--iris-08)" : "transparent",
-              color: activeTab === "report" ? "var(--iris)" : "var(--ink-70)",
-              fontFamily: "var(--font-space), monospace",
-              fontSize: "0.825rem",
-              fontWeight: 700,
-              cursor: "pointer",
-              borderRadius: "4px 4px 0 0",
-              whiteSpace: "nowrap",
-              maxWidth: "360px",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              transition: "all 0.2s ease",
-            }}
-            title={`Evaluation: ${result.company} — ${result.role}`}
-          >
-            Evaluation: {result.company} — {result.role}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("insights")}
-            style={{
-              padding: "0.6rem 1rem",
-              border: "none",
-              borderBottom: activeTab === "insights" ? "2px solid var(--iris)" : "2px solid transparent",
-              background: activeTab === "insights" ? "var(--iris-08)" : "transparent",
-              color: activeTab === "insights" ? "var(--iris)" : "var(--ink-70)",
-              fontFamily: "var(--font-space), monospace",
-              fontSize: "0.825rem",
-              fontWeight: 700,
-              cursor: "pointer",
-              borderRadius: "4px 4px 0 0",
-              whiteSpace: "nowrap",
-              transition: "all 0.2s ease",
-            }}
-          >
-            Job Posting Insights
-          </button>
-        </div>
-
-
-        {/* Tab 1: FIT_SCORE // FIVE_AXES */}
-        {activeTab === "fit" && (
+          {/* 3 Main View Tabs */}
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr",
-              gap: "2rem",
-              alignItems: "start",
+              display: "flex",
+              gap: "0.5rem",
+              borderBottom: "1px solid var(--ink-10)",
+              marginBottom: "1.75rem",
+              overflowX: "auto",
+              whiteSpace: "nowrap",
             }}
           >
-            <div className="panel">
-              <span className="eval-tick eval-tick-tl" />
-              <span className="eval-tick eval-tick-tr" />
-              <span className="eval-tick eval-tick-bl" />
-              <span className="eval-tick eval-tick-br" />
-              <div className="page-kicker" style={{ marginBottom: "1rem" }}>
-                FIT_SCORE // FIVE_AXES
-              </div>
-              <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: "1.5rem", alignItems: "center" }}>
-                <ScoreDial score={result.score} />
-                <div style={{ width: "100%" }}>
-                  <div className="bars">
-                    {Object.entries(BAR_LABELS).map(([key, label]) => {
-                      const v = result.scores[key as keyof typeof result.scores];
-                      return (
-                        <div className="bar-row" key={key}>
-                          <span className="bar-label">{label}</span>
-                          <div className="bar-track">
-                            <div className="bar-fill" style={{ width: `${(v / 5) * 100}%`, background: scoreColor(v) }} />
+            <button
+              type="button"
+              onClick={() => setActiveTab("fit")}
+              style={{
+                padding: "0.6rem 1rem",
+                border: "none",
+                borderBottom: activeTab === "fit" ? "2px solid var(--iris)" : "2px solid transparent",
+                background: activeTab === "fit" ? "var(--iris-08)" : "transparent",
+                color: activeTab === "fit" ? "var(--iris)" : "var(--ink-70)",
+                fontFamily: "var(--font-space), monospace",
+                fontSize: "0.825rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                borderRadius: "4px 4px 0 0",
+                whiteSpace: "nowrap",
+                transition: "all 0.2s ease",
+              }}
+            >
+              FIT_SCORE
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("report")}
+              style={{
+                padding: "0.6rem 1rem",
+                border: "none",
+                borderBottom: activeTab === "report" ? "2px solid var(--iris)" : "2px solid transparent",
+                background: activeTab === "report" ? "var(--iris-08)" : "transparent",
+                color: activeTab === "report" ? "var(--iris)" : "var(--ink-70)",
+                fontFamily: "var(--font-space), monospace",
+                fontSize: "0.825rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                borderRadius: "4px 4px 0 0",
+                whiteSpace: "nowrap",
+                maxWidth: "360px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                transition: "all 0.2s ease",
+              }}
+              title={`Evaluation: ${result.company} — ${result.role}`}
+            >
+              Evaluation: {result.company} — {result.role}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("insights")}
+              style={{
+                padding: "0.6rem 1rem",
+                border: "none",
+                borderBottom: activeTab === "insights" ? "2px solid var(--iris)" : "2px solid transparent",
+                background: activeTab === "insights" ? "var(--iris-08)" : "transparent",
+                color: activeTab === "insights" ? "var(--iris)" : "var(--ink-70)",
+                fontFamily: "var(--font-space), monospace",
+                fontSize: "0.825rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                borderRadius: "4px 4px 0 0",
+                whiteSpace: "nowrap",
+                transition: "all 0.2s ease",
+              }}
+            >
+              Job Posting Insights
+            </button>
+          </div>
+
+
+          {/* Tab 1: FIT_SCORE // FIVE_AXES */}
+          {activeTab === "fit" && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr",
+                gap: "2rem",
+                alignItems: "start",
+              }}
+            >
+              <div className="panel">
+                <span className="eval-tick eval-tick-tl" />
+                <span className="eval-tick eval-tick-tr" />
+                <span className="eval-tick eval-tick-bl" />
+                <span className="eval-tick eval-tick-br" />
+                <div className="page-kicker" style={{ marginBottom: "1rem" }}>
+                  FIT_SCORE // FIVE_AXES
+                </div>
+                <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: "1.5rem", alignItems: "center" }}>
+                  <ScoreDial score={result.score} />
+                  <div style={{ width: "100%" }}>
+                    <div className="bars">
+                      {Object.entries(BAR_LABELS).map(([key, label]) => {
+                        const v = result.scores[key as keyof typeof result.scores];
+                        return (
+                          <div className="bar-row" key={key}>
+                            <span className="bar-label">{label}</span>
+                            <div className="bar-track">
+                              <div className="bar-fill" style={{ width: `${(v / 5) * 100}%`, background: scoreColor(v) }} />
+                            </div>
+                            <span className="bar-num">{v.toFixed(1)}</span>
                           </div>
-                          <span className="bar-num">{v.toFixed(1)}</span>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div style={{ position: "relative", marginTop: "1.5rem", borderTop: "1px solid var(--ink-06)", paddingTop: "1.25rem" }}>
-                <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", flexWrap: "wrap", marginBottom: "0.75rem" }}>
-                  <span className={tierChip(result.legitimacy.tier)}>
-                    {result.legitimacy.tier}
-                  </span>
+                <div style={{ position: "relative", marginTop: "1.5rem", borderTop: "1px solid var(--ink-06)", paddingTop: "1.25rem" }}>
+                  <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+                    <span className={tierChip(result.legitimacy.tier)}>
+                      {result.legitimacy.tier}
+                    </span>
+                  </div>
+                  <p style={{ fontWeight: 600, fontSize: "0.95rem", lineHeight: "1.5" }}>{result.recommendation}</p>
                 </div>
-                <p style={{ fontWeight: 600, fontSize: "0.95rem", lineHeight: "1.5" }}>{result.recommendation}</p>
-              </div>
-              {result.score < 3.5 && (
-                <div className="notice notice-warn" style={{ marginTop: "1.25rem", marginBottom: 0 }}>
-                  This score is below 3.5 — Aura recommends skipping this one
-                  unless you have a specific reason. Your time is worth more.
-                </div>
-              )}
-              <div style={{ position: "relative", marginTop: "1.25rem", borderTop: "1px solid var(--ink-06)", paddingTop: "1.25rem" }}>
-                {result.score >= 4.0 ? (
-                  <button
-                    className="btn btn-primary"
-                    style={{ width: "100%", justifyContent: "center" }}
-                    onClick={() => generateResumeFlow(extraInstructions)}
-                  >
-                    Generate Tailored Resume
-                  </button>
-                ) : (
-                  <div>
+                {result.score < 3.5 && (
+                  <div className="notice notice-warn" style={{ marginTop: "1.25rem", marginBottom: 0 }}>
+                    This score is below 3.5 — Aura recommends skipping this one
+                    unless you have a specific reason. Your time is worth more.
+                  </div>
+                )}
+                <div style={{ position: "relative", marginTop: "1.25rem", borderTop: "1px solid var(--ink-06)", paddingTop: "1.25rem" }}>
+                  {result.score >= 4.0 ? (
                     <button
                       className="btn btn-primary"
-                      style={{ width: "100%", justifyContent: "center", opacity: 0.5, cursor: "not-allowed" }}
-                      disabled
-                      title="Only available for roles with score >= 4.0"
+                      style={{ width: "100%", justifyContent: "center" }}
+                      onClick={() => generateResumeFlow(extraInstructions)}
                     >
                       Generate Tailored Resume
                     </button>
-                    <p style={{ fontSize: "0.75rem", color: "var(--ink-55)", marginTop: "0.5rem", textAlign: "center" }}>
-                      ⚠️ Resume tailoring is disabled. Aura discourages tailoring applications for low-fit roles (score &lt; 4.0).
-                    </p>
-                  </div>
-                )}
+                  ) : (
+                    <div>
+                      <button
+                        className="btn btn-primary"
+                        style={{ width: "100%", justifyContent: "center", opacity: 0.5, cursor: "not-allowed" }}
+                        disabled
+                        title="Only available for roles with score >= 4.0"
+                      >
+                        Generate Tailored Resume
+                      </button>
+                      <p style={{ fontSize: "0.75rem", color: "var(--ink-55)", marginTop: "0.5rem", textAlign: "center" }}>
+                        ⚠️ Resume tailoring is disabled. Aura discourages tailoring applications for low-fit roles (score &lt; 4.0).
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                {result.salary && <SalaryPanel salary={result.salary} />}
+                <div className="hero-ctas" style={{ gap: "0.75rem" }}>
+                  <button className="btn btn-primary text-white" onClick={resetEvaluation}>
+                    Evaluate another job
+                  </button>
+                  <Link href="/tracker" className="btn btn-ghost">View tracker</Link>
+                </div>
               </div>
             </div>
+          )}
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-              {result.salary && <SalaryPanel salary={result.salary} />}
-              <div className="hero-ctas" style={{ gap: "0.75rem" }}>
-                <button className="btn btn-primary text-white" onClick={resetEvaluation}>
-                  Evaluate another job
-                </button>
-                <Link href="/dashboard" className="btn btn-ghost">View tracker</Link>
-              </div>
+          {/* Tab 2: Evaluation Report */}
+          {activeTab === "report" && (
+            <div className="panel eval-report-panel" style={{ minWidth: 0 }}>
+              <ReportView markdown={result.report_markdown} />
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Tab 2: Evaluation Report */}
-        {activeTab === "report" && (
-          <div className="panel eval-report-panel" style={{ minWidth: 0 }}>
-            <ReportView markdown={result.report_markdown} />
-          </div>
-        )}
-
-        {/* Tab 3: JOB_POSTING_INSIGHTS */}
-        {activeTab === "insights" && (
-          <div>
-            {result.insights ? (
-              <JobPostingInsightsPanel insights={result.insights} company={result.company} role={result.role} />
-            ) : (
-              <div className="panel" style={{ textAlign: "center", padding: "3rem" }}>
-                <p style={{ color: "var(--ink-55)" }}>Market & Sentiment Insights loading...</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {modalOpen && (
-          <div className="modal-backdrop" onClick={() => !isGenerating && setModalOpen(false)}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h2 style={{ fontSize: "1.25rem", margin: 0 }}>
-                  Tailoring Resume for {result.company} — {result.role}
-                </h2>
-                {!isGenerating && (
-                  <button
-                    className="btn btn-ghost"
-                    style={{ padding: "0.35rem 0.75rem", fontSize: "0.85rem" }}
-                    onClick={() => setModalOpen(false)}
-                  >
-                    Close
-                  </button>
-                )}
-              </div>
-
-              {isGenerating ? (
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "3rem", gap: "1.5rem" }}>
-                  <Thinking lines={[
-                    streamProgress,
-                    "Still writing your resume...",
-                    "Polishing your experience alignment...",
-                    "Finalizing changes...",
-                  ]} />
-                  <div style={{ fontSize: "0.85rem", color: "var(--ink-55)", marginTop: "-0.5rem" }}>
-                    This process usually takes between 20 to 60 seconds.
-                  </div>
-                </div>
-              ) : streamError ? (
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "3rem", gap: "1rem" }}>
-                  <div className="notice notice-error" style={{ maxWidth: "500px" }}>
-                    <strong>Generation failed:</strong>
-                    <p style={{ marginTop: "0.5rem" }}>{streamError}</p>
-                  </div>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => generateResumeFlow(extraInstructions)}
-                  >
-                    Try Again
-                  </button>
-                </div>
+          {/* Tab 3: JOB_POSTING_INSIGHTS */}
+          {activeTab === "insights" && (
+            <div>
+              {result.insights ? (
+                <JobPostingInsightsPanel insights={result.insights} company={result.company} role={result.role} />
               ) : (
-                <>
-                  <div className="modal-body">
-                    {/* Left Column: Editable markdown */}
-                    <div className="modal-split-left">
-                      <div style={{ padding: "0.75rem 1.5rem 0 1.5rem", fontSize: "0.75rem", fontWeight: 600, color: "var(--ink-55)", display: "flex", justifyContent: "space-between" }}>
-                        <span>EDIT RESUME (MARKDOWN)</span>
-                        <span>{tailoredMarkdown.length} chars</span>
-                      </div>
-                      <textarea
-                        className="resume-editor"
-                        value={tailoredMarkdown}
-                        onChange={(e) => setTailoredMarkdown(e.target.value)}
-                      />
-                    </div>
-
-                    {/* Right Column: Changes and details */}
-                    <div className="modal-split-right">
-                      <div>
-                        <h3 style={{ fontSize: "1.05rem", fontWeight: 700, marginBottom: "0.6rem" }}>What changed and why</h3>
-                        {changeSummary ? (
-                          <ReportView markdown={changeSummary} />
-                        ) : (
-                          <p style={{ fontSize: "0.875rem", color: "var(--ink-55)" }}>No summary of changes provided.</p>
-                        )}
-                      </div>
-
-                      {keywordsCovered && keywordsCovered.length > 0 && (
-                        <div>
-                          <h3 style={{ fontSize: "1.05rem", fontWeight: 700, marginBottom: "0.6rem" }}>Keywords Covered</h3>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-                            {keywordsCovered.map((kw, idx) => (
-                              <span key={idx} className="keyword-badge">
-                                {kw}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      <div style={{ borderTop: "1px solid var(--ink-06)", paddingTop: "1.25rem", marginTop: "auto" }}>
-                        <div className="field">
-                          <label htmlFor="extra-instr" style={{ fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.4rem" }}>
-                            Custom focus instructions (optional)
-                          </label>
-                          <textarea
-                            id="extra-instr"
-                            className="input"
-                            style={{ height: "70px", resize: "none", fontSize: "0.85rem", padding: "0.5rem" }}
-                            placeholder="e.g. emphasize my Golang experience, make it sound more leadership-oriented..."
-                            value={extraInstructions}
-                            onChange={(e) => setExtraInstructions(e.target.value)}
-                          />
-                        </div>
-                        <button
-                          className="btn btn-ghost"
-                          style={{ width: "100%", justifyContent: "center", marginTop: "0.5rem" }}
-                          onClick={() => generateResumeFlow(extraInstructions)}
-                        >
-                          Regenerate with instructions
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="modal-footer">
-                    <button
-                      className="btn btn-ghost"
-                      onClick={() => setModalOpen(false)}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      className="btn btn-primary text-white"
-                      disabled={pdfDownloading || tailoredMarkdown.length < 100}
-                      onClick={downloadPdf}
-                    >
-                      {pdfDownloading ? "Generating PDF..." : "Download PDF"}
-                    </button>
-                  </div>
-                </>
+                <div className="panel" style={{ textAlign: "center", padding: "3rem" }}>
+                  <p style={{ color: "var(--ink-55)" }}>Market & Sentiment Insights loading...</p>
+                </div>
               )}
             </div>
-          </div>
-        )}
-      </div>
+          )}
+
+          {modalOpen && (
+            <div className="modal-backdrop" onClick={() => !isGenerating && setModalOpen(false)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h2 style={{ fontSize: "1.25rem", margin: 0 }}>
+                    Tailoring Resume for {result.company} — {result.role}
+                  </h2>
+                  {!isGenerating && (
+                    <button
+                      className="btn btn-ghost"
+                      style={{ padding: "0.35rem 0.75rem", fontSize: "0.85rem" }}
+                      onClick={() => setModalOpen(false)}
+                    >
+                      Close
+                    </button>
+                  )}
+                </div>
+
+                {isGenerating ? (
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "3rem", gap: "1.5rem" }}>
+                    <Thinking lines={[
+                      streamProgress,
+                      "Still writing your resume...",
+                      "Polishing your experience alignment...",
+                      "Finalizing changes...",
+                    ]} />
+                    <div style={{ fontSize: "0.85rem", color: "var(--ink-55)", marginTop: "-0.5rem" }}>
+                      This process usually takes between 20 to 60 seconds.
+                    </div>
+                  </div>
+                ) : streamError ? (
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "3rem", gap: "1rem" }}>
+                    <div className="notice notice-error" style={{ maxWidth: "500px" }}>
+                      <strong>Generation failed:</strong>
+                      <p style={{ marginTop: "0.5rem" }}>{streamError}</p>
+                    </div>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => generateResumeFlow(extraInstructions)}
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="modal-body">
+                      {/* Left Column: Editable markdown */}
+                      <div className="modal-split-left">
+                        <div style={{ padding: "0.75rem 1.5rem 0 1.5rem", fontSize: "0.75rem", fontWeight: 600, color: "var(--ink-55)", display: "flex", justifyContent: "space-between" }}>
+                          <span>EDIT RESUME (MARKDOWN)</span>
+                          <span>{tailoredMarkdown.length} chars</span>
+                        </div>
+                        <textarea
+                          className="resume-editor"
+                          value={tailoredMarkdown}
+                          onChange={(e) => setTailoredMarkdown(e.target.value)}
+                        />
+                      </div>
+
+                      {/* Right Column: Changes and details */}
+                      <div className="modal-split-right">
+                        <div>
+                          <h3 style={{ fontSize: "1.05rem", fontWeight: 700, marginBottom: "0.6rem" }}>What changed and why</h3>
+                          {changeSummary ? (
+                            <ReportView markdown={changeSummary} />
+                          ) : (
+                            <p style={{ fontSize: "0.875rem", color: "var(--ink-55)" }}>No summary of changes provided.</p>
+                          )}
+                        </div>
+
+                        {keywordsCovered && keywordsCovered.length > 0 && (
+                          <div>
+                            <h3 style={{ fontSize: "1.05rem", fontWeight: 700, marginBottom: "0.6rem" }}>Keywords Covered</h3>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                              {keywordsCovered.map((kw, idx) => (
+                                <span key={idx} className="keyword-badge">
+                                  {kw}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div style={{ borderTop: "1px solid var(--ink-06)", paddingTop: "1.25rem", marginTop: "auto" }}>
+                          <div className="field">
+                            <label htmlFor="extra-instr" style={{ fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.4rem" }}>
+                              Custom focus instructions (optional)
+                            </label>
+                            <textarea
+                              id="extra-instr"
+                              className="input"
+                              style={{ height: "70px", resize: "none", fontSize: "0.85rem", padding: "0.5rem" }}
+                              placeholder="e.g. emphasize my Golang experience, make it sound more leadership-oriented..."
+                              value={extraInstructions}
+                              onChange={(e) => setExtraInstructions(e.target.value)}
+                            />
+                          </div>
+                          <button
+                            className="btn btn-ghost"
+                            style={{ width: "100%", justifyContent: "center", marginTop: "0.5rem" }}
+                            onClick={() => generateResumeFlow(extraInstructions)}
+                          >
+                            Regenerate with instructions
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="modal-footer">
+                      <button
+                        className="btn btn-ghost"
+                        onClick={() => setModalOpen(false)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="btn btn-primary text-white"
+                        disabled={pdfDownloading || tailoredMarkdown.length < 100}
+                        onClick={downloadPdf}
+                      >
+                        {pdfDownloading ? "Generating PDF..." : "Download PDF"}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="app-sheet" ref={root}>
-    <div className="container" style={{ maxWidth: 760, paddingBottom: "4rem" }}>
-      <div className="page-head">
-        <Link href="/tracker" style={{ color: "var(--ink-55)", fontSize: "0.875rem", textDecoration: "none", display: "inline-block", marginBottom: "1rem" }}>
-          ← Back to tracker
-        </Link>
-        <div className="page-kicker">(01) // INPUT</div>
-        <h1>Evaluate a job</h1>
-        <p>Paste a job link or the description itself. Aura scores your fit and writes the full report — about a minute.</p>
-      </div>
-
-      {hasResume === false && (
-        <div className="notice notice-warn">
-          No resume on file yet — <Link href="/onboarding" style={{ fontWeight: 600 }}>add yours first</Link> so Aura has something to match against.
-        </div>
-      )}
-      {error && <div className="notice notice-error">{error}</div>}
-
-      <div className="panel" data-tour="evaluate-input">
-        <div className="tabs" role="tablist">
-          <button className="tab" role="tab" aria-selected={mode === "url"} onClick={() => setMode("url")}>
-            Job link
-          </button>
-          <button className="tab" role="tab" aria-selected={mode === "text"} onClick={() => setMode("text")}>
-            Paste description
-          </button>
+      <div className="container" style={{ maxWidth: 760, paddingBottom: "4rem" }}>
+        <div className="page-head">
+          <Link href="/tracker" className="back-link">
+            ← Jobs
+          </Link>
+          <div className="page-kicker">(01) // INPUT</div>
+          <h1>Evaluate a job</h1>
+          <p>Paste a job link or the description itself. Aura scores your fit and writes the full report — about a minute.</p>
         </div>
 
-        {mode === "url" ? (
-          <div className="field">
-            <label htmlFor="jd-url">Job posting URL</label>
-            <input
-              id="jd-url"
-              className="input"
-              type="url"
-              placeholder="https://job-boards.greenhouse.io/…"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-            />
-          </div>
-        ) : (
-          <div className="field">
-            <label htmlFor="jd-text">Job description</label>
-            <textarea
-              id="jd-text"
-              className="input"
-              placeholder="Paste the full job description here…"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-            />
+        {hasResume === false && (
+          <div className="notice notice-warn">
+            No resume on file yet — <Link href="/onboarding" style={{ fontWeight: 600 }}>add yours first</Link> so Aura has something to match against.
           </div>
         )}
+        {error && <div className="notice notice-error">{error}</div>}
 
-        <button
-          className="btn btn-primary"
-          data-tour="evaluate-submit"
-          disabled={hasResume === false || (mode === "url" ? !url.trim().startsWith("http") : text.trim().length < 200)}
-          onClick={run}
-        >
-          Score this job
-        </button>
+        <div className="panel" data-tour="evaluate-input">
+          <div className="tabs" role="tablist">
+            <button className="tab" role="tab" aria-selected={mode === "url"} onClick={() => setMode("url")}>
+              Job link
+            </button>
+            <button className="tab" role="tab" aria-selected={mode === "text"} onClick={() => setMode("text")}>
+              Paste description
+            </button>
+          </div>
+
+          {mode === "url" ? (
+            <div className="field">
+              <label htmlFor="jd-url">Job posting URL</label>
+              <input
+                id="jd-url"
+                className="input"
+                type="url"
+                placeholder="https://job-boards.greenhouse.io/…"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+              />
+            </div>
+          ) : (
+            <div className="field">
+              <label htmlFor="jd-text">Job description</label>
+              <textarea
+                id="jd-text"
+                className="input"
+                placeholder="Paste the full job description here…"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+              />
+            </div>
+          )}
+
+          <button
+            className="btn btn-primary"
+            data-tour="evaluate-submit"
+            disabled={hasResume === false || (mode === "url" ? !url.trim().startsWith("http") : text.trim().length < 200)}
+            onClick={run}
+          >
+            Score this job
+          </button>
+        </div>
       </div>
-    </div>
     </div>
   );
 }

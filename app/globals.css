@@ -1756,6 +1756,37 @@ textarea.input {
   margin: 1.6rem 0;
 }
 
+/* job description markdown (JOB_DRAFT_SYSTEM generates description as
+   markdown — About the role / What you'll do / What we're looking for) */
+.employer-job-description {
+  line-height: 1.6;
+  font-size: 0.9rem;
+  color: var(--ink-72);
+}
+.employer-job-description h1,
+.employer-job-description h2,
+.employer-job-description h3 {
+  color: var(--ink-92, var(--ink-72));
+  font-size: 0.95rem;
+  font-weight: 650;
+  margin: 1rem 0 0.4rem;
+}
+.employer-job-description h1:first-child,
+.employer-job-description h2:first-child,
+.employer-job-description h3:first-child {
+  margin-top: 0;
+}
+.employer-job-description p {
+  margin: 0.5rem 0;
+}
+.employer-job-description ul,
+.employer-job-description ol {
+  margin: 0.5rem 0 0.5rem 1.2rem;
+}
+.employer-job-description li {
+  margin: 0.2rem 0;
+}
+
 /* live-scan panel status: dashed calibration ring + mono readout */
 .scan-status {
   display: flex;
@@ -2481,7 +2512,20 @@ textarea.input {
   border-color: var(--score-weak, #bc4a2a);
   background: rgba(188, 74, 42, 0.08);
 }
-
+.employer-nav-badge {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 0.4rem;
+  border-radius: 50%;
+  background: #e0433a;
+  vertical-align: middle;
+}
+.employer-sidebar-foot {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--ink-06);
+}
 /* Legacy icon class kept for any references still using it */
 .employer-icon {
   width: 18px;
@@ -2523,6 +2567,17 @@ textarea.input {
 .employer-company-mark {
   width: 34px;
   height: 34px;
+}
+/* Nav badge dot — used by ModuleDropdown's Applicants/Offers items to flag
+   open items needing attention (notification counts, see EmployerShell.tsx). */
+.employer-nav-badge {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 0.4rem;
+  border-radius: 50%;
+  background: #e0433a;
+  vertical-align: middle;
 }
 
 /* ── Content area ─────────────────────────────────────────── */
@@ -2637,7 +2692,7 @@ textarea.input {
   color: var(--iris-deep, var(--iris));
 }
 .suggested-action-badge.peach {
-  background: color-mix(in srgb, var(--peach) 20%, transparent);
+  background: color-mix(in srgb, var(--aura-b) 20%, transparent);
   color: #bc4a2a;
 }
 .suggested-action-badge.mint {
@@ -3692,295 +3747,635 @@ textarea.input {
 
 /* ── Ask Aura side chat ─────────────────────────────────────────────── */
 
+/* Ask Aura — the consent surface.
+ *
+ * Aura's defining behavior isn't that she chats, it's that she asks before she
+ * acts. So the transcript stays quiet and the PROPOSAL carries the weight: it
+ * reads as a document handed over for signature, not another chat bubble.
+ *
+ * The aura gradient (periwinkle/peach/mint) appears in exactly two places —
+ * the toggle's ring and a proposal's left rail. One rule holds it together:
+ * the gradient is where Aura is asking you for something.
+ *
+ * Assistant turns deliberately have no bubble. Aura speaks into the panel
+ * behind a small mark; only the human gets a bubble. Her markdown tables and
+ * lists then get the full column width instead of dying at 90% of 380px.
+ */
+
+/* The mark: a gradient ring, used at three sizes (toggle, turn, proposal). */
+.aura-mark {
+  flex: none;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 200deg,
+    var(--aura-a),
+    var(--aura-b),
+    var(--aura-c),
+    var(--aura-a)
+  );
+  -webkit-mask: radial-gradient(circle, transparent 40%, #000 44%);
+  mask: radial-gradient(circle, transparent 40%, #000 44%);
+}
+
 .aura-chat-toggle {
   position: fixed;
   right: 1.5rem;
   bottom: 1.5rem;
-  width: 3.2rem;
-  height: 3.2rem;
-  border-radius: 50%;
+  width: 3.25rem;
+  height: 3.25rem;
+  display: grid;
+  place-items: center;
   border: none;
-  background: linear-gradient(135deg, var(--iris), var(--peach));
+  border-radius: 50%;
+  background: var(--ink);
   color: #fff;
-  font-size: 1.3rem;
   cursor: pointer;
   box-shadow: var(--shadow-lift);
   z-index: 60;
-  display: grid;
-  place-items: center;
+  transition:
+    transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
+    background 0.2s ease;
+}
+.aura-chat-toggle:hover {
+  transform: translateY(-2px);
+}
+.aura-chat-toggle > * {
+  grid-area: 1 / 1;
+  transition:
+    opacity 0.18s ease,
+    transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.aura-chat-toggle .aura-mark {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+/* Open state keeps the same mark and rotates a chevron in over it, rather
+   than swapping the identity out for a bare "×". */
+.aura-chat-toggle-close {
+  opacity: 0;
+  transform: scale(0.6) rotate(-90deg);
+}
+.aura-chat-toggle.is-open .aura-mark {
+  opacity: 0;
+  transform: scale(0.6) rotate(90deg);
+}
+.aura-chat-toggle.is-open .aura-chat-toggle-close {
+  opacity: 1;
+  transform: none;
 }
 
 .aura-chat-panel {
   position: fixed;
   right: 1.5rem;
-  bottom: 5.2rem;
-  width: min(380px, calc(100vw - 2.5rem));
-  height: min(560px, calc(100vh - 8rem));
-  background: var(--surface);
-  border: 1px solid var(--ink-06);
-  border-radius: var(--r-l, 1rem);
-  box-shadow: var(--shadow-lift);
-  z-index: 60;
+  bottom: 5.4rem;
+  width: min(384px, calc(100vw - 2.5rem));
+  height: min(600px, calc(100vh - 8rem));
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--ink-12);
+  border-radius: var(--r-m);
+  box-shadow: var(--shadow-lift);
+  z-index: 60;
+  animation: aura-chat-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: width 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+/* Aura answers with markdown tables and pipeline summaries — they need room. */
+.aura-chat-panel.is-wide {
+  width: min(560px, calc(100vw - 2.5rem));
+  height: min(720px, calc(100vh - 8rem));
+}
+@keyframes aura-chat-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
 }
 
+/* ── Header ─────────────────────────────────────────────────────────── */
+
 .aura-chat-head {
-  padding: 0.9rem 1rem;
-  border-bottom: 1px solid var(--ink-06);
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--ink-06);
 }
-.aura-chat-head strong {
-  display: block;
-  font-size: 0.9rem;
+.aura-chat-head .aura-mark {
+  width: 1.15rem;
+  height: 1.15rem;
 }
-.aura-chat-head span {
-  font-size: 0.72rem;
-  color: var(--ink-55);
+.aura-chat-title {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-display), sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
 }
 .aura-chat-head-actions {
   display: flex;
-  gap: 0.3rem;
-  flex-shrink: 0;
+  gap: 0.1rem;
 }
 .aura-chat-icon-btn {
-  width: 1.8rem;
-  height: 1.8rem;
-  border-radius: 50%;
-  border: 1px solid var(--ink-12);
-  background: var(--surface);
-  color: var(--ink-55);
-  font-size: 0.85rem;
-  line-height: 1;
-  cursor: pointer;
+  width: 1.85rem;
+  height: 1.85rem;
   display: grid;
   place-items: center;
+  border: none;
+  border-radius: 0.45rem;
+  background: none;
+  color: var(--ink-55);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 .aura-chat-icon-btn:hover {
-  border-color: var(--iris);
+  background: var(--ink-06);
+  color: var(--ink);
+}
+.aura-chat-icon-btn[aria-pressed="true"] {
+  background: var(--iris-08);
   color: var(--iris);
 }
 
+/* ── Sessions drawer ────────────────────────────────────────────────── */
+
 .aura-chat-sessions {
-  max-height: 40%;
+  max-height: 45%;
   overflow-y: auto;
+  padding: 0.35rem;
   border-bottom: 1px solid var(--ink-06);
-  padding: 0.4rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+  background: var(--porcelain);
 }
 .aura-chat-session {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.4rem;
-  padding: 0.45rem 0.6rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: none;
+  border-radius: 0.45rem;
+  background: none;
+  color: inherit;
   font-size: 0.78rem;
+  text-align: left;
+  cursor: pointer;
 }
 .aura-chat-session:hover {
   background: var(--ink-06);
 }
 .aura-chat-session.is-active {
-  background: var(--iris-08);
+  background: var(--surface);
+  box-shadow: inset 2px 0 0 var(--iris);
   color: var(--iris-deep);
+  font-weight: 600;
 }
 .aura-chat-session-title {
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex: 1;
 }
 .aura-chat-session-delete {
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0.15rem;
   border: none;
-  background: transparent;
-  color: var(--ink-55);
+  border-radius: 0.3rem;
+  background: none;
+  color: var(--ink-30);
   cursor: pointer;
-  font-size: 0.9rem;
-  line-height: 1;
-  padding: 0 0.2rem;
-  flex-shrink: 0;
 }
 .aura-chat-session-delete:hover {
-  color: #bc4a2a;
+  background: rgba(188, 74, 42, 0.1);
+  color: var(--score-weak);
 }
 
+/* ── Transcript ─────────────────────────────────────────────────────── */
+
+.aura-chat-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 0.95rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: var(--porcelain);
+}
+
+/* Aura's turn: a mark and her words. No bubble — she isn't trading blobs
+   with you, she's writing into the panel. */
+.aura-chat-turn {
+  display: grid;
+  grid-template-columns: 1.15rem minmax(0, 1fr);
+  gap: 0.55rem;
+  align-items: start;
+}
+.aura-chat-turn .aura-mark {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.15rem;
+}
+.aura-chat-said {
+  min-width: 0;
+  font-size: 0.845rem;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+/* The human's turn: a bubble, right-aligned, in the action color. */
+.aura-chat-msg-user {
+  display: flex;
+  justify-content: flex-end;
+}
+.aura-chat-msg-user .aura-chat-bubble {
+  max-width: 85%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.85rem 0.85rem 0.2rem 0.85rem;
+  background: var(--iris);
+  color: #fff;
+  font-size: 0.845rem;
+  line-height: 1.5;
+}
+
+/* Markdown inside either voice — compact, scoped, no browser defaults. */
+.aura-chat-said > :first-child,
+.aura-chat-bubble > :first-child {
+  margin-top: 0;
+}
+.aura-chat-said > :last-child,
+.aura-chat-bubble > :last-child {
+  margin-bottom: 0;
+}
+.aura-chat-said p,
+.aura-chat-bubble p {
+  margin: 0.45rem 0;
+}
+.aura-chat-said h1,
+.aura-chat-said h2,
+.aura-chat-said h3 {
+  margin: 0.8rem 0 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.aura-chat-said ul,
+.aura-chat-said ol,
+.aura-chat-bubble ul,
+.aura-chat-bubble ol {
+  margin: 0.45rem 0;
+  padding-left: 1.05rem;
+}
+.aura-chat-said li,
+.aura-chat-bubble li {
+  margin: 0.18rem 0;
+}
+.aura-chat-said strong,
+.aura-chat-bubble strong {
+  font-weight: 650;
+}
+.aura-chat-said code,
+.aura-chat-bubble code {
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.25rem;
+  background: rgba(26, 29, 41, 0.07);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.78em;
+}
+.aura-chat-msg-user .aura-chat-bubble code {
+  background: rgba(255, 255, 255, 0.2);
+}
+.aura-chat-said pre {
+  margin: 0.5rem 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.5rem;
+  background: var(--ink);
+  color: #fff;
+  overflow-x: auto;
+}
+.aura-chat-said pre code {
+  background: none;
+  color: inherit;
+}
+.aura-chat-said a,
+.aura-chat-bubble a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.aura-chat-said a {
+  color: var(--iris);
+}
+.aura-chat-said table {
+  width: 100%;
+  margin: 0.5rem 0;
+  border-collapse: collapse;
+  font-size: 0.74rem;
+  display: block;
+  overflow-x: auto;
+}
+.aura-chat-said th,
+.aura-chat-said td {
+  padding: 0.3rem 0.45rem;
+  border: 1px solid var(--ink-12);
+  text-align: left;
+  white-space: nowrap;
+}
+.aura-chat-said th {
+  background: var(--ink-06);
+  font-weight: 650;
+}
+.aura-chat-said blockquote {
+  margin: 0.5rem 0;
+  padding-left: 0.7rem;
+  border-left: 2px solid var(--ink-12);
+  color: var(--ink-55);
+}
+
+/* ── The consent card — the one element carrying weight ─────────────── */
+
+.aura-chat-proposal {
+  position: relative;
+  margin-top: 0.7rem;
+  padding: 0.75rem 0.8rem 0.7rem 0.9rem;
+  border: 1px solid var(--ink-12);
+  border-radius: 0.65rem;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(26, 29, 41, 0.05);
+  overflow: hidden;
+}
+/* The rail: the gradient means Aura is asking. */
+.aura-chat-proposal::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(
+    180deg,
+    var(--aura-a),
+    var(--aura-b) 55%,
+    var(--aura-c)
+  );
+}
+.aura-chat-proposal-kind {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.575rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+}
+.aura-chat-proposal-subject {
+  margin: 0.25rem 0 0;
+  font-family: var(--font-display), sans-serif;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+/* The message itself, inset — visibly a quotation of what would be sent. */
+.aura-chat-proposal-body {
+  max-height: 8.5rem;
+  overflow-y: auto;
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.4rem;
+  background: var(--porcelain);
+  color: var(--ink-72);
+  font-size: 0.775rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+.aura-chat-proposal-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+.aura-chat-proposal-status {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.575rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+}
+.aura-chat-proposal-send {
+  padding: 0.42rem 0.8rem;
+  border: none;
+  border-radius: var(--r-pill);
+  background: var(--iris);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+.aura-chat-proposal-send:hover:not(:disabled) {
+  background: var(--iris-deep);
+}
+.aura-chat-proposal-send:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.aura-chat-proposal-decline {
+  padding: 0.42rem 0.55rem;
+  border: none;
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--ink-55);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.aura-chat-proposal-decline:hover:not(:disabled) {
+  background: var(--ink-06);
+  color: var(--ink);
+}
+.aura-chat-proposal-decline:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+/* Settled states: the rail retires once the question is answered. */
+.aura-chat-proposal.is-settled::before {
+  background: var(--ink-12);
+}
+.aura-chat-proposal.is-settled {
+  background: var(--porcelain);
+}
+.aura-chat-proposal.is-sent .aura-chat-proposal-status {
+  color: var(--score-strong);
+  font-weight: 700;
+}
+
+/* ── Progress, empty, quick starts ──────────────────────────────────── */
+
 .aura-chat-progress {
-  padding: 0.3rem 0.75rem;
+  display: grid;
+  grid-template-columns: 1.15rem minmax(0, 1fr);
+  gap: 0.55rem;
+  align-items: center;
+}
+.aura-chat-progress .aura-mark {
+  width: 1.15rem;
+  height: 1.15rem;
+  animation: aura-spin 2.4s linear infinite;
+}
+@keyframes aura-spin {
+  to {
+    transform: rotate(1turn);
+  }
 }
 .aura-chat-step {
   margin: 0;
-  font-size: 0.76rem;
-  color: var(--iris);
-  font-weight: 600;
-  animation: aura-step-fade 0.2s ease;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.7rem;
+  color: var(--ink-55);
+  animation: aura-step-fade 0.25s ease;
 }
 @keyframes aura-step-fade {
   from {
     opacity: 0;
     transform: translateY(2px);
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
-.aura-chat-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0.9rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-}
-
+/* The opening is Aura's first turn, not a centered placeholder floating in a
+   void — she greets you and hands you three ways in. */
 .aura-chat-empty {
   color: var(--ink-55);
-  font-size: 0.8rem;
-  text-align: center;
-  margin-top: 1rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
 }
-
-.aura-chat-bubble {
-  padding: 0.55rem 0.75rem;
-  border-radius: 0.7rem;
-  font-size: 0.83rem;
-  line-height: 1.45;
-  max-width: 90%;
-}
-.aura-chat-msg-user {
-  display: flex;
-  justify-content: flex-end;
-}
-.aura-chat-msg-user .aura-chat-bubble {
-  background: var(--iris);
-  color: #fff;
-}
-.aura-chat-msg-assistant .aura-chat-bubble {
-  background: var(--ink-06);
+.aura-chat-empty strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-family: var(--font-display), sans-serif;
+  font-size: 0.95rem;
   color: var(--ink);
-}
-
-/* Markdown content inside a chat bubble — compact spacing, no default
-   browser margins, code/tables scoped to the bubble width. */
-.aura-chat-bubble > :first-child { margin-top: 0; }
-.aura-chat-bubble > :last-child { margin-bottom: 0; }
-.aura-chat-bubble p {
-  margin: 0.4rem 0;
-}
-.aura-chat-bubble ul,
-.aura-chat-bubble ol {
-  margin: 0.4rem 0;
-  padding-left: 1.1rem;
-}
-.aura-chat-bubble li {
-  margin: 0.15rem 0;
-}
-.aura-chat-bubble strong {
-  font-weight: 600;
-}
-.aura-chat-bubble code {
-  font-size: 0.78em;
-  background: rgba(0, 0, 0, 0.08);
-  border-radius: 0.25rem;
-  padding: 0.1rem 0.3rem;
-}
-.aura-chat-msg-user .aura-chat-bubble code {
-  background: rgba(255, 255, 255, 0.18);
-}
-.aura-chat-bubble pre {
-  margin: 0.4rem 0;
-  padding: 0.5rem 0.6rem;
-  border-radius: 0.5rem;
-  background: rgba(0, 0, 0, 0.08);
-  overflow-x: auto;
-}
-.aura-chat-bubble pre code {
-  background: none;
-  padding: 0;
-}
-.aura-chat-bubble a {
-  color: inherit;
-  text-decoration: underline;
-}
-.aura-chat-bubble table {
-  display: block;
-  overflow-x: auto;
-  border-collapse: collapse;
-  margin: 0.4rem 0;
-  font-size: 0.9em;
-}
-.aura-chat-bubble th,
-.aura-chat-bubble td {
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  padding: 0.25rem 0.5rem;
-  text-align: left;
-}
-.aura-chat-bubble blockquote {
-  margin: 0.4rem 0;
-  padding-left: 0.6rem;
-  border-left: 2px solid currentColor;
-  opacity: 0.85;
-}
-
-.aura-chat-draft {
-  margin: 0.4rem 0 0;
-  padding: 0.55rem 0.7rem;
-  border: 1px solid var(--ink-12);
-  border-radius: 0.6rem;
-  background: var(--surface-soft, rgba(0, 0, 0, 0.02));
-}
-.aura-chat-draft strong {
-  display: block;
-  font-size: 0.78rem;
-}
-.aura-chat-draft p {
-  margin: 0.2rem 0 0.5rem;
-  font-size: 0.78rem;
-  color: var(--ink-55);
-  white-space: pre-wrap;
-  max-width: 100%;
-}
-.aura-chat-draft button {
-  width: 100%;
+  letter-spacing: -0.015em;
 }
 
 .aura-chat-quick {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  padding: 0 1rem 0.7rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
 }
 .aura-chat-chip {
+  max-width: 100%;
+  padding: 0.35rem 0.7rem;
   border: 1px solid var(--ink-12);
-  background: var(--ink-06);
   border-radius: var(--r-pill);
-  padding: 0.3rem 0.65rem;
-  font-size: 0.72rem;
+  background: var(--surface);
+  color: var(--ink-72);
+  font-size: 0.74rem;
+  text-align: left;
   cursor: pointer;
-  color: var(--ink);
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 .aura-chat-chip:hover {
   border-color: var(--iris);
   color: var(--iris);
 }
 
+/* ── Composer ───────────────────────────────────────────────────────── */
+
 .aura-chat-input {
   display: flex;
+  align-items: flex-end;
   gap: 0.5rem;
-  padding: 0.8rem 1rem;
+  padding: 0.65rem 0.75rem;
   border-top: 1px solid var(--ink-06);
+  background: var(--surface);
 }
-.aura-chat-input .input {
+.aura-chat-input textarea {
   flex: 1;
+  min-height: 2.25rem;
+  max-height: 7rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--ink-12);
+  border-radius: 1.1rem;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.83rem;
+  line-height: 1.4;
+  resize: none;
+  overflow-y: auto;
 }
+.aura-chat-input textarea:focus-visible {
+  outline: none;
+  border-color: var(--iris);
+}
+.aura-chat-input textarea::placeholder {
+  color: var(--ink-30);
+}
+.aura-chat-send {
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--iris);
+  color: #fff;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease;
+}
+.aura-chat-send:hover:not(:disabled) {
+  background: var(--iris-deep);
+}
+.aura-chat-send:disabled {
+  background: var(--ink-12);
+  color: var(--ink-30);
+  cursor: default;
+}
+
+/* ── Small screens: the panel becomes a sheet ───────────────────────── */
+
+@media (max-width: 560px) {
+  .aura-chat-panel,
+  .aura-chat-panel.is-wide {
+    right: 0.5rem;
+    left: 0.5rem;
+    bottom: 0.5rem;
+    width: auto;
+    height: min(78vh, calc(100vh - 1rem));
+  }
+  .aura-chat-toggle {
+    right: 1rem;
+    bottom: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aura-chat-panel,
+  .aura-chat-toggle,
+  .aura-chat-toggle > *,
+  .aura-chat-step {
+    animation: none;
+    transition: none;
+  }
+  .aura-chat-progress .aura-mark {
+    animation: none;
+  }
+}
+
 .quality-score {
   color: var(--iris-deep);
   font:
@@ -4418,15 +4813,24 @@ textarea.input {
   border-radius: var(--r-pill);
   background: var(--surface);
 }
-.candidate-view-tabs a {
+.candidate-view-tabs a,
+.candidate-view-tabs button {
   padding: 0.4rem 0.75rem;
+  border: none;
   border-radius: var(--r-pill);
+  background: none;
   color: var(--ink-55);
   font-size: 0.7rem;
   font-weight: 650;
   text-decoration: none;
+  transition: color 0.15s ease;
 }
-.candidate-view-tabs a.active {
+.candidate-view-tabs a:hover,
+.candidate-view-tabs button:hover {
+  color: var(--ink);
+}
+.candidate-view-tabs a.active,
+.candidate-view-tabs button.active {
   background: var(--iris);
   color: #fff;
 }
@@ -4494,10 +4898,18 @@ textarea.input {
   cursor: pointer;
   font-size: 1.2rem;
 }
+/* A <fieldset> so a single `disabled` locks every control while Aura drafts —
+   needs the element's default chrome cleared. */
 .candidate-email-fields {
   display: grid;
   gap: 1rem;
   padding: 1.25rem 0;
+  border: none;
+  min-inline-size: 0;
+}
+.candidate-email-fields:disabled {
+  opacity: 0.6;
+  cursor: progress;
 }
 .candidate-email-fields label {
   display: grid;
@@ -5280,6 +5692,60 @@ textarea.input {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
 }
+.jobs-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin: 1.75rem 0 0;
+  padding: 0.7rem;
+  border: 1px solid var(--ink-12);
+  background: color-mix(in srgb, var(--surface) 92%, var(--iris-08));
+  box-shadow: var(--shadow-card);
+}
+.jobs-pagination-summary {
+  margin-right: auto;
+  padding: 0 0.35rem;
+  color: var(--ink-55);
+  font: 0.65rem var(--font-space), monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.jobs-pagination .btn {
+  min-width: 5.7rem;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.68rem;
+}
+.jobs-pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.jobs-pagination-pages button {
+  width: 2.1rem;
+  height: 2.1rem;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-72);
+  font: 700 0.75rem var(--font-space), monospace;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.18s;
+}
+.jobs-pagination-pages button:hover,
+.jobs-pagination-pages button.active {
+  border-color: var(--iris);
+  background: var(--iris);
+  color: #fff;
+}
+.jobs-pagination-pages button:hover:not(.active) {
+  transform: translateY(-1px);
+}
+.jobs-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
 .candidate-job-card {
   display: flex;
   flex-direction: column;
@@ -5346,10 +5812,22 @@ textarea.input {
 .candidate-job-card > h2 {
   margin: 1.3rem 0 0.45rem;
   font-size: 1.35rem;
+  line-height: 1.2;
+  min-height: 3.24rem;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 .candidate-job-card > p {
   color: var(--ink-72);
   font-size: 0.82rem;
+  line-height: 1.55;
+  min-height: 3.813rem;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 .job-card-meta {
   display: flex;

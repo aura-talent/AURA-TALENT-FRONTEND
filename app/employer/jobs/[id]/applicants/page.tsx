@@ -26,6 +26,30 @@ export default function JobApplicantsPage({
   const [loading, setLoading] = useState(true);
   const [scoring, setScoring] = useState<Set<string>>(new Set());
   const [queued, setQueued] = useState<Set<string>>(new Set());
+  const [togglingSelect, setTogglingSelect] = useState<Set<string>>(new Set());
+
+  async function toggleSelectForOffer(row: CandidateRow) {
+    if (!row.application) return;
+    const applicationId = row.application.id;
+    const next = !row.application.selected_for_offer;
+    setTogglingSelect((s) => new Set(s).add(applicationId));
+    try {
+      const updated = await employerApi.selectForOffer(applicationId, next);
+      setRows((rs) =>
+        rs.map((r) =>
+          r.candidate_user_id === row.candidate_user_id ? { ...r, application: updated } : r,
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to toggle select-for-offer:", err);
+    } finally {
+      setTogglingSelect((s) => {
+        const next = new Set(s);
+        next.delete(applicationId);
+        return next;
+      });
+    }
+  }
 
   async function scoreNow(candidateUserId: string) {
     setScoring((s) => new Set(s).add(candidateUserId));
@@ -196,22 +220,6 @@ export default function JobApplicantsPage({
                   </td>
                   <td>
                     <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", justifyContent: "flex-end" }}>
-                      {!interviewOnly && (
-                        <button
-                          className="btn btn-ghost"
-                          disabled={scoring.has(row.candidate_user_id) || queued.has(row.candidate_user_id)}
-                          onClick={() => scoreNow(row.candidate_user_id)}
-                          title="Run the evaluation agent for this candidate"
-                        >
-                          {scoring.has(row.candidate_user_id)
-                            ? "Scoring…"
-                            : queued.has(row.candidate_user_id)
-                              ? "Queued ✓"
-                              : score != null
-                                ? "Re-score"
-                                : "Score now"}
-                        </button>
-                      )}
                       <Link
                         href={
                           interviewOnly

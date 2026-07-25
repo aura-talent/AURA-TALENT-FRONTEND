@@ -126,9 +126,7 @@ export default function HeadhuntersPage() {
                 <th>Headhunter</th>
                 <th>Status</th>
                 <th>Focus areas</th>
-                <th>Assigned jobs</th>
                 <th>Sourced</th>
-                <th>Avg. match</th>
                 <th>Last active</th>
                 <th></th>
               </tr>
@@ -158,39 +156,13 @@ export default function HeadhuntersPage() {
                     </td>
                     <td>{headhunter.focus_areas.join(", ") || "—"}</td>
                     <td>
-                      {assignedTitles.length === 0 ? "—" : assignedTitles.join(", ")}
-                    </td>
-                    <td>
                       <span className="signal-score">
                         {headhunter.stats.candidates_sourced ?? 0}
                       </span>
                     </td>
-                    <td>
-                      {headhunter.stats.avg_match_score != null ? (
-                        <span className="signal-score">
-                          {Math.round(headhunter.stats.avg_match_score)}%
-                        </span>
-                      ) : (
-                        <span className="signal-missing">—</span>
-                      )}
-                    </td>
                     <td>{timeAgo(headhunter.stats.last_active_at)}</td>
                     <td>
                       <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", justifyContent: "flex-end" }}>
-                        {headhunter.status === "Active" && headhunter.job_ids.length > 0 && (
-                          <button
-                            className="btn btn-ghost"
-                            disabled={sourcing.has(headhunter.id) || sourced.has(headhunter.id)}
-                            onClick={() => sourceNow(headhunter)}
-                            title="Run this headhunter's sourcing agent over the talent pool"
-                          >
-                            {sourcing.has(headhunter.id)
-                              ? "Sourcing…"
-                              : sourced.has(headhunter.id)
-                                ? "Queued ✓"
-                                : "Source now"}
-                          </button>
-                        )}
                         <Link
                           href={`/employer/headhunters/${headhunter.id}/edit`}
                           className="table-action"

@@ -20,6 +20,7 @@ export default function JobsPage() {
   const [plans, setPlans] = useState<EmployerJobPlan[]>([]);
   const [candidates, setCandidates] = useState<CandidateRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<"pipeline" | "table">("pipeline");
 
   useEffect(() => {
     let cancelled = false;
@@ -116,16 +117,33 @@ export default function JobsPage() {
         </span>
       </div>
       {!loading && jobs.length > 0 && (
-        <section className="panel employer-section" style={{ marginBottom: "1.25rem" }}>
-          <div className="employer-section-head">
-            <div>
-              <h2>Hiring pipeline</h2>
-              <p>Every open role, moving through your hiring process</p>
-            </div>
-          </div>
+        <div className="candidate-view-tabs" role="tablist" aria-label="Job listing view">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "pipeline"}
+            className={view === "pipeline" ? "active" : ""}
+            onClick={() => setView("pipeline")}
+          >
+            Hiring pipeline
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "table"}
+            className={view === "table" ? "active" : ""}
+            onClick={() => setView("table")}
+          >
+            All jobs
+          </button>
+        </div>
+      )}
+      {!loading && jobs.length > 0 && view === "pipeline" && (
+        <section className="panel employer-section">
           <HiringPipelineBoard jobs={jobs} phases={phases} plans={plans} candidates={candidates} />
         </section>
       )}
+      {(loading || view === "table" || jobs.length === 0) && (
       <div className="panel candidate-table-wrap">
         {loading ? (
           <Loader label="Loading jobs…" />
@@ -249,6 +267,7 @@ export default function JobsPage() {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

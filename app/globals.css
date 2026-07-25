@@ -1756,6 +1756,37 @@ textarea.input {
   margin: 1.6rem 0;
 }
 
+/* job description markdown (JOB_DRAFT_SYSTEM generates description as
+   markdown — About the role / What you'll do / What we're looking for) */
+.employer-job-description {
+  line-height: 1.6;
+  font-size: 0.9rem;
+  color: var(--ink-72);
+}
+.employer-job-description h1,
+.employer-job-description h2,
+.employer-job-description h3 {
+  color: var(--ink-92, var(--ink-72));
+  font-size: 0.95rem;
+  font-weight: 650;
+  margin: 1rem 0 0.4rem;
+}
+.employer-job-description h1:first-child,
+.employer-job-description h2:first-child,
+.employer-job-description h3:first-child {
+  margin-top: 0;
+}
+.employer-job-description p {
+  margin: 0.5rem 0;
+}
+.employer-job-description ul,
+.employer-job-description ol {
+  margin: 0.5rem 0 0.5rem 1.2rem;
+}
+.employer-job-description li {
+  margin: 0.2rem 0;
+}
+
 /* live-scan panel status: dashed calibration ring + mono readout */
 .scan-status {
   display: flex;

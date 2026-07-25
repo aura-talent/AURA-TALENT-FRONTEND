@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import gsap from "gsap";
-import { api, type Application } from "@/lib/api";
+import { api, ApiError, type Application } from "@/lib/api";
 import { scoreColor } from "@/components/ScoreDial";
 import Thinking from "@/components/Thinking";
 import ReportView from "@/components/ReportView";
@@ -31,8 +31,15 @@ function CompareInner() {
 
   // Only evaluated jobs (they carry a real evaluation_id) can be compared —
   // manual tracker entries default evaluation_id to 0 and would render as
-  // duplicate 0.0 rows with colliding React keys.
-  const comparableApps = apps.filter((a) => !!a.evaluation_id);
+  // duplicate 0.0 rows with colliding React keys. `scores` is also required:
+  // some tracker rows reference an evaluation_id that no longer resolves to a
+  // real evaluations row for this user (score/scores come back null from the
+  // API in that case) — /jobs/compare 404s on those, so keep them out of the
+  // picker instead of letting the user hit a dead end.
+  const comparableApps = apps.filter((a) => !!a.evaluation_id && !!a.scores);
+  const incompleteCount = apps.filter(
+    (a) => !!a.evaluation_id && !a.scores
+  ).length;
 
   useEffect(() => {
     api
@@ -58,8 +65,12 @@ function CompareInner() {
     try {
       const r = await api.compare([...selected]);
       setResult(r.comparison_markdown);
-    } catch {
-      setError("Comparison failed — try again.");
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? `Comparison failed — ${err.message}`
+          : "Comparison failed — try again."
+      );
     } finally {
       setBusy(false);
     }
@@ -233,6 +244,16 @@ function CompareInner() {
         </div>
 
         {error && <div className="notice notice-error">{error}</div>}
+
+        {loaded && incompleteCount > 0 && (
+          <div className="notice notice-warn">
+            {incompleteCount === 1
+              ? "1 evaluated job is"
+              : `${incompleteCount} evaluated jobs are`}{" "}
+            missing score data and can&apos;t be compared yet — re-run their
+            evaluation to include them.
+          </div>
+        )}
 
         {!loaded ? (
           <div className="scan-status">

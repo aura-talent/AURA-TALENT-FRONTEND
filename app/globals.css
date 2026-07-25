@@ -5645,6 +5645,60 @@ textarea.input {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
 }
+.jobs-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin: 1.75rem 0 0;
+  padding: 0.7rem;
+  border: 1px solid var(--ink-12);
+  background: color-mix(in srgb, var(--surface) 92%, var(--iris-08));
+  box-shadow: var(--shadow-card);
+}
+.jobs-pagination-summary {
+  margin-right: auto;
+  padding: 0 0.35rem;
+  color: var(--ink-55);
+  font: 0.65rem var(--font-space), monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.jobs-pagination .btn {
+  min-width: 5.7rem;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.68rem;
+}
+.jobs-pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.jobs-pagination-pages button {
+  width: 2.1rem;
+  height: 2.1rem;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-72);
+  font: 700 0.75rem var(--font-space), monospace;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.18s;
+}
+.jobs-pagination-pages button:hover,
+.jobs-pagination-pages button.active {
+  border-color: var(--iris);
+  background: var(--iris);
+  color: #fff;
+}
+.jobs-pagination-pages button:hover:not(.active) {
+  transform: translateY(-1px);
+}
+.jobs-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
 .candidate-job-card {
   display: flex;
   flex-direction: column;
@@ -5711,10 +5765,22 @@ textarea.input {
 .candidate-job-card > h2 {
   margin: 1.3rem 0 0.45rem;
   font-size: 1.35rem;
+  line-height: 1.2;
+  min-height: 3.24rem;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 .candidate-job-card > p {
   color: var(--ink-72);
   font-size: 0.82rem;
+  line-height: 1.55;
+  min-height: 3.813rem;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 .job-card-meta {
   display: flex;

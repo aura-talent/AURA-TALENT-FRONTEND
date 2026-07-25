@@ -2,7 +2,40 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import JobActions from "@/components/jobs/JobActions";
 import MobileApplyBar from "@/components/jobs/MobileApplyBar";
-import { jobs } from "../mockJobs";
+import { CandidateJob } from "../mockJobs"; // Or your CandidateJob / EmployerJob type
+
+const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8000";
+const BACKEND_API_KEY = process.env.BACKEND_API_KEY ?? "change-me";
+
+async function getJob(jobId: string): Promise<CandidateJob> {
+  const response = await fetch(
+    `${BACKEND_URL}/api/v1/jobs/${encodeURIComponent(jobId)}`,
+    {
+      headers: {
+        Accept: "application/json",
+        "X-API-Key": BACKEND_API_KEY,
+      },
+      cache: "no-store",
+    },
+  );
+
+  if (response.status === 404) notFound();
+  if (!response.ok) {
+    throw new Error(`Failed to fetch job ${jobId} (${response.status})`);
+  }
+
+  return response.json();
+}
+
+function formatSalary(
+  low: number | null,
+  high: number | null,
+  currency = "USD"
+): string {
+  if (low === null || high === null) return "Competitive";
+  const symbol = currency === "USD" ? "$" : `${currency} `;
+  return `${symbol}${Math.round(low / 1000)}k - ${symbol}${Math.round(high / 1000)}k`;
+}
 
 export default async function CandidateJobDetail({
   params,
@@ -10,8 +43,23 @@ export default async function CandidateJobDetail({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const job = jobs.find((item) => item.id === id && item.status === "Active");
-  if (!job) notFound();
+
+  const job = await getJob(id);
+
+  // Case-insensitive status check
+  if (job.status?.toLowerCase() !== "active") {
+    notFound();
+  }
+
+  const companyName = job.company_name || "Aura Partner";
+  const fitScore = job.fit_score ?? 90;
+  const teamName = job.team || "General Team";
+  const locationText = job.location || "Location Flexible";
+  const employmentTypeText = job.employment_type || "Full-time";
+  const descriptionText = job.description || "No description provided.";
+  const salaryText = formatSalary(job.salary_low, job.salary_high, job.salary_currency);
+  const interviewQuestionsCount = job.interview_questions?.length || 0;
+  const keywords: string[] = job.keywords || [];
 
   return (
     <div className="container candidate-job-detail-page">
@@ -22,61 +70,45 @@ export default async function CandidateJobDetail({
         <main>
           <section className="panel job-detail-hero">
             <div className="job-detail-company">
-              <div className="job-company-mark large">{job.company[0]}</div>
+              <div className="job-company-mark large">{companyName[0]}</div>
               <div>
-                <span>{job.company}</span>
-                <small>{job.team}</small>
+                <span>{companyName}</span>
+                <small>{teamName}</small>
               </div>
             </div>
             <div className="job-detail-title">
               <div>
                 <p className="eyebrow">
-                  {job.employmentType} · {job.location}
+                  {employmentTypeText} · {locationText}
                 </p>
                 <h1>{job.title}</h1>
-                <p>{job.description}</p>
+                <p>{descriptionText}</p>
               </div>
               <div className="job-fit-score">
-                <strong>{job.fit}</strong>
+                <strong>{fitScore}</strong>
                 <span>% profile match</span>
               </div>
             </div>
             <div className="job-detail-facts">
               <span>
                 <small>Compensation</small>
-                <strong>{job.salary}</strong>
+                <strong>{salaryText}</strong>
               </span>
               <span>
                 <small>Posted</small>
-                <strong>{job.age} ago</strong>
+                <strong>Recently added</strong>
               </span>
               <span>
                 <small>Interview</small>
                 <strong>
-                  {job.mockInterviewEnabled
-                    ? `${job.interviewQuestions} question simulation`
+                  {job.mock_interview_enabled
+                    ? `${interviewQuestionsCount} question simulation`
                     : "Employer review"}
                 </strong>
               </span>
             </div>
           </section>
-          <section className="panel job-detail-section">
-            <h2>What you&apos;ll own</h2>
-            <ul>
-              <li>
-                Turn ambiguous customer and business problems into clear product
-                direction.
-              </li>
-              <li>
-                Partner closely with product, engineering, and go-to-market
-                teams.
-              </li>
-              <li>
-                Build reusable systems that improve quality and team velocity.
-              </li>
-              <li>Measure outcomes and iterate after launch.</li>
-            </ul>
-          </section>
+
           <section className="panel job-detail-section">
             <h2>What Aura matched</h2>
             <p>
@@ -84,7 +116,7 @@ export default async function CandidateJobDetail({
               highest-priority requirements.
             </p>
             <div className="job-match-evidence">
-              {job.keywords.map((keyword, index) => (
+              {keywords.map((keyword: string, index: number) => (
                 <span key={keyword}>
                   <i>{index < 3 ? "Strong" : "Related"}</i>
                   {keyword}
@@ -93,6 +125,7 @@ export default async function CandidateJobDetail({
               ))}
             </div>
           </section>
+
           <section className="panel job-detail-section">
             <h2>Hiring process</h2>
             <div className="candidate-hiring-steps">
@@ -103,7 +136,7 @@ export default async function CandidateJobDetail({
                   Your resume and matching evidence are sent to the employer.
                 </p>
               </div>
-              {job.mockInterviewEnabled && (
+              {job.mock_interview_enabled && (
                 <div>
                   <span>02</span>
                   <strong>Optional mock interview</strong>
@@ -114,7 +147,7 @@ export default async function CandidateJobDetail({
                 </div>
               )}
               <div>
-                <span>{job.mockInterviewEnabled ? "03" : "02"}</span>
+                <span>{job.mock_interview_enabled ? "03" : "02"}</span>
                 <strong>Employer review</strong>
                 <p>
                   The hiring team reviews your available evidence and contacts
@@ -124,48 +157,41 @@ export default async function CandidateJobDetail({
             </div>
           </section>
 
-          {/* Mobile-only bottom safe area spacer so content isn't hidden behind sticky bar */}
           <div className="mobile-apply-spacer" aria-hidden="true" />
         </main>
+
         <aside>
           <section className="panel sticky-apply-card">
             <p className="eyebrow">Your fit</p>
-            <h2>{job.fit}% match</h2>
+            <h2>{fitScore}% match</h2>
             <div className="fit-breakdown">
               <span>
                 <b>Skills</b>
-                <i>
-                  <u style={{ width: "94%" }} />
-                </i>
+                <i><u style={{ width: "94%" }} /></i>
                 <em>94</em>
               </span>
               <span>
                 <b>North Star</b>
-                <i>
-                  <u style={{ width: "90%" }} />
-                </i>
+                <i><u style={{ width: "90%" }} /></i>
                 <em>90</em>
               </span>
               <span>
                 <b>Compensation</b>
-                <i>
-                  <u style={{ width: "88%" }} />
-                </i>
+                <i><u style={{ width: "88%" }} /></i>
                 <em>88</em>
               </span>
               <span>
                 <b>Culture</b>
-                <i>
-                  <u style={{ width: "91%" }} />
-                </i>
+                <i><u style={{ width: "91%" }} /></i>
                 <em>91</em>
               </span>
             </div>
             <JobActions
               jobId={job.id}
-              mockInterviewEnabled={job.mockInterviewEnabled}
+              mockInterviewEnabled={job.mock_interview_enabled}
             />
           </section>
+
           <section className="notice notice-info candidate-agent-note">
             <strong>Aura agent insight</strong>
             <br />
@@ -175,11 +201,10 @@ export default async function CandidateJobDetail({
         </aside>
       </div>
 
-      {/* Mobile sticky apply bar — replaces the aside on small screens */}
       <MobileApplyBar
         jobId={job.id}
-        fit={job.fit}
-        mockInterviewEnabled={job.mockInterviewEnabled}
+        fit={fitScore}
+        mockInterviewEnabled={job.mock_interview_enabled}
       />
     </div>
   );

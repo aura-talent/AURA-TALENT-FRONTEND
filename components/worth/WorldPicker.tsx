@@ -25,6 +25,10 @@ const ASIA = new Set([
 /** Countries we actually have data for — these get hover + click when zoomed. */
 const LIVE = new Set(["sg", "my"]);
 
+/** Tooltip label — only the two data-grounded countries carry a badge. */
+const tipLabel = (id: string, name: string) =>
+  LIVE.has(id) ? `${name} — DATA_GROUNDED` : name;
+
 export default function WorldPicker({
   onSelect,
   selected,
@@ -129,9 +133,10 @@ export default function WorldPicker({
   }, []);
 
   function classFor(id: string): string {
-    if (view === "world") return ASIA.has(id) ? "wp-asia" : "wp-land";
-    if (LIVE.has(id)) return selected === id.toUpperCase() ? "wp-live wp-sel" : "wp-live";
-    return "wp-land";
+    const sel = selected === id.toUpperCase() ? " wp-sel" : "";
+    if (LIVE.has(id)) return `wp-live${sel}`;
+    if (view === "world" && ASIA.has(id)) return `wp-asia${sel}`;
+    return `wp-any${sel}`;
   }
 
   return (
@@ -139,7 +144,9 @@ export default function WorldPicker({
       <style>{`
         .wp-wrap { position: relative; width: 100%; }
         .wp-svg { display: block; width: 100%; height: auto; }
-        .wp-land { fill: rgba(26,29,41,0.14); stroke: var(--porcelain); stroke-width: 0.3; pointer-events: none; }
+        .wp-land { fill: rgba(26,29,41,0.14); stroke: var(--porcelain); stroke-width: 0.3; }
+        .wp-any { fill: rgba(26,29,41,0.14); stroke: var(--porcelain); stroke-width: 0.3; cursor: pointer; pointer-events: auto; transition: fill .18s ease; }
+        .wp-any:hover { fill: rgba(26,29,41,0.30); }
         .wp-asia { fill: rgba(78,63,216,0.16); stroke: var(--porcelain); stroke-width: 0.3; cursor: pointer; pointer-events: auto; transition: fill .25s ease; animation: wpPulse 3.2s ease-in-out infinite; }
         .wp-asia:hover { fill: rgba(78,63,216,0.32); }
         .wp-live { fill: rgba(78,63,216,0.20); stroke: var(--porcelain); stroke-width: 0.4; cursor: pointer; pointer-events: auto; transition: fill .18s ease; }
@@ -171,23 +178,19 @@ export default function WorldPicker({
         aria-label="Pick a country"
       >
         {map?.locations.map((loc) => {
-          const cls = classFor(loc.id);
-          const interactive = cls.startsWith("wp-asia") || cls.startsWith("wp-live");
           return (
             <path
               key={loc.id}
               id={loc.id}
               d={loc.path}
-              className={cls}
-              onMouseEnter={interactive && view === "region" ? (e) => track(e, loc.name) : undefined}
-              onMouseMove={interactive && view === "region" ? (e) => track(e, loc.name) : undefined}
-              onMouseLeave={interactive ? () => setHover(null) : undefined}
+              className={classFor(loc.id)}
+              onMouseEnter={(e) => track(e, tipLabel(loc.id, loc.name))}
+              onMouseMove={(e) => track(e, tipLabel(loc.id, loc.name))}
+              onMouseLeave={() => setHover(null)}
               onClick={
-                view === "world" && ASIA.has(loc.id)
+                view === "world" && ASIA.has(loc.id) && !LIVE.has(loc.id)
                   ? zoomToRegion
-                  : LIVE.has(loc.id)
-                    ? () => onSelect?.({ code: loc.id.toUpperCase(), name: loc.name })
-                    : undefined
+                  : () => onSelect?.({ code: loc.id.toUpperCase(), name: loc.name })
               }
             />
           );
@@ -200,8 +203,8 @@ export default function WorldPicker({
             r={5}
             fill="transparent"
             style={{ cursor: "pointer", pointerEvents: "auto" }}
-            onMouseEnter={(e) => track(e, "Singapore")}
-            onMouseMove={(e) => track(e, "Singapore")}
+            onMouseEnter={(e) => track(e, tipLabel("sg", "Singapore"))}
+            onMouseMove={(e) => track(e, tipLabel("sg", "Singapore"))}
             onMouseLeave={() => setHover(null)}
             onClick={() => onSelect?.({ code: "SG", name: "Singapore" })}
           />
@@ -215,7 +218,7 @@ export default function WorldPicker({
       )}
 
       <div className="wp-hint">
-        {view === "world" ? "▸ Click Asia to zoom in" : "Hover a country · click to lock"}
+        {view === "world" ? "▸ Click a country · Asia zooms in" : "Hover a country · click to lock"}
       </div>
     </div>
   );

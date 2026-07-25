@@ -45,6 +45,7 @@ export default function ScanPage() {
   const [locationInput, setLocationInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [scanErrors, setScanErrors] = useState<string[]>([]);
   const [jobs, setJobs] = useState<JobPosting[] | null>(null);
 
   useEffect(() => {
@@ -130,6 +131,7 @@ export default function ScanPage() {
 
   async function run() {
     setError("");
+    setScanErrors([]);
     setBusy(true);
     setJobs(null);
     try {
@@ -140,6 +142,10 @@ export default function ScanPage() {
         ...(locs.length ? { location_keywords: locs } : {}),
       });
       setJobs(r.jobs);
+      // The backend returns 200 with an empty job list even when it never
+      // actually scanned anything (e.g. misconfigured portals.yml) — surface
+      // those errors instead of letting them masquerade as "no roles found".
+      if (r.errors?.length) setScanErrors(r.errors);
     } catch {
       setError("Scan failed — is the backend running?");
     } finally {
@@ -209,11 +215,26 @@ export default function ScanPage() {
               {jobs.length === 0 ? "0 ROLES_FOUND" : `${jobs.length} ROLES_FOUND`}
             </span>
           </div>
-          {jobs.length === 0 && (
+          {jobs.length === 0 && scanErrors.length === 0 && (
             <p style={{ marginBottom: "1rem", color: "var(--ink-72)" }}>
               No matching roles right now — try broader keywords or check back
               in a few days.
             </p>
+          )}
+          {/* Per-company skip/404 noise is normal even on a successful scan —
+              only worth surfacing as an error when it explains a genuinely
+              empty result, otherwise it'd alarm users over 30+ real hits. */}
+          {jobs.length === 0 && scanErrors.length > 0 && (
+            <div className="notice notice-error" style={{ marginBottom: "1rem" }}>
+              <p style={{ margin: 0, fontWeight: 600 }}>
+                The scan didn&apos;t run correctly — this isn&apos;t &quot;no roles found&quot;.
+              </p>
+              <ul style={{ margin: "0.4rem 0 0", paddingLeft: "1.2rem" }}>
+                {scanErrors.map((e, i) => (
+                  <li key={i}>{e}</li>
+                ))}
+              </ul>
+            </div>
           )}
           <div>
             {jobs.map((j) => (

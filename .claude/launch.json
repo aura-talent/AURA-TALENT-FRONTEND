@@ -16,8 +16,14 @@
     {
       "name": "backend",
       "runtimeExecutable": "uv",
-      "runtimeArgs": ["run", "--directory", "../AURA-TALENT-BACKEND", "uvicorn", "app.main:app", "--port", "8000"],
+      "runtimeArgs": ["run", "--directory", "../backend", "uvicorn", "app.main:app", "--port", "8000"],
       "port": 8000
+    },
+    {
+      "name": "dev-verify",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "-p", "3102"],
+      "port": 3102
     }
   ]
 }

@@ -453,7 +453,7 @@ function EvaluateInner() {
                 <button className="btn btn-primary text-white" onClick={resetEvaluation}>
                   Evaluate another job
                 </button>
-                <Link href="/dashboard" className="btn btn-ghost">View tracker</Link>
+                <Link href="/tracker" className="btn btn-ghost">View tracker</Link>
               </div>
             </div>
           </div>

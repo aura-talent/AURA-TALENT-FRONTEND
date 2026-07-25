@@ -2447,7 +2447,7 @@ textarea.input {
   margin-top: auto;
   padding-top: 1rem;
   border-top: 1px solid var(--ink-06);
-
+}
 /* Legacy icon class kept for any references still using it */
 .employer-icon {
   width: 18px;

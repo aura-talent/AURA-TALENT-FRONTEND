@@ -220,32 +220,6 @@ export default function JobApplicantsPage({
                   </td>
                   <td>
                     <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", justifyContent: "flex-end" }}>
-                      {!interviewOnly && row.application && (
-                        <button
-                          className={row.application.selected_for_offer ? "btn btn-primary" : "btn btn-ghost"}
-                          disabled={togglingSelect.has(row.application.id)}
-                          onClick={() => toggleSelectForOffer(row)}
-                          title="Manually select or unselect this candidate for the Offer Console"
-                        >
-                          {row.application.selected_for_offer ? "★ Selected" : "☆ Select for offer"}
-                        </button>
-                      )}
-                      {!interviewOnly && (
-                        <button
-                          className="btn btn-ghost"
-                          disabled={scoring.has(row.candidate_user_id) || queued.has(row.candidate_user_id)}
-                          onClick={() => scoreNow(row.candidate_user_id)}
-                          title="Run the evaluation agent for this candidate"
-                        >
-                          {scoring.has(row.candidate_user_id)
-                            ? "Scoring…"
-                            : queued.has(row.candidate_user_id)
-                              ? "Queued ✓"
-                              : score != null
-                                ? "Re-score"
-                                : "Score now"}
-                        </button>
-                      )}
                       <Link
                         href={
                           interviewOnly

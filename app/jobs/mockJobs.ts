@@ -11,81 +11,20 @@
 
 export type CandidateJob = {
   id: string;
+  employer_id: string;
   title: string;
-  company: string;
   team: string;
   status: "Active" | "Draft";
-  age: string;
-  fit: number;
   location: string;
-  employmentType: string;
-  salary: string;
+  employment_type: string;
+  salary_low: number;
+  salary_high: number;
+  salary_currency: string;
   description: string;
   keywords: string[];
-  mockInterviewEnabled: boolean;
-  interviewQuestions: number;
-  recommended: boolean;
+  mock_interview_enabled: boolean;
+  interview_questions: string[];
+  company_name?: string; // Optional if returned from backend, or fallback
+  fit_score?: number;    // Optional match score
+  recommended?: boolean;
 };
-
-export const jobs: CandidateJob[] = [
-  {
-    id: "senior-product-designer",
-    title: "Senior Product Designer",
-    company: "Northstar Labs",
-    team: "Product",
-    status: "Active",
-    age: "12 days",
-    fit: 94,
-    location: "Kuala Lumpur · Hybrid",
-    employmentType: "Full-time",
-    salary: "RM 12,000–16,000 / month",
-    description:
-      "Lead product design across discovery, systems, and delivery for our B2B AI platform.",
-    keywords: [
-      "design systems",
-      "product strategy",
-      "B2B SaaS",
-      "user research",
-      "cross-functional",
-    ],
-    mockInterviewEnabled: true,
-    interviewQuestions: 6,
-    recommended: true,
-  },
-  {
-    id: "frontend-engineer",
-    title: "Frontend Engineer",
-    company: "Northstar Labs",
-    team: "Engineering",
-    status: "Active",
-    age: "8 days",
-    fit: 89,
-    location: "Malaysia · Remote",
-    employmentType: "Full-time",
-    salary: "RM 10,000–14,000 / month",
-    description:
-      "Build accessible, reliable product experiences in React and Next.js.",
-    keywords: ["React", "TypeScript", "Next.js", "accessibility", "testing"],
-    mockInterviewEnabled: true,
-    interviewQuestions: 5,
-    recommended: true,
-  },
-  {
-    id: "ai-product-manager",
-    title: "AI Product Manager",
-    company: "Northstar Labs",
-    team: "Product",
-    status: "Active",
-    age: "5 days",
-    fit: 86,
-    location: "Kuala Lumpur · Hybrid",
-    employmentType: "Full-time",
-    salary: "RM 13,000–18,000 / month",
-    description:
-      "Shape AI product strategy from customer problem discovery through measurable adoption.",
-    keywords: ["AI products", "analytics", "roadmapping", "experimentation"],
-    mockInterviewEnabled: true,
-    interviewQuestions: 7,
-    recommended: false,
-  },
-];

@@ -180,6 +180,84 @@ export function stageColor(stage: string, stages?: StageDef[] | null): string {
   return list.find((step) => step.label === stage)?.color ?? "var(--ink-55)";
 }
 
+/** The stage window the Shortlists page works: from "Shortlisted" up to (but
+ * not including) the first offer step. Stage lists are employer-editable, so
+ * both ends are found by name rather than fixed position, falling back to the
+ * default list's positions. On the default list this is Shortlisted →
+ * Interview Scheduled → Assessment; Offer Extended, Hired and Rejected are
+ * past the decision this page exists to make. Mirrored in the backend's
+ * notifications router. */
+export function shortlistStageIndex(stages?: StageDef[] | null): number {
+  const list = stages?.length ? stages : defaultApplicationStages;
+  const found = list.findIndex((step) => /shortlist/i.test(step.label));
+  return found >= 0 ? found : 2;
+}
+
+export function offerStageIndex(stages?: StageDef[] | null): number {
+  const list = stages?.length ? stages : defaultApplicationStages;
+  const found = list.findIndex((step) => /offer/i.test(step.label));
+  return found >= 0 ? found : 5;
+}
+
+/** Whether an application sits inside that window — the pool the employer
+ * works through in Evaluation to pick who proceeds to an offer. */
+export function isInShortlistWindow(
+  stage: string,
+  isRejected: boolean,
+  stages?: StageDef[] | null,
+): boolean {
+  if (isRejected) return false;
+  const list = stages?.length ? stages : defaultApplicationStages;
+  const index = list.findIndex((step) => step.label === stage);
+  if (index < 0) return false;
+  if (list[index].is_rejected) return false;
+  return index >= shortlistStageIndex(list) && index < offerStageIndex(list);
+}
+
+/** The one stage-specific invitation offered for an application — an email to
+ * draft, not a stage move: the candidate advances when they respond, not when
+ * the employer clicks. Null at the end of the window (Assessment), where the
+ * only actions left are the persisted ones: choose for offer, or reject. */
+export function shortlistInvite(
+  stage: string,
+  stages?: StageDef[] | null,
+): { label: string; instructions: string; category?: string } | null {
+  const list = stages?.length ? stages : defaultApplicationStages;
+  const index = list.findIndex((step) => step.label === stage);
+  if (index < 0) return null;
+  const next = list[index + 1];
+  if (!next || next.is_rejected) return null;
+  // Stop at the offer step: that's "Choose for offer", handled separately.
+  if (index + 1 >= offerStageIndex(list)) return null;
+  if (/interview/i.test(next.label)) {
+    return {
+      label: "Invite to interview",
+      category: "Interview",
+      instructions:
+        "Invite this candidate to interview for the role. Say what the interview will cover, roughly how long it runs, and ask them for times that suit them.",
+    };
+  }
+  if (/assessment/i.test(next.label)) {
+    return {
+      label: "Invite to assessment",
+      category: "Interview",
+      instructions:
+        "Invite this candidate to the assessment stage. Explain what the assessment involves, how long it should take, and when it needs to be back.",
+    };
+  }
+  return {
+    label: `Invite to ${next.label.toLowerCase()}`,
+    instructions: `Invite this candidate to the ${next.label} step of the hiring process, and explain what happens there.`,
+  };
+}
+
+/** The job's rejection stage, used by the Shortlists page's Reject action.
+ * The backend derives is_rejected from the stage definition on move. */
+export function rejectedStageLabel(stages?: StageDef[] | null): string | null {
+  const list = stages?.length ? stages : defaultApplicationStages;
+  return list.find((step) => step.is_rejected)?.label ?? null;
+}
+
 // Phases that mean the role is no longer actively hiring. A job's lifecycle is
 // now expressed through its pipeline phase rather than the Draft/Active status.
 const NON_OPEN_PHASE_IDS = ["planning", "filled", "closed"];

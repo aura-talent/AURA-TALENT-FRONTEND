@@ -20,7 +20,7 @@ type Template = {
 type CandidateEmailComposerProps = {
   candidateName: string;
   role: string;
-  score: number;
+  score?: number;
   candidateUserId?: string;
   jobId?: string;
   /** Button label; defaults to "Email candidate". */
@@ -29,17 +29,14 @@ type CandidateEmailComposerProps = {
   buttonClassName?: string;
   /** Bias the template list toward a category (e.g. "Offer"). */
   categoryFilter?: string;
+  /** Pre-fills the "what should this email accomplish" box, so a caller that
+   * already knows the purpose (e.g. the Shortlists page's stage-specific
+   * invite) opens the composer with intent set. Still editable, and nothing
+   * is drafted until "Generate with Aura" is pressed. */
+  defaultPrompt?: string;
   /** Called after a successful send (e.g. so a parent list can mark this
    * candidate's offer as sent without waiting for a reload). */
   onSent?: () => void;
-};
-
-// Maps a selected template to the communication writer's `kind` — the offer
-// flow always overrides this via isOffer, since "Offer" isn't a template category.
-const KIND_BY_TEMPLATE: Record<string, string> = {
-  interview_invitation: "interview_invite",
-  interview_scheduling: "interview_invite",
-  candidate_rejection: "rejection",
 };
 
 // Tolerant placeholder substitution: handles {{key}}, {key}, [key], [[key]].
@@ -71,12 +68,13 @@ export default function CandidateEmailComposer({
   buttonLabel = "Email candidate",
   buttonClassName = "btn btn-primary",
   categoryFilter,
+  defaultPrompt,
   onSent,
 }: CandidateEmailComposerProps) {
   const [open, setOpen] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [templateId, setTemplateId] = useState("");
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPrompt] = useState(defaultPrompt ?? "");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
@@ -116,9 +114,10 @@ export default function CandidateEmailComposer({
   // Local fallback used when no template is chosen or the backend is offline.
   function localDraft(): { subject: string; body: string } {
     const firstName = candidateName.split(" ")[0];
+    const standout = score != null ? ` Your evaluation stood out (${score}/100).` : "";
     return {
       subject: `Regarding your application for ${role}`,
-      body: `Hi ${firstName},\n\nThank you for the time and thought you brought to our ${role} process. Your evaluation stood out (${score}/100).\n\n${prompt.trim() || "We'd like to continue the conversation about next steps."}\n\nBest,\nThe hiring team`,
+      body: `Hi ${firstName},\n\nThank you for the time and thought you brought to our ${role} process.${standout}\n\n${prompt.trim() || "We'd like to continue the conversation about next steps."}\n\nBest,\nThe hiring team`,
     };
   }
 
@@ -155,48 +154,31 @@ export default function CandidateEmailComposer({
     }
   }
 
+  /** The composer has exactly two ways to fill the email: write it yourself,
+   * or press this. Drafting runs through the shared template writer, with the
+   * caller's purpose, the selected template's structure, and who it's for all
+   * folded into one prompt. */
   async function generate() {
     setBusy(true);
     try {
-      if (candidateUserId) {
-        // Context-aware draft: the communication writer sees the candidate's
-        // real evaluation, stage, offer status, and the employer's own voice.
-        // If a template is selected, include its structure as additional guidance
-        // so Aura mirrors the template's shape rather than writing from scratch.
-        const kind = isOffer
-          ? "offer"
-          : (selectedTemplate && KIND_BY_TEMPLATE[selectedTemplate.id]) || "general";
-
-        // Build instructions: honour any user prompt AND template structure.
-        let instructions = prompt.trim() || undefined;
-        if (selectedTemplate) {
-          const templateHint =
-            `Follow this template structure (adapt content to the candidate, do not copy verbatim):\n` +
+      const parts = [
+        prompt.trim() || `Write a ${role} email to ${candidateName}.`,
+        `The recipient is ${candidateName}, a candidate for ${role}.`,
+      ];
+      if (selectedTemplate) {
+        parts.push(
+          `Follow this template structure (adapt the content, do not copy verbatim):\n` +
             `Subject format: ${selectedTemplate.subject_template}\n` +
-            `Body format:\n${selectedTemplate.body_template}`;
-          instructions = instructions
-            ? `${instructions}\n\n${templateHint}`
-            : templateHint;
-        }
-
-        const draft = await employerApi.generateComms({
-          candidate_user_id: candidateUserId,
-          job_id: jobId,
-          kind,
-          instructions,
-        });
-        setSubject(draft.subject);
-        setBody(draft.body);
-      } else {
-        // No candidate to ground the draft in — fall back to the generic writer.
-        const res = await api.generateTemplate({
-          prompt: prompt.trim() || `Write a ${role} email to ${candidateName}.`,
-          template_id: templateId || undefined,
-          role: "employer",
-        });
-        setSubject(res.subject);
-        setBody(res.body);
+            `Body format:\n${selectedTemplate.body_template}`,
+        );
       }
+      const res = await api.generateTemplate({
+        prompt: parts.join("\n\n"),
+        template_id: templateId || undefined,
+        role: "employer",
+      });
+      setSubject(res.subject);
+      setBody(res.body);
     } catch (err) {
       console.error("Aura draft failed, using local fallback:", err);
       const draft = localDraft();
@@ -205,6 +187,10 @@ export default function CandidateEmailComposer({
     } finally {
       setBusy(false);
     }
+  }
+
+  function close() {
+    setOpen(false);
   }
 
   async function sendEmail() {
@@ -227,7 +213,7 @@ export default function CandidateEmailComposer({
       setSent(true);
       onSent?.();
       window.setTimeout(() => {
-        setOpen(false);
+        close();
         setSent(false);
       }, 900);
     } catch (err) {
@@ -247,7 +233,7 @@ export default function CandidateEmailComposer({
         // Use onMouseDown instead of onClick so the backdrop close does not
         // swallow mousedown events that are meant for inputs inside the modal
         // (which would prevent text editing, including deleting characters).
-        <div className="candidate-email-backdrop" onMouseDown={() => setOpen(false)}>
+        <div className="candidate-email-backdrop" onMouseDown={close}>
           <section
             className="candidate-email-modal panel"
             role="dialog"
@@ -263,14 +249,17 @@ export default function CandidateEmailComposer({
               </div>
               <button
                 className="candidate-email-close"
-                onClick={() => setOpen(false)}
+                onClick={close}
                 aria-label="Close email composer"
               >
                 ×
               </button>
             </header>
 
-            <div className="candidate-email-fields">
+            {/* Drafting overwrites subject and body, so everything that feeds
+                or holds the draft locks until it lands. Cancel and close stay
+                live — nobody should be stuck waiting on a draft. */}
+            <fieldset className="candidate-email-fields" disabled={busy}>
               {!isOffer && (
                 <>
                   <label>
@@ -309,6 +298,7 @@ export default function CandidateEmailComposer({
                 className="btn btn-ghost aura-generate-email"
                 onClick={generate}
                 disabled={busy}
+                aria-busy={busy}
               >
                 {busy ? "Drafting…" : "✦ Generate with Aura"}
               </button>
@@ -327,10 +317,14 @@ export default function CandidateEmailComposer({
                   className="input candidate-email-body"
                   value={body}
                   onChange={(event) => setBody(event.target.value)}
-                  placeholder="Pick a template, generate a draft, or write your own."
+                  placeholder={
+                    busy
+                      ? "Aura is drafting…"
+                      : "Pick a template, generate a draft, or write your own."
+                  }
                 />
               </label>
-            </div>
+            </fieldset>
 
             <footer>
               <small>
@@ -341,7 +335,7 @@ export default function CandidateEmailComposer({
                 )}
               </small>
               <div>
-                <button className="btn btn-ghost" onClick={() => setOpen(false)}>
+                <button className="btn btn-ghost" onClick={close}>
                   Cancel
                 </button>
                 <button

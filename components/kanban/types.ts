@@ -16,4 +16,9 @@ export type KanbanBoardProps<T> = {
   onCardClick?: (item: T) => void;
   onMove: (itemId: string, toColumnId: string) => void;
   emptyLabel?: string;
+  /** Let each column collapse to its header. Dropping onto a collapsed
+   * header still moves the card, so collapsing never costs functionality. */
+  collapsible?: boolean;
+  /** Column ids that start collapsed (only meaningful with `collapsible`). */
+  initialCollapsed?: string[];
 };

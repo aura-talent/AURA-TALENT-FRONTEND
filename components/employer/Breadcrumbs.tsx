@@ -20,6 +20,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   stages: "Application stages",
   offers: "Offer console",
   applicants: "Applicants",
+  shortlists: "Shortlists",
   resume: "Resume",
   interview: "Interview",
   edit: "Edit",

@@ -1,12 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const DEFAULT_PREVIEW_CHARS = 220;
 
 /** Truncated job description with a "See full description" / "Show less"
  * toggle — shared by the job detail page header and the pipeline board's
- * side drawer, which each pass their own `className` for sizing. */
+ * side drawer, which each pass their own `className` for sizing. The
+ * description is generated as markdown (see JOB_DRAFT_SYSTEM in the backend)
+ * so it's rendered through ReactMarkdown rather than dumped as raw text. */
 export default function JobDescription({
   text,
   maxChars = DEFAULT_PREVIEW_CHARS,
@@ -22,8 +26,8 @@ export default function JobDescription({
     ? `${text.slice(0, maxChars).trimEnd()}…`
     : text;
   return (
-    <p className={className}>
-      {shown}
+    <div className={className}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{shown}</ReactMarkdown>
       {needsTruncation && (
         <button
           type="button"
@@ -33,6 +37,6 @@ export default function JobDescription({
           {expanded ? "Show less" : "See full description"}
         </button>
       )}
-    </p>
+    </div>
   );
 }

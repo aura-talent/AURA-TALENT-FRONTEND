@@ -20,6 +20,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   stages: "Application stages",
   offers: "Offer console",
   applicants: "Applicants",
+  shortlists: "Shortlists",
   resume: "Resume",
   interview: "Interview",
   edit: "Edit",
@@ -46,6 +47,12 @@ function isDynamicId(segment: string): boolean {
   return !SEGMENT_LABELS[segment];
 }
 
+// Sections whose [id] segment has no page of its own — only sub-routes like
+// /edit or /customize exist. Linking the bare id crumb for these 404s (e.g.
+// /employer/headhunters/[id]/edit has no /employer/headhunters/[id] to land
+// on), so that one crumb renders as plain text instead of a Link.
+const NO_INDEX_AT_ID = new Set(["headhunters", "interviews"]);
+
 function humanize(segment: string): string {
   return segment.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -67,12 +74,13 @@ export default function Breadcrumbs() {
   const crumbs = segments.map((segment, index) => {
     const href = "/" + segments.slice(0, index + 1).join("/");
     let label = SEGMENT_LABELS[segment];
+    const dynamic = isDynamicId(segment);
     if (!label) {
-      label = isDynamicId(segment)
-        ? entityLabels.get(segment) ?? "Details"
-        : humanize(segment);
+      label = dynamic ? entityLabels.get(segment) ?? "Details" : humanize(segment);
     }
-    return { href, label };
+    const parent = segments[index - 1];
+    const linkable = !(dynamic && parent && NO_INDEX_AT_ID.has(parent));
+    return { href, label, linkable };
   });
 
   return (
@@ -81,8 +89,8 @@ export default function Breadcrumbs() {
         const isLast = index === crumbs.length - 1;
         return (
           <span key={crumb.href} className="employer-breadcrumb-item">
-            {isLast ? (
-              <span aria-current="page">{crumb.label}</span>
+            {isLast || !crumb.linkable ? (
+              <span aria-current={isLast ? "page" : undefined}>{crumb.label}</span>
             ) : (
               <Link href={crumb.href}>{crumb.label}</Link>
             )}

@@ -73,6 +73,15 @@ export default function HiringPipelineBoard({
     emptyContent: phase.id === "planning" ? PLANNING_EMPTY_CONTENT : undefined,
   }));
 
+  // Phases with nothing in them start collapsed — the board opens showing
+  // only where work actually is. Computed once from the first render's data
+  // so later moves don't re-collapse a phase the employer just opened.
+  const [emptyPhaseIds] = useState(() =>
+    phases
+      .filter((phase) => !jobs.some((job) => job.pipeline_phase === phase.id))
+      .map((phase) => phase.id),
+  );
+
   function handleMove(jobId: string, toPhaseId: string, trigger: "manual" | "auto" = "manual") {
     const previous = phaseOverrides[jobId];
     setPhaseOverrides((current) => ({ ...current, [jobId]: toPhaseId }));
@@ -134,6 +143,7 @@ export default function HiringPipelineBoard({
   const metricNoun: Record<PhaseProgress["metric"], string> = {
     applicants: "applicants",
     evaluated: "evaluated",
+    selected: "selected for offer",
     offers: "at offer",
     hires: "hired",
     manual: "",
@@ -205,6 +215,8 @@ export default function HiringPipelineBoard({
         onCardClick={(job) => router.push(`/employer/jobs/${job.id}`)}
         onMove={handleMove}
         emptyLabel="No jobs in this phase."
+        collapsible
+        initialCollapsed={emptyPhaseIds}
         renderCard={(job) => (
           <>
             <div style={{ marginBottom: "0.4rem" }}>

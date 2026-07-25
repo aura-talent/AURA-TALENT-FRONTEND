@@ -1,0 +1,427 @@
+/* Shortlists — the decision room.
+ *
+ * Every other employer surface is about accumulation: more applicants, more
+ * sourcing, more scores. This one is about subtraction. The employer arrives
+ * with a shortlist and leaves having chosen who gets an offer, so the page is
+ * built around a single act: choosing.
+ *
+ * Two consequences drive the design:
+ *   - The score is the instrument of the decision, so it's the anchor of each
+ *     card — set in mono, colored by band, and given the house aura glow once
+ *     a candidate is chosen. The tokens reserve that glow for "score moments";
+ *     this page is the score moment it was reserved for.
+ *   - Being chosen is a state of the whole card, not a button in a trailing
+ *     column, so the shortlist visibly resolves as you work down it.
+ */
+
+.jobGroup {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+}
+
+.jobHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.jobTitle {
+  margin: 0;
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+}
+
+.jobTitle a {
+  text-decoration: none;
+}
+
+.jobTitle a:hover {
+  color: var(--iris);
+}
+
+.jobMeta {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+}
+
+/* Selection tally — the page's actual objective, stated as a count because
+   the Evaluation phase target literally is one. */
+.tally {
+  text-align: right;
+  font-family: var(--font-mono), monospace;
+  white-space: nowrap;
+}
+
+.tallyCount {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.tallyLabel {
+  display: block;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+}
+
+.tallyReady {
+  color: var(--score-strong);
+}
+
+/* Rail: how much of this job's shortlist has been decided. */
+.rail {
+  height: 3px;
+  margin: 0.85rem 0 1rem;
+  border-radius: var(--r-pill);
+  background: var(--ink-06);
+  overflow: hidden;
+}
+
+.railFill {
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: var(--iris);
+  transition: width 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.railFillReady {
+  background: var(--score-strong);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* ── Candidate card ─────────────────────────────────────────────────── */
+
+.card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 0.95rem 1.1rem 0.95rem 1.35rem;
+  background: var(--surface);
+  border: 1px solid var(--ink-12);
+  border-radius: var(--r-s);
+  transition:
+    border-color 0.2s ease,
+    background 0.25s ease,
+    box-shadow 0.2s ease;
+}
+
+.card:hover {
+  border-color: var(--ink-30);
+}
+
+/* The rail is the "chosen" signal: it sweeps in from nothing on select. */
+.card::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  left: -1px;
+  width: 3px;
+  border-radius: var(--r-s) 0 0 var(--r-s);
+  background: var(--iris);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Tint starts past the score so it never washes out the glow behind it. */
+.cardChosen {
+  background: linear-gradient(90deg, transparent 4.5rem, var(--iris-08) 8rem, transparent 70%);
+  border-color: color-mix(in srgb, var(--iris) 32%, var(--ink-12));
+  box-shadow: 0 1px 2px rgba(26, 29, 41, 0.05);
+}
+
+.cardChosen::before {
+  transform: scaleY(1);
+}
+
+/* ── Score anchor ───────────────────────────────────────────────────── */
+
+.scoreWrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 62px;
+}
+
+/* The house signature, spent here and nowhere else on the page. */
+.glow {
+  position: absolute;
+  inset: -80%;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 42% at 28% 30%, var(--aura-a) 0%, transparent 70%),
+    radial-gradient(36% 40% at 74% 38%, var(--aura-b) 0%, transparent 70%),
+    radial-gradient(40% 44% at 52% 78%, var(--aura-c) 0%, transparent 70%);
+  filter: blur(14px);
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity 0.4s ease, transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.cardChosen .glow {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.score {
+  position: relative;
+  font-family: var(--font-mono), monospace;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.scoreUnit {
+  font-size: 0.8rem;
+  font-weight: 400;
+  opacity: 0.5;
+}
+
+.scoreLabel {
+  position: relative;
+  margin-top: 0.25rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+}
+
+.scoreStrong { color: var(--score-strong); }
+.scoreGood { color: var(--score-good); }
+.scoreFair { color: var(--score-fair); }
+.scoreWeak { color: var(--score-weak); }
+.scoreNone { color: var(--ink-30); }
+
+/* ── Identity ───────────────────────────────────────────────────────── */
+
+.name {
+  display: block;
+  font-family: var(--font-display), sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.name:hover {
+  color: var(--iris);
+}
+
+.email {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.78rem;
+  color: var(--ink-55);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Stage is context for the decision, not an input to it — kept quiet. */
+.stage {
+  display: inline-block;
+  margin-top: 0.4rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+}
+
+.stageDot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 0.4rem;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: middle;
+}
+
+/* ── Controls ───────────────────────────────────────────────────────── */
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Two tiers of action. The stage move keeps a candidate in play; choosing and
+   rejecting both take them off this list. Separating them stops "Reject" from
+   ever reading as the neighbour of "Invite to interview". */
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.42rem 0.85rem;
+  border: 1px solid var(--iris-12);
+  border-radius: var(--r-pill);
+  background: var(--iris-08);
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--iris-deep);
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.step::before {
+  content: "→";
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.step:hover:not(:disabled) {
+  border-color: var(--iris);
+  background: var(--iris-12);
+}
+
+.step:disabled {
+  opacity: 0.55;
+}
+
+.decide {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+/* The divider only earns its place when there's a stage move to divide from. */
+.decideDivided {
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--ink-12);
+}
+
+.reject {
+  padding: 0.42rem 0.6rem;
+  border: none;
+  border-radius: var(--r-pill);
+  background: none;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink-55);
+  white-space: nowrap;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.reject:hover:not(:disabled) {
+  background: rgba(188, 74, 42, 0.08);
+  color: var(--score-weak);
+}
+
+.reject:disabled {
+  opacity: 0.55;
+}
+
+.choose {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.42rem 0.9rem;
+  border: 1px solid var(--ink-30);
+  border-radius: var(--r-pill);
+  background: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-72);
+  white-space: nowrap;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.choose:hover:not(:disabled) {
+  border-color: var(--iris);
+  color: var(--iris);
+}
+
+.chooseOn {
+  border-color: transparent;
+  background: var(--iris);
+  color: #fff;
+}
+
+.chooseOn:hover:not(:disabled) {
+  background: var(--iris-deep);
+  border-color: transparent;
+  color: #fff;
+}
+
+.choose:disabled {
+  opacity: 0.55;
+}
+
+/* ── Page furniture ─────────────────────────────────────────────────── */
+
+.summary {
+  text-align: right;
+  font-family: var(--font-mono), monospace;
+}
+
+.summaryCount {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.summaryLabel {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+}
+
+.error {
+  margin: -0.5rem 0 1rem;
+  padding: 0.6rem 0.85rem;
+  border-left: 3px solid var(--score-weak);
+  background: rgba(188, 74, 42, 0.06);
+  font-size: 0.8rem;
+  color: var(--score-weak);
+}
+
+@media (max-width: 640px) {
+  .card {
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 0.75rem;
+  }
+  .controls {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .card::before,
+  .glow,
+  .railFill {
+    transition: none;
+  }
+}

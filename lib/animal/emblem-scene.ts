@@ -22,7 +22,10 @@ export class EmblemScene {
   private container: HTMLElement;
   private onResize = () => this.resize();
 
-  constructor(container: HTMLElement, opts?: { reducedMotion?: boolean; baseYaw?: number }) {
+  constructor(
+    container: HTMLElement,
+    opts?: { reducedMotion?: boolean; baseYaw?: number },
+  ) {
     this.container = container;
     this.reduced = opts?.reducedMotion ?? false;
     this.baseYaw = opts?.baseYaw ?? 0;
@@ -94,7 +97,7 @@ export class EmblemScene {
     // It's already a head model — just centre it in the ring; it turns in place.
     const b = new THREE.Box3().setFromObject(mesh);
     mesh.position.sub(b.getCenter(new THREE.Vector3()));
-    mesh.rotation.set(0, Math.PI, 0); // orient the face toward the camera (tunable)
+    mesh.rotation.set(0, 0, 0); // fox-head.glb faces +Z, the camera side — no flip needed
     this.facet(mesh);
 
     const pivot = new THREE.Group();

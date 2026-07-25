@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import { api, type JobPosting } from "@/lib/api";
 import Thinking from "@/components/Thinking";
-import Link from "next/link";
 
 function guessCountry(): string {
   try {

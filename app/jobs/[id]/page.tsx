@@ -188,6 +188,8 @@ export default async function CandidateJobDetail({
             </div>
             <JobActions
               jobId={job.id}
+              jobTitle={job.title}
+              companyName={companyName}
               mockInterviewEnabled={job.mock_interview_enabled}
             />
           </section>
@@ -203,6 +205,8 @@ export default async function CandidateJobDetail({
 
       <MobileApplyBar
         jobId={job.id}
+        jobTitle={job.title}
+        companyName={companyName}
         fit={fitScore}
         mockInterviewEnabled={job.mock_interview_enabled}
       />

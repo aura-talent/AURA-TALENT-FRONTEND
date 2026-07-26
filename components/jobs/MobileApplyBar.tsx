@@ -2,36 +2,71 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 
 const STORAGE_KEY = "aura_job_applications";
 
 export default function MobileApplyBar({
   jobId,
+  jobTitle,
+  companyName,
   fit,
   mockInterviewEnabled,
 }: {
   jobId: string;
+  jobTitle: string;
+  companyName: string;
   fit: number;
   mockInterviewEnabled: boolean;
 }) {
   const [applied, setApplied] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const applications = JSON.parse(
-      localStorage.getItem(STORAGE_KEY) ?? "[]",
-    ) as string[];
-    queueMicrotask(() => setApplied(applications.includes(jobId)));
-  }, [jobId]);
+    let active = true;
 
-  function apply() {
-    const applications = JSON.parse(
-      localStorage.getItem(STORAGE_KEY) ?? "[]",
-    ) as string[];
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify([...new Set([...applications, jobId])]),
-    );
-    setApplied(true);
+    api
+      .listApplications()
+      .then((applications) => {
+        if (!active) return;
+        setApplied(
+          applications.some(
+            (application) =>
+              application.company === companyName && application.role === jobTitle,
+          ),
+        );
+      })
+      .catch(() => {
+        const applications = JSON.parse(
+          localStorage.getItem(STORAGE_KEY) ?? "[]",
+        ) as string[];
+        if (active) setApplied(applications.includes(jobId));
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [companyName, jobId, jobTitle]);
+
+  async function apply() {
+    if (isSubmitting || applied) return;
+
+    setIsSubmitting(true);
+    try {
+      await api.createManualApplication(companyName, jobTitle, "Applied");
+      const applications = JSON.parse(
+        localStorage.getItem(STORAGE_KEY) ?? "[]",
+      ) as string[];
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify([...new Set([...applications, jobId])]),
+      );
+      setApplied(true);
+    } catch (error) {
+      console.error("Failed to add application to tracker:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const fitColor = fit >= 90 ? "#bfead8" : fit >= 80 ? "#c7b9ff" : "#ffd9c2";
@@ -71,7 +106,7 @@ export default function MobileApplyBar({
         )}
         <button
           className="btn btn-primary mobile-apply-btn-primary"
-          disabled={applied}
+          disabled={applied || isSubmitting}
           onClick={apply}
           style={{
             background: applied
@@ -85,7 +120,7 @@ export default function MobileApplyBar({
               : "0 4px 20px rgba(143, 125, 255, 0.4)",
           }}
         >
-          {applied ? "Applied ✓" : "⚡ Apply Now"}
+          {applied ? "Applied" : isSubmitting ? "Submitting..." : "Apply now"}
         </button>
       </div>
     </div>

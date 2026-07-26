@@ -1,5 +1,19 @@
 "use client";
 
+/**
+ * Talent pool.
+ *
+ * One card per person, never more. A candidate scored against three of
+ * your roles is one card carrying three ledger lines — not three cards,
+ * and not one card that silently shows only their best role.
+ *
+ * Everyone lives in exactly one of two places: the headhunter enclosure
+ * (grouped under the persona that found them) or the direct pool below
+ * it. A candidate found by more than one headhunter is filed under the
+ * one that scored them highest, with the others named on the card, so
+ * the "exactly once" rule holds without losing the connection.
+ */
+
 import { useEffect, useMemo, useState } from "react";
 import {
   candidateInitials,
@@ -9,78 +23,236 @@ import {
   type EmployerJob,
   type TalentPoolEntry,
 } from "@/lib/employerApi";
-import HeadhunterBadge from "@/components/employer/HeadhunterBadge";
+import { headhunterInitials } from "@/app/employer/data";
 import CandidateOverviewModal from "@/components/employer/CandidateOverviewModal";
 import { Loader } from "@/components/ui/loader";
+import styles from "./talent-pool.module.css";
 
 const sortOptions = ["Top match", "Name A–Z", "Newest"] as const;
 type SortOption = (typeof sortOptions)[number];
 
-function scoreTone(score: number) {
+/** Two lenses on the same people: the complete list, or only the ones a
+ *  headhunter surfaced, filed under whoever found them. */
+type View = "everyone" | "headhunters";
+
+/** How a candidate arrived on a role. The mark is what the ledger
+ *  renders; the label spells it out in the legend and the tooltip. */
+const SOURCE_MARK = {
+  applied: { mark: "A", label: "Applied", className: styles.markApplied },
+  headhunter: { mark: "S", label: "Sourced by a headhunter", className: styles.markSourced },
+  aura: { mark: "M", label: "Matched by Aura", className: "" },
+} as const;
+
+const SOURCE_KEYS = ["applied", "headhunter", "aura"] as const;
+
+/** One line of a candidate's ledger: a role they've been scored against. */
+type LedgerEntry = {
+  jobId: string;
+  jobTitle: string;
+  score: number | null;
+  source: CandidateEvaluation["source"];
+  headhunterId: string | null;
+};
+
+type Person = {
+  entry: TalentPoolEntry;
+  name: string;
+  ledger: LedgerEntry[];
+  topScore: number | null;
+  /** The headhunter that scored them highest, if any — the group they file under. */
+  finderId: string | null;
+  /** Any other headhunters that also found them, named on the card. */
+  alsoFoundBy: string[];
+  interviewed: boolean;
+};
+
+function scoreTone(score: number | null) {
+  if (score == null) return "none";
   if (score >= 90) return "strong";
   if (score >= 80) return "good";
   if (score >= 70) return "fair";
   return "weak";
 }
 
-function bestEvaluation(entry: TalentPoolEntry): CandidateEvaluation | null {
-  const evaluations = entry.evaluations ?? [];
-  if (!evaluations.length) return null;
-  return [...evaluations].sort(
-    (a, b) => (b.wlc_score ?? -1) - (a.wlc_score ?? -1),
-  )[0];
+function toPerson(entry: TalentPoolEntry): Person {
+  const evaluations = entry.evaluations ?? (entry.evaluation ? [entry.evaluation] : []);
+  // One line per role, best score wins: a person folded together from
+  // duplicate user rows can carry two evaluations for the same job.
+  const byJob = new Map<string, LedgerEntry>();
+  for (const e of evaluations) {
+    const line: LedgerEntry = {
+      jobId: e.job_id,
+      jobTitle: e.job_title ?? "Untitled role",
+      score: e.wlc_score == null ? null : Math.round(e.wlc_score),
+      source: e.source,
+      headhunterId: e.headhunter_id,
+    };
+    const seen = byJob.get(line.jobId);
+    if (!seen || (line.score ?? -1) > (seen.score ?? -1)) byJob.set(line.jobId, line);
+  }
+  const ledger = [...byJob.values()].sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
+
+  // Best-scoring headhunter find decides the group, so a candidate two
+  // personas both surfaced still appears exactly once.
+  const sourced = ledger.filter((l) => l.source === "headhunter" && l.headhunterId);
+  const finderId = sourced[0]?.headhunterId ?? null;
+  const alsoFoundBy = [
+    ...new Set(sourced.map((l) => l.headhunterId!).filter((id) => id !== finderId)),
+  ];
+
+  return {
+    entry,
+    name: entry.full_name ?? entry.email ?? "Candidate",
+    ledger,
+    topScore: ledger[0]?.score ?? null,
+    finderId,
+    alsoFoundBy,
+    interviewed: evaluations.some((e) => Boolean(e.interview_evaluation)),
+  };
 }
 
+/** Two lines is the card's budget. The ledger is sorted best-first, so the
+ *  two that show are the two worth reading; the rest are a count. */
+const LEDGER_LIMIT = 2;
+
 function CandidateCard({
-  entry,
-  headhunters,
+  person,
   onSelect,
 }: {
-  entry: TalentPoolEntry;
-  headhunters: EmployerHeadhunter[];
+  person: Person;
   onSelect: (id: string) => void;
 }) {
-  const evaluation = bestEvaluation(entry);
-  const score = evaluation?.wlc_score != null ? Math.round(evaluation.wlc_score) : null;
-  const headhunter =
-    evaluation?.source === "headhunter" && evaluation.headhunter_id
-      ? headhunters.find((item) => item.id === evaluation.headhunter_id)
-      : undefined;
+  const shown = person.ledger.slice(0, LEDGER_LIMIT);
+  const hidden = person.ledger.length - shown.length;
+
   return (
     <button
       type="button"
-      className="panel talent-pool-card"
-      onClick={() => onSelect(entry.id)}
+      className={styles.card}
+      onClick={() => onSelect(person.entry.id)}
     >
-      <header>
-        <span className="candidate-avatar">{candidateInitials(entry.full_name)}</span>
-        <div>
-          <strong>{entry.full_name ?? entry.email ?? "Candidate"}</strong>
-          <small>{evaluation?.job_title ?? "In talent pool"}</small>
-        </div>
-        {score != null && (
-          <span className={`talent-pool-score ${scoreTone(score)}`}>{score}%</span>
-        )}
+      <header className={styles.cardHead}>
+        <span className={`candidate-avatar ${styles.cardAvatar}`}>
+          {candidateInitials(person.entry.full_name)}
+        </span>
+        <span className={styles.cardNames}>
+          <strong>{person.name}</strong>
+          <small>{person.entry.email ?? "No email on file"}</small>
+        </span>
+        <span className={`${styles.topScore} ${styles[scoreTone(person.topScore)]}`}>
+          {person.topScore == null ? "—" : `${person.topScore}%`}
+        </span>
       </header>
-      <span className="talent-pool-bar">
-        <i style={{ width: `${score ?? 0}%` }} />
-      </span>
-      <div className="talent-pool-card-meta">
-        {evaluation?.interview_evaluation && (
-          <span className="chip chip-tier-high">✓ Interview</span>
+
+      {person.ledger.length === 0 ? (
+        <p className={styles.ledgerEmpty}>Not scored against any of your roles yet.</p>
+      ) : (
+        <ul className={styles.ledger}>
+          {shown.map((line) => {
+            const source = SOURCE_MARK[line.source] ?? SOURCE_MARK.aura;
+            return (
+              <li key={line.jobId} className={styles.entry}>
+                <i
+                  className={styles.entryFill}
+                  style={{ width: `${line.score ?? 0}%` }}
+                  aria-hidden="true"
+                />
+                <span className={`${styles.mark} ${source.className}`} title={source.label}>
+                  {source.mark}
+                  <span className={styles.srOnly}>{source.label}</span>
+                </span>
+                <span className={styles.entryJob}>{line.jobTitle}</span>
+                <span className={`${styles.entryScore} ${styles[scoreTone(line.score)]}`}>
+                  {line.score == null ? "—" : `${line.score}%`}
+                </span>
+              </li>
+            );
+          })}
+          {hidden > 0 && (
+            <li className={styles.ledgerMore}>
+              +{hidden} more role{hidden === 1 ? "" : "s"}
+            </li>
+          )}
+        </ul>
+      )}
+
+      <footer className={styles.cardFoot}>
+        {person.interviewed && (
+          <span className={`${styles.tag} ${styles.tagInterview}`}>✓ Interviewed</span>
         )}
-        {!evaluation && <span className="chip">Not evaluated</span>}
-        {headhunter && <HeadhunterBadge name={headhunter.name} compact />}
-      </div>
-      <p className="talent-pool-card-skills">
-        {(evaluation?.matched_keywords ?? []).slice(0, 3).join(" · ") ||
-          (entry.resume ? "Resume on file" : "No resume yet")}
-      </p>
-      <footer>
-        <span>{entry.email}</span>
-        <span className="talent-pool-go">→</span>
+        <span className={styles.tag}>
+          {person.entry.resume ? "Resume on file" : "No resume"}
+        </span>
+        {person.alsoFoundBy.length > 0 && (
+          <span className={styles.alsoFound}>
+            Also found by {person.alsoFoundBy.length} other headhunter
+            {person.alsoFoundBy.length === 1 ? "" : "s"}
+          </span>
+        )}
       </footer>
     </button>
+  );
+}
+
+function HeadhunterBand({
+  headhunter,
+  people,
+  open,
+  onToggle,
+  onSelect,
+}: {
+  headhunter: EmployerHeadhunter;
+  people: Person[];
+  open: boolean;
+  onToggle: () => void;
+  onSelect: (id: string) => void;
+}) {
+  const panelId = `hunter-${headhunter.id}`;
+  const scored = people.map((p) => p.topScore).filter((s): s is number => s != null);
+  const avg = scored.length
+    ? Math.round(scored.reduce((sum, s) => sum + s, 0) / scored.length)
+    : null;
+
+  return (
+    <div className={styles.band}>
+      <button
+        type="button"
+        className={styles.bandHead}
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-controls={panelId}
+      >
+        <span
+          className={`${styles.bandChevron} ${open ? styles.bandChevronOpen : ""}`}
+          aria-hidden="true"
+        >
+          ▶
+        </span>
+        <span className={`headhunter-avatar ${styles.bandAvatar}`}>
+          {headhunterInitials(headhunter.name)}
+        </span>
+        <span className={styles.bandNames}>
+          <strong>{headhunter.name}</strong>
+          <small>{headhunter.persona ?? "No persona written yet"}</small>
+        </span>
+        {headhunter.status !== "Active" && (
+          <span className={styles.bandStatus}>{headhunter.status}</span>
+        )}
+        <span className={styles.bandStats}>
+          {people.length} found
+          {avg != null && <b>{avg}% avg</b>}
+        </span>
+      </button>
+      {open && (
+        <div className={styles.bandGrid} id={panelId}>
+          <div className={styles.grid}>
+            {people.map((person) => (
+              <CandidateCard key={person.entry.id} person={person} onSelect={onSelect} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -94,6 +266,8 @@ export default function TalentPoolPage() {
   const [interviewFilter, setInterviewFilter] = useState("All candidates");
   const [sortBy, setSortBy] = useState<SortOption>("Top match");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [view, setView] = useState<View>("everyone");
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -113,48 +287,75 @@ export default function TalentPoolPage() {
     };
   }, []);
 
-  const rows = useMemo(() => {
-    const filtered = pool.filter((entry) => {
-      const evaluation = bestEvaluation(entry);
-      const haystack = `${entry.full_name ?? ""} ${entry.email ?? ""} ${(
-        evaluation?.matched_keywords ?? []
-      ).join(" ")}`.toLowerCase();
-      const matchesQuery = haystack.includes(query.toLowerCase());
-      const matchesJob =
-        jobFilter === "All roles" ||
-        (entry.evaluations ?? []).some((e) => e.job_id === jobFilter);
-      const attempted = Boolean(evaluation?.interview_evaluation);
-      const matchesInterview =
-        interviewFilter === "All candidates" ||
-        (interviewFilter === "Interview attempted" && attempted) ||
-        (interviewFilter === "Not attempted" && !attempted);
-      return matchesQuery && matchesJob && matchesInterview;
+  const people = useMemo(() => pool.map(toPerson), [pool]);
+
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    const matched = people.filter((person) => {
+      const haystack = `${person.name} ${person.entry.email ?? ""} ${person.ledger
+        .map((l) => l.jobTitle)
+        .join(" ")}`.toLowerCase();
+      if (needle && !haystack.includes(needle)) return false;
+      if (jobFilter !== "All roles" && !person.ledger.some((l) => l.jobId === jobFilter)) {
+        return false;
+      }
+      if (interviewFilter === "Interview attempted" && !person.interviewed) return false;
+      if (interviewFilter === "Not attempted" && person.interviewed) return false;
+      return true;
     });
-    const sorted = [...filtered];
+
+    const sorted = [...matched];
     if (sortBy === "Name A–Z") {
-      sorted.sort((a, b) => (a.full_name ?? "").localeCompare(b.full_name ?? ""));
+      sorted.sort((a, b) => a.name.localeCompare(b.name));
     } else if (sortBy === "Newest") {
       sorted.sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        (a, b) =>
+          new Date(b.entry.created_at).getTime() - new Date(a.entry.created_at).getTime(),
       );
     } else {
-      sorted.sort(
-        (a, b) =>
-          (bestEvaluation(b)?.wlc_score ?? -1) - (bestEvaluation(a)?.wlc_score ?? -1),
-      );
+      sorted.sort((a, b) => (b.topScore ?? -1) - (a.topScore ?? -1));
     }
     return sorted;
-  }, [pool, query, jobFilter, interviewFilter, sortBy]);
+  }, [people, query, jobFilter, interviewFilter, sortBy]);
 
-  const spotlighted = useMemo(
-    () =>
-      pool.filter((entry) =>
-        (entry.evaluations ?? []).some((e) => e.source === "headhunter"),
-      ),
-    [pool],
-  );
+  // The headhunter lens: the same people, filed under whoever found them.
+  // A candidate two personas both surfaced files under the one that scored
+  // them highest, so no band repeats a name.
+  const bands = useMemo(() => {
+    const known = new Map(headhunters.map((h) => [h.id, h]));
+    const byHunter = new Map<string, Person[]>();
+    for (const person of filtered) {
+      // A find by a headhunter that no longer exists is dropped from this
+      // view rather than creating a phantom group — the person is still in
+      // Everyone, which is the complete list.
+      if (!person.finderId || !known.has(person.finderId)) continue;
+      const list = byHunter.get(person.finderId);
+      if (list) list.push(person);
+      else byHunter.set(person.finderId, [person]);
+    }
+    return [...byHunter.entries()]
+      .map(([id, members]) => ({ headhunter: known.get(id)!, people: members }))
+      .sort(
+        (a, b) =>
+          b.people.length - a.people.length ||
+          a.headhunter.name.localeCompare(b.headhunter.name),
+      );
+  }, [filtered, headhunters]);
 
+  const huntedTotal = bands.reduce((sum, band) => sum + band.people.length, 0);
+  const shown = view === "everyone" ? filtered.length : huntedTotal;
+  // While a search is running, nothing may stay hidden behind a collapsed band.
+  const searching = query.trim().length > 0;
   const selectedEntry = pool.find((entry) => entry.id === selectedId);
+
+  function toggleBand(id: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   return (
     <div className="employer-page">
@@ -162,10 +363,7 @@ export default function TalentPoolPage() {
         <div>
           <p className="eyebrow">Talent re-engagement</p>
           <h1>Talent pool</h1>
-          <p>
-            Scan, compare, and reconnect with every candidate relevant to your
-            roles — best matches first.
-          </p>
+          <p>Every candidate your roles have touched, once each.</p>
         </div>
         <span className="chip chip-tier-high">{pool.length} in pool</span>
       </div>
@@ -176,7 +374,7 @@ export default function TalentPoolPage() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search candidates or skills"
+            placeholder="Search people or roles"
             aria-label="Search candidates"
           />
         </label>
@@ -213,49 +411,88 @@ export default function TalentPoolPage() {
             <option key={option}>{option}</option>
           ))}
         </select>
-        <span className="candidate-result-count">{rows.length} candidates</span>
+        <span className="candidate-result-count">{shown} shown</span>
       </div>
 
-      {spotlighted.length > 0 && (
-        <section className="talent-pool-spotlight">
-          <div className="talent-pool-spotlight-head">
-            <h2>✦ Suggested by your headhunters</h2>
-            <span>{spotlighted.length} candidates found</span>
-          </div>
-          <div className="talent-pool-grid">
-            {spotlighted.map((entry) => (
+      <div className={styles.viewBar}>
+        <div className={styles.switch} role="tablist" aria-label="Talent pool view">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "everyone"}
+            className={`${styles.switchTab} ${view === "everyone" ? styles.switchOn : ""}`}
+            onClick={() => setView("everyone")}
+          >
+            Everyone <b>{filtered.length}</b>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "headhunters"}
+            className={`${styles.switchTab} ${view === "headhunters" ? styles.switchOn : ""}`}
+            onClick={() => setView("headhunters")}
+          >
+            <span aria-hidden="true">✦</span> Headhunter finds <b>{huntedTotal}</b>
+          </button>
+        </div>
+
+        <p className={styles.legend}>
+          {SOURCE_KEYS.map((key) => (
+            <span key={key} className={styles.legendItem}>
+              <span
+                className={`${styles.mark} ${SOURCE_MARK[key].className}`}
+                aria-hidden="true"
+              >
+                {SOURCE_MARK[key].mark}
+              </span>
+              {SOURCE_MARK[key].label}
+            </span>
+          ))}
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="panel" style={{ marginTop: "1.5rem" }}>
+          <Loader label="Loading talent pool…" />
+        </div>
+      ) : view === "everyone" ? (
+        filtered.length > 0 ? (
+          <div className={styles.grid}>
+            {filtered.map((person) => (
               <CandidateCard
-                key={entry.id}
-                entry={entry}
-                headhunters={headhunters}
+                key={person.entry.id}
+                person={person}
                 onSelect={setSelectedId}
               />
             ))}
           </div>
-        </section>
-      )}
-
-      {loading ? (
-        <div className="panel">
-          <Loader label="Loading talent pool…" />
-        </div>
-      ) : (
-        <div className="talent-pool-grid">
-          {rows.map((entry) => (
-            <CandidateCard
-              key={entry.id}
-              entry={entry}
-              headhunters={headhunters}
+        ) : (
+          <div className="empty-state panel">
+            <h3>No one matches those filters</h3>
+            <p>Widen the search, or pick a different role.</p>
+          </div>
+        )
+      ) : bands.length > 0 ? (
+        <div className={styles.bands}>
+          {bands.map(({ headhunter, people: members }) => (
+            <HeadhunterBand
+              key={headhunter.id}
+              headhunter={headhunter}
+              people={members}
+              open={searching || !collapsed.has(headhunter.id)}
+              onToggle={() => toggleBand(headhunter.id)}
               onSelect={setSelectedId}
             />
           ))}
         </div>
-      )}
-
-      {!loading && rows.length === 0 && (
+      ) : (
         <div className="empty-state panel">
-          <h3>No candidates found</h3>
-          <p>Try a broader search or clear a filter.</p>
+          <h3>No finds yet</h3>
+          <p>
+            {huntedTotal === 0 && !searching && jobFilter === "All roles"
+              ? "Put a headhunter on a role and it starts scanning the pool."
+              : "No sourced candidate matches those filters."}
+          </p>
         </div>
       )}
 

@@ -107,7 +107,7 @@ export default function CandidateOverviewModal({
               </span>
               <div className="headhunter-evaluation">
                 <div className="headhunter-evaluation-head">
-                  <span className="candidate-avatar">
+                  <span className="headhunter-avatar">
                     {headhunterInitials(headhunter!.name)}
                   </span>
                   <div>

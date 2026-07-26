@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Hanken_Grotesk, Space_Mono, Spline_Sans_Mono } from "next/font/google";
 import Nav from "@/components/Nav";
+import ScrollToTop from "@/components/ScrollToTop";
 import { AuthProvider } from "@/components/AuthProvider";
 import { RouteGuard } from "@/components/RouteGuard";
 import { TourProvider } from "@/components/tour/TourProvider";
@@ -81,6 +82,7 @@ export default function RootLayout({
       </head>
       <body className={`${display.variable} ${body.variable} ${mono.variable} ${spaceMono.variable}`}>
         <AuthProvider>
+          <ScrollToTop />
           <RouteGuard>
             <TourProvider>
               <Nav />

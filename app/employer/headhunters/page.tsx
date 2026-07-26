@@ -140,7 +140,7 @@ export default function HeadhuntersPage() {
                   <tr key={headhunter.id}>
                     <td>
                       <div className="candidate-cell">
-                        <span className="candidate-avatar">
+                        <span className="headhunter-avatar">
                           {headhunterInitials(headhunter.name)}
                         </span>
                         <div>

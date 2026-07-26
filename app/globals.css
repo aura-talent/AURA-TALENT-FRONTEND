@@ -2561,6 +2561,29 @@ textarea.input {
   height: 32px;
 }
 
+/* Headhunters are personas, not people. Circles are for humans, so a
+   sourcing persona gets a solid rounded square instead — readable as a
+   different KIND of thing at a glance, next to a candidate's avatar. */
+.headhunter-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-s);
+  background: linear-gradient(135deg, var(--iris), var(--iris-deep));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  font: 700 0.68rem var(--font-mono), monospace;
+  letter-spacing: 0.02em;
+}
+.headhunter-avatar-large {
+  width: 66px;
+  height: 66px;
+  border-radius: var(--r-m);
+  font-size: 1rem;
+}
+
 /* ── Company logo large (profile page) ───────────────────── */
 .employer-company-mark,
 .company-logo-large {
@@ -4966,114 +4989,10 @@ textarea.input {
   gap: 0.6rem;
 }
 
-/* Talent re-engagement */
-.talent-pool-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(225px, 1fr));
-  gap: 0.75rem;
-}
-.talent-pool-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  min-width: 0;
-  width: 100%;
-  padding: 0.9rem 1rem;
-  color: inherit;
-  text-decoration: none;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    transform 0.15s,
-    border-color 0.15s;
-}
-.talent-pool-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--ink);
-}
-.talent-pool-card header {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  min-width: 0;
-}
-.talent-pool-card .candidate-avatar {
-  width: 30px;
-  height: 30px;
-  font-size: 0.68rem;
-  flex-shrink: 0;
-}
-.talent-pool-card header > div {
-  flex: 1;
-  min-width: 0;
-}
-.talent-pool-card header strong,
-.talent-pool-card header small {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.talent-pool-card header strong {
-  font-size: 0.84rem;
-}
-.talent-pool-card header small {
-  color: var(--ink-55);
-  font-size: 0.66rem;
-}
-.talent-pool-score {
-  font:
-    700 0.85rem var(--font-mono),
-    monospace;
-}
-.talent-pool-score.strong {
-  color: var(--score-strong);
-}
-.talent-pool-score.good {
-  color: var(--score-good);
-}
-.talent-pool-score.fair {
-  color: var(--score-fair);
-}
-.talent-pool-score.weak {
-  color: var(--score-weak);
-}
-.talent-pool-bar {
-  height: 4px;
-  border-radius: var(--r-pill);
-  background: var(--ink-06);
-  overflow: hidden;
-}
-.talent-pool-bar i {
-  display: block;
-  height: 100%;
-  background: var(--iris);
-  border-radius: inherit;
-}
-.talent-pool-card-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.3rem;
-  min-width: 0;
-}
-.talent-pool-card-meta .chip {
-  font-size: 0.56rem;
-  padding: 0.2rem 0.45rem;
-  white-space: nowrap;
-}
-.talent-pool-card-skills {
-  color: var(--ink-72);
-  font-size: 0.7rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 /* Pill-style tag list — used wherever a set of skills/keywords needs to
    render as separate chips (candidate/headhunter overview modals, the
    hiring pipeline drawer's job keywords, the headhunter editor's focus
-   areas), not just this talent-pool card's inline skills line above. */
+   areas). */
 .talent-pool-tags {
   display: flex;
   flex-wrap: wrap;
@@ -5088,39 +5007,8 @@ textarea.input {
   font-size: 0.62rem;
   white-space: nowrap;
 }
-.talent-pool-flag {
-  margin-left: 0.35rem;
-  color: var(--iris-deep);
-  font-style: normal;
-  cursor: help;
-}
-.talent-pool-card footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.6rem;
-  margin-top: auto;
-  padding-top: 0.6rem;
-  border-top: 1px solid var(--ink-06);
-  color: var(--ink-55);
-  font-size: 0.66rem;
-}
-.talent-pool-card footer span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.talent-pool-go {
-  flex-shrink: 0;
-  color: var(--ink-30);
-  font-size: 0.85rem;
-}
-.talent-pool-card:hover .talent-pool-go {
-  color: var(--iris-deep);
-}
-
-/* Headhunter badge — used on spotlight cards and as a compact tag in the
-   regular grid when a candidate was sourced by a headhunter. */
+/* Headhunter badge — a compact identity tag for a sourcing persona.
+   Used by the headhunter editor. */
 .headhunter-badge {
   display: inline-flex;
   align-items: center;
@@ -5136,30 +5024,6 @@ textarea.input {
 .headhunter-badge-compact {
   font-size: 0.56rem;
   padding: 0.18rem 0.4rem;
-}
-
-/* Talent pool — headhunter spotlight section */
-.talent-pool-spotlight {
-  margin-bottom: 1.5rem;
-}
-.talent-pool-spotlight-head {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  margin-bottom: 0.75rem;
-}
-.talent-pool-spotlight-head h2 {
-  font-size: 1.05rem;
-}
-.talent-pool-spotlight-head span {
-  color: var(--ink-55);
-  font-size: 0.78rem;
-}
-.talent-pool-spotlight .talent-pool-grid {
-  padding: 0.9rem;
-  border: 1px solid var(--iris-12);
-  border-radius: var(--r-s);
-  background: linear-gradient(135deg, var(--surface), var(--iris-08));
 }
 
 /* Candidate overview modal reuses .candidate-email-backdrop/-modal/-fields

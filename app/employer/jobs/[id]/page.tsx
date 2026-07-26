@@ -287,7 +287,7 @@ export default function EmployerJobDetailPage({
                     key={headhunter.id}
                     href={`/employer/headhunters/${headhunter.id}/edit`}
                   >
-                    <span className="candidate-avatar">{headhunterInitials(headhunter.name)}</span>
+                    <span className="headhunter-avatar">{headhunterInitials(headhunter.name)}</span>
                     <div>
                       <strong>{headhunter.name}</strong>
                       <p>{headhunter.stats.candidates_sourced ?? 0} sourced</p>

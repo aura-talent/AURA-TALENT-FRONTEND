@@ -156,7 +156,7 @@ export default function HeadhunterEditor({
               description="Name and describe this agent's specialization."
             />
             <div className={styles.identityRow}>
-              <span className="candidate-avatar candidate-avatar-large">
+              <span className="headhunter-avatar headhunter-avatar-large">
                 {avatarMark}
               </span>
               <label className={`${styles.field} ${styles.identityFields}`}>
@@ -291,7 +291,7 @@ export default function HeadhunterEditor({
           <section className={`panel employer-section ${jobEditorStyles.section}`}>
             <p className="eyebrow">Live preview</p>
             <div className={styles.previewHead}>
-              <span className="candidate-avatar candidate-avatar-large">
+              <span className="headhunter-avatar headhunter-avatar-large">
                 {avatarMark}
               </span>
               <div>

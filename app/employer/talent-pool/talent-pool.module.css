@@ -1,0 +1,461 @@
+/* ============================================================
+   Talent pool — the match ledger
+   ============================================================
+
+   The page's old shape lied about the data. A candidate is not one
+   row with one job; a candidate is a *set* of (job, score, source)
+   entries across the employer's roles. Rendering only the highest
+   scoring one hid the rest, and the headhunter spotlight repeated
+   candidates that were already in the grid below.
+
+   So the card body is a ledger: the two best-scoring roles, mono
+   score on the right, a one-letter source mark on the left, and the
+   score itself painted as a tint behind the line. That tint replaces
+   the single progress bar the card used to carry — one accessory,
+   not two.
+
+   The two audiences for this page — "who is in my pool" and "what
+   did my headhunters find" — are a switch, not two stacked
+   sections. Stacking them meant an enclosure, a heading, a count and
+   a sentence explaining why the list below excluded people. The
+   switch needs none of that: one grid, or bands.
+
+   All colour comes from the global tokens (globals.css). The aura
+   glow is deliberately not used — it stays reserved for score
+   moments.
+   ============================================================ */
+
+/* ── View switch ──────────────────────────────────────────── */
+
+.viewBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.switch {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--ink-12);
+  border-radius: var(--r-pill);
+  background: var(--ink-06);
+}
+
+.switchTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--ink-55);
+  font: inherit;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.switchTab b {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  opacity: 0.65;
+}
+
+.switchOn {
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(26, 29, 41, 0.08);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.switchOn b {
+  color: var(--iris-deep);
+  opacity: 1;
+}
+
+/* ── One headhunter's band ────────────────────────────────── */
+
+.bands {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* The iris rail is what marks a band as Aura's work rather than a
+   plain container. */
+.band {
+  border: 1px solid var(--ink-12);
+  border-left: 3px solid var(--iris);
+  border-radius: var(--r-s);
+  background: var(--surface);
+}
+
+.bandHead {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bandHead:hover {
+  background: var(--iris-08);
+}
+
+.bandChevron {
+  flex-shrink: 0;
+  width: 0.9rem;
+  color: var(--iris-deep);
+  font-size: 0.6rem;
+  transition: transform 0.18s ease;
+}
+
+.bandChevronOpen {
+  transform: rotate(90deg);
+}
+
+.bandAvatar {
+  width: 28px;
+  height: 28px;
+  font-size: 0.64rem;
+}
+
+.bandNames {
+  flex: 1;
+  min-width: 0;
+}
+
+.bandNames strong {
+  display: block;
+  overflow: hidden;
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bandNames small {
+  display: block;
+  overflow: hidden;
+  color: var(--ink-55);
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bandStats {
+  display: flex;
+  flex-shrink: 0;
+  align-items: baseline;
+  gap: 0.5rem;
+  color: var(--ink-72);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+}
+
+.bandStats b {
+  color: var(--iris-deep);
+  font-weight: 700;
+}
+
+.bandStatus {
+  flex-shrink: 0;
+  padding: 0.16rem 0.4rem;
+  border: 1px solid var(--ink-12);
+  border-radius: var(--r-pill);
+  color: var(--ink-55);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.56rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.bandGrid {
+  padding: 0 0.75rem 0.75rem;
+}
+
+/* ── Card grid ────────────────────────────────────────────── */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+/* ── Candidate card ───────────────────────────────────────── */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--ink-12);
+  border-radius: var(--r-s);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  border-color: var(--ink-30);
+  box-shadow: var(--shadow-card);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.cardAvatar {
+  width: 30px;
+  height: 30px;
+  font-size: 0.66rem;
+}
+
+.cardNames {
+  flex: 1;
+  min-width: 0;
+}
+
+.cardNames strong,
+.cardNames small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardNames strong {
+  font-size: 0.84rem;
+}
+
+.cardNames small {
+  color: var(--ink-55);
+  font-size: 0.66rem;
+}
+
+/* The candidate's best score across every role — the one number
+   worth reading before the ledger. */
+.topScore {
+  flex-shrink: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.strong {
+  color: var(--score-strong);
+}
+.good {
+  color: var(--score-good);
+}
+.fair {
+  color: var(--score-fair);
+}
+.weak {
+  color: var(--score-weak);
+}
+.none {
+  color: var(--ink-30);
+}
+
+/* ── The ledger ───────────────────────────────────────────── */
+
+.ledger {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--ink-06);
+  padding-top: 0.5rem;
+  list-style: none;
+}
+
+.entry {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.22rem 0.3rem;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+/* Score as a tint behind the line: the ledger row *is* the bar. */
+.entryFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--iris-08);
+  pointer-events: none;
+}
+
+/* One-letter source mark. A=applied, S=sourced by a headhunter,
+   M=matched by Aura — spelled out in the legend under the toolbar,
+   and in each mark's title, so it is never colour-only. */
+.mark {
+  position: relative;
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--ink-12);
+  border-radius: 3px;
+  color: var(--ink-55);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.52rem;
+  font-weight: 700;
+}
+
+.markSourced {
+  border-color: var(--iris-12);
+  background: var(--iris-12);
+  color: var(--iris-deep);
+}
+
+.markApplied {
+  border-color: var(--ink-30);
+  color: var(--ink-72);
+}
+
+.entryJob {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entryScore {
+  position: relative;
+  flex-shrink: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.7rem;
+  font-weight: 650;
+}
+
+.ledgerEmpty {
+  margin: 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--ink-06);
+  color: var(--ink-55);
+  font-size: 0.7rem;
+}
+
+.ledgerMore {
+  padding: 0.1rem 0.3rem;
+  color: var(--ink-55);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.62rem;
+}
+
+/* ── Card footer ──────────────────────────────────────────── */
+
+.cardFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--ink-06);
+}
+
+.tag {
+  padding: 0.16rem 0.42rem;
+  border: 1px solid var(--ink-12);
+  border-radius: var(--r-pill);
+  color: var(--ink-55);
+  font-size: 0.58rem;
+  white-space: nowrap;
+}
+
+.tagInterview {
+  border-color: color-mix(in srgb, var(--score-strong) 30%, transparent);
+  color: var(--score-strong);
+}
+
+.alsoFound {
+  flex-basis: 100%;
+  color: var(--ink-55);
+  font-size: 0.62rem;
+}
+
+/* ── Legend ───────────────────────────────────────────────── */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0;
+  color: var(--ink-55);
+  font-size: 0.66rem;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Spells the one-letter source mark out for screen readers, so the
+   mark is never the only way to know how someone arrived. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* ── Focus ────────────────────────────────────────────────── */
+
+/* These are all custom-painted buttons, so the ring has to be stated. */
+.switchTab:focus-visible,
+.bandHead:focus-visible,
+.card:focus-visible {
+  outline: 2px solid var(--iris);
+  outline-offset: 2px;
+}
+
+/* ── Motion ───────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .bandChevron {
+    transition: none;
+  }
+  .card:hover {
+    transform: none;
+  }
+}

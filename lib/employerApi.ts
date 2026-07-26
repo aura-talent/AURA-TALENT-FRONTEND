@@ -190,6 +190,9 @@ export interface TalentPoolEntry {
   avatar_url: string | null;
   created_at: string;
   resume: { user_id: string; markdown: string; updated_at: string } | null;
+  /** Every user row folded into this person (duplicate signups share an
+   *  email), canonical id first. Evaluations may sit on any of them. */
+  alias_ids?: string[];
   evaluations?: CandidateEvaluation[];
   evaluation?: CandidateEvaluation | null;
 }

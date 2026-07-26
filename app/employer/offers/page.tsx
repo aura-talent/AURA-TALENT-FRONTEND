@@ -282,7 +282,11 @@ function OffersHub() {
                     return (
                       <tr
                         key={row.candidate_user_id}
-                        onClick={() => router.push(`/employer/candidates/${row.candidate_user_id}`)}
+                        onClick={() =>
+                          router.push(
+                            `/employer/candidates/${row.candidate_user_id}?job=${row.job_id}`,
+                          )
+                        }
                         style={{ cursor: "pointer" }}
                       >
                         <td>

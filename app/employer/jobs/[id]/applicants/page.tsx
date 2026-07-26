@@ -202,7 +202,7 @@ export default function JobApplicantsPage({
                     {interviewAttempted(row) ? (
                       <Link
                         className="completion-check"
-                        href={`/employer/candidates/${row.candidate_user_id}/interview`}
+                        href={`/employer/candidates/${row.candidate_user_id}/interview?job=${id}`}
                       >
                         {Math.round(row.evaluation?.interview_score ?? 0)}/100
                       </Link>
@@ -223,8 +223,8 @@ export default function JobApplicantsPage({
                       <Link
                         href={
                           interviewOnly
-                            ? `/employer/candidates/${row.candidate_user_id}/interview`
-                            : `/employer/candidates/${row.candidate_user_id}`
+                            ? `/employer/candidates/${row.candidate_user_id}/interview?job=${id}`
+                            : `/employer/candidates/${row.candidate_user_id}?job=${id}`
                         }
                         className="table-action"
                       >

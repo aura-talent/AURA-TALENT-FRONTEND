@@ -124,6 +124,9 @@ export interface JobApplication {
   is_rejected: boolean;
   selected_for_offer: boolean;
   selected_for_offer_at: string | null;
+  /** Aura's justification for shortlisting this candidate (0005). Null when a
+   * human moved them to the shortlist stage by hand. */
+  shortlist_reason: string | null;
   applied_at: string;
   updated_at: string;
 }

@@ -6,6 +6,7 @@
 export const AGENT_LABEL: Record<string, { label: string; color: string }> = {
   "candidate-management": { label: "🧠 Hiring Agent", color: "#7c3aed" },
   "headhunter-sourcing": { label: "🔍 Headhunters", color: "#0d9488" },
+  evaluation: { label: "📊 Evaluation Agent", color: "#c026d3" },
   planning: { label: "📋 Planning Agent", color: "#2563eb" },
   communication: { label: "📨 Communication Agent", color: "#d97706" },
   "hr-supervisor": { label: "⚙️ Auto-advance", color: "#64748b" },
@@ -94,23 +95,9 @@ export function deriveAgentActivity(
   openSuggestions: { job_id: string | null; status: string; agent: string | null; kind: string }[],
 ): AgentActivityLine[] {
   const lines: AgentActivityLine[] = [];
+  const running = job.automation_level === "auto" && job.status === "Active";
 
-  if (
-    job.automation_level === "auto" &&
-    job.status === "Active" &&
-    job.pipeline_phase === "open-hiring" &&
-    job.active_headhunter_ids.length > 0
-  ) {
-    const meta = agentLabel("headhunter-sourcing");
-    lines.push({
-      key: "headhunter-sourcing",
-      label: meta.label,
-      color: meta.color,
-      text: "are sourcing candidates",
-      count: 0,
-    });
-  }
-
+  // ── Lines backed by open suggestion rows ─────────────────────────────────
   const groups = new Map<string, { agent: string; kind: string; count: number }>();
   for (const s of openSuggestions) {
     if (s.job_id !== job.id || s.status !== "open") continue;
@@ -133,6 +120,41 @@ export function deriveAgentActivity(
       text: agentActivityPhrase(g.agent, g.kind),
       count: g.count,
     });
+  }
+
+  // ── Standing behaviors, derived from job state ───────────────────────────
+  // Sourcing, evaluating and shortlisting leave no OPEN suggestion row to key
+  // off: sourcing is continuous, and evaluation/shortlisting only ever write
+  // already-done announcements. Without these the feed sits empty for the
+  // whole Evaluation phase even while Aura is actively working the role. Each
+  // is skipped when a real suggestion already speaks for that agent, so the
+  // concrete "waiting on you" line always wins over the generic one.
+  const spokenFor = new Set([...groups.values()].map((g) => g.agent));
+  function standing(agent: string, key: string, text: string) {
+    if (spokenFor.has(agent)) return;
+    const meta = agentLabel(agent);
+    lines.push({ key, label: meta.label, color: meta.color, text, count: 0 });
+  }
+
+  const sourcingPhase =
+    job.pipeline_phase === "open-hiring" || job.pipeline_phase === "evaluation";
+  if (running && sourcingPhase && job.active_headhunter_ids.length > 0) {
+    standing(
+      "headhunter-sourcing",
+      "headhunter-sourcing",
+      job.pipeline_phase === "evaluation"
+        ? "are topping up the candidate pool"
+        : "are sourcing candidates",
+    );
+  }
+
+  if (running && job.pipeline_phase === "evaluation") {
+    standing("evaluation", "evaluation", "is scoring applicants against this role");
+    standing(
+      "candidate-management",
+      "candidate-management:shortlisting",
+      "is shortlisting the candidates who clear your minimum score",
+    );
   }
 
   return lines;

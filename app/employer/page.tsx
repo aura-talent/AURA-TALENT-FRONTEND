@@ -125,7 +125,7 @@ export default function EmployerOverview() {
             {loading && <Loader label="Loading candidates…" />}
             {topCandidates.map((row) => (
               <Link
-                href={`/employer/candidates/${row.candidate_user_id}`}
+                href={`/employer/candidates/${row.candidate_user_id}?job=${row.job_id}`}
                 key={`${row.job_id}-${row.candidate_user_id}`}
               >
                 <span className="candidate-avatar">{candidateInitials(row.full_name)}</span>

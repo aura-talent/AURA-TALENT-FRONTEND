@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import Breadcrumbs from "@/components/employer/Breadcrumbs";
 import AuraChatPanel from "@/components/employer/chat/AuraChatPanel";
+import LiveActivityPanel from "@/components/employer/live/LiveActivityPanel";
 import { employerApi } from "@/lib/employerApi";
 
 type NotificationCounts = { offers: number; shortlists: number };
@@ -420,6 +421,9 @@ export default function EmployerShell({ children }: { children: React.ReactNode 
         {children}
       </section>
 
+      {/* Both docks are siblings of {children}, so they survive navigation
+          between employer pages with their state intact. */}
+      <LiveActivityPanel />
       <AuraChatPanel />
     </div>
   );

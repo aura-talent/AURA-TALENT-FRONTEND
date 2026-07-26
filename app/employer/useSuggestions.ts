@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { defaultPipelinePhases, isJobOpen } from "@/app/employer/data";
+import { defaultPipelinePhases, isInShortlistWindow, isJobOpen } from "@/app/employer/data";
 import { currentPhaseProgress, getJobConfig, nextPhaseId } from "@/app/employer/pipelineConfig";
 import {
   employerApi,
@@ -124,6 +124,40 @@ export function useSuggestions() {
         });
       }
 
+      // 1b. Evaluation-phase jobs with a shortlist waiting on a decision.
+      // High: this is where automation deliberately stops (backend
+      // pipeline_engine.AUTOMATION_HANDOFF_PHASE) — Aura has finished
+      // shortlisting and nothing else moves until the employer picks, so it
+      // has to be visible on the dashboard, not just as a nav badge.
+      if (job.pipeline_phase === "evaluation") {
+        const waiting = jobCandidates.filter(
+          (row) =>
+            row.application &&
+            !row.application.selected_for_offer &&
+            isInShortlistWindow(
+              row.application.stage,
+              row.application.is_rejected,
+              row.job_application_stages ?? job.job_application_stages,
+            ),
+        );
+        if (waiting.length > 0) {
+          const byAura = waiting.filter((row) => row.application?.shortlist_reason).length;
+          list.push({
+            id: `shortlist-${job.id}`,
+            tone: "iris",
+            priority: "high",
+            badge: `${waiting.length}`,
+            title: `Decide the shortlist for ${job.title}`,
+            detail:
+              byAura > 0
+                ? `Aura shortlisted ${byAura} candidate${byAura === 1 ? "" : "s"} — choose who moves through to an offer.`
+                : `${waiting.length} candidate${waiting.length === 1 ? " is" : "s are"} waiting on an offer decision.`,
+            href: `/employer/shortlists`,
+            cta: "Open shortlists →",
+          });
+        }
+      }
+
       // 2. Manual phases whose target is met → advance the job. High: blocks
       // the job from moving forward until someone clicks.
       const config = getJobConfig(job, phases, plansByJob[job.id]?.openings ?? 1);
@@ -168,7 +202,7 @@ export function useSuggestions() {
             badge: `${Math.round(top.evaluation!.wlc_score!)}%`,
             title: `${top.full_name ?? top.email ?? "A candidate"} is a strong match for ${job.title}`,
             detail: `Aura scored them ${Math.round(top.evaluation!.wlc_score!)}% — worth a closer look.`,
-            href: `/employer/candidates/${top.candidate_user_id}`,
+            href: `/employer/candidates/${top.candidate_user_id}?job=${job.id}`,
             cta: "Review candidate →",
           });
         }
@@ -255,7 +289,7 @@ export function useSuggestions() {
         badge: "✦",
         title: `${pick.full_name ?? pick.email ?? "A candidate"} was sourced by a headhunter`,
         detail: `Suggested for ${pick.job_title}. Review the match and reach out.`,
-        href: `/employer/candidates/${pick.candidate_user_id}`,
+        href: `/employer/candidates/${pick.candidate_user_id}?job=${pick.job_id}`,
         cta: "Review candidate →",
       });
     }
@@ -280,7 +314,7 @@ export function useSuggestions() {
     const jobTitle = Object.fromEntries(jobs.map((j) => [j.id, j.title]));
     for (const a of persisted) {
       const href = a.candidate_user_id
-        ? `/employer/candidates/${a.candidate_user_id}`
+        ? `/employer/candidates/${a.candidate_user_id}${a.job_id ? `?job=${a.job_id}` : ""}`
         : a.job_id
           ? `/employer/jobs/${a.job_id}`
           : undefined;

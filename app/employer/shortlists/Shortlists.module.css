@@ -108,7 +108,7 @@
 .card {
   position: relative;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.15fr) auto;
   align-items: center;
   gap: 1.1rem;
   padding: 0.95rem 1.1rem 0.95rem 1.35rem;
@@ -261,6 +261,43 @@
 
 /* ── Controls ───────────────────────────────────────────────────────── */
 
+/* Why this candidate is here. Deliberately quieter than the name and score —
+   it's the evidence you check after the number catches your eye, not before. */
+.why {
+  min-width: 0;
+  border-left: 1px solid var(--ink-12);
+  padding-left: 1.1rem;
+}
+
+.whoAura {
+  display: block;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--iris);
+}
+
+.whyText {
+  margin-top: 0.28rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--ink-72);
+  /* Long rationales stay a fixed height so rows keep a scannable rhythm; the
+     full text is one click away on the candidate page. */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.whyNone {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8rem;
+  color: var(--ink-30);
+}
+
 .controls {
   display: flex;
   align-items: center;
@@ -406,10 +443,27 @@
   color: var(--score-weak);
 }
 
+/* The rationale is the first thing to give up its own column — it reads fine
+   stacked under the name, and the score/actions must not get squeezed. */
+@media (max-width: 1080px) {
+  .card {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    row-gap: 0.7rem;
+  }
+  .why {
+    grid-column: 2 / -1;
+    border-left: none;
+    padding-left: 0;
+  }
+}
+
 @media (max-width: 640px) {
   .card {
     grid-template-columns: auto minmax(0, 1fr);
     row-gap: 0.75rem;
+  }
+  .why {
+    grid-column: 1 / -1;
   }
   .controls {
     grid-column: 1 / -1;

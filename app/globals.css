@@ -1715,8 +1715,12 @@ textarea.input {
 .report p {
   margin: 0.7rem 0;
 }
-.report ul,
+.report ul {
+  list-style: disc;
+  margin: 0.7rem 0 0.7rem 1.4rem;
+}
 .report ol {
+  list-style: decimal;
   margin: 0.7rem 0 0.7rem 1.4rem;
 }
 .report blockquote {
@@ -1779,8 +1783,12 @@ textarea.input {
 .employer-job-description p {
   margin: 0.5rem 0;
 }
-.employer-job-description ul,
+.employer-job-description ul {
+  list-style: disc;
+  margin: 0.5rem 0 0.5rem 1.2rem;
+}
 .employer-job-description ol {
+  list-style: decimal;
   margin: 0.5rem 0 0.5rem 1.2rem;
 }
 .employer-job-description li {
@@ -4024,9 +4032,14 @@ textarea.input {
   letter-spacing: -0.01em;
 }
 .aura-chat-said ul,
+.aura-chat-bubble ul {
+  list-style: disc;
+  margin: 0.45rem 0;
+  padding-left: 1.05rem;
+}
 .aura-chat-said ol,
-.aura-chat-bubble ul,
 .aura-chat-bubble ol {
+  list-style: decimal;
   margin: 0.45rem 0;
   padding-left: 1.05rem;
 }

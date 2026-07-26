@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import type { CSSProperties } from "react";
 import { Loader } from "@/components/ui/loader";
 import { interviewEvaluationPriorities } from "../../../data";
@@ -25,6 +26,7 @@ export default function CandidateInterviewEvaluationPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const jobIdParam = useSearchParams().get("job");
   const [detail, setDetail] = useState<CandidateDetail | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -58,9 +60,12 @@ export default function CandidateInterviewEvaluationPage({
       </div>
     );
 
-  const row: CandidateRow | undefined = detail.rows.find(
-    (r) => r.evaluation?.interview_evaluation,
-  );
+  // ?job= scopes this to the job the employer came from — a candidate can have
+  // an interview evaluation on more than one of their roles.
+  const withInterview = detail.rows.filter((r) => r.evaluation?.interview_evaluation);
+  const row: CandidateRow | undefined =
+    (jobIdParam ? withInterview.find((r) => r.job_id === jobIdParam) : undefined) ??
+    withInterview[0];
   const evaluation = row?.evaluation?.interview_evaluation;
   const name = detail.full_name ?? detail.email ?? "Candidate";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -41,14 +41,8 @@ export default function HiringPipelineBoard({
   const router = useRouter();
   const [phaseOverrides, setPhaseOverrides] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<string | null>(null);
-  // Guards deterministic auto-advance so a given job never advances twice out
-  // of the same phase within a session (keyed `${jobId}:${fromPhase}`).
-  const autoAdvancedRef = useRef<Set<string>>(new Set());
 
   const plansByJob = Object.fromEntries(plans.map((plan) => [plan.job_id, plan]));
-  const phaseLabel: Record<string, string> = Object.fromEntries(
-    phases.map((phase) => [phase.id, phase.label]),
-  );
 
   function effectivePhase(job: EmployerJob): string {
     return phaseOverrides[job.id] ?? job.pipeline_phase;
@@ -109,28 +103,13 @@ export default function HiringPipelineBoard({
     return currentPhaseProgress(job, candidates, config);
   }
 
-  // Deterministic auto-advance: when a job's current phase is set to "auto"
-  // and its target is met, move it to the next phase once. This fires from an
-  // effect (not during render) and is guarded per job+phase to avoid loops.
-  useEffect(() => {
-    if (Object.keys(configs).length === 0) return;
-    for (const job of jobs) {
-      const fromPhase = effectivePhase(job);
-      if (fromPhase !== job.pipeline_phase) continue;
-      const progress = progressFor(job);
-      if (!progress || progress.automation !== "auto" || !progress.met) continue;
-      const to = nextPhaseId(fromPhase, phases);
-      if (!to) continue;
-      const guard = `${job.id}:${fromPhase}`;
-      if (autoAdvancedRef.current.has(guard)) continue;
-      autoAdvancedRef.current.add(guard);
-      handleMove(job.id, to, "auto");
-      setToast(
-        `${job.title} auto-advanced to ${phaseLabel[to] ?? to} — target met.`,
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [configs, candidates, jobs, phaseOverrides]);
+  // Auto-advance is the BACKEND's job, not the browser's. This component used
+  // to run its own advance loop here, POSTing /advance without require_target
+  // — which made the server treat an automated move as a human one and skip
+  // the Evaluation handoff gate entirely (pipeline_engine.AUTOMATION_HANDOFF_PHASE),
+  // walking auto jobs into the offer phase before anyone was shortlisted.
+  // The scheduler (app/employer/scheduler.py, every 60s) is now the single
+  // owner of auto-advance; this board only moves jobs when a human drags one.
 
   useEffect(() => {
     if (!toast) return;

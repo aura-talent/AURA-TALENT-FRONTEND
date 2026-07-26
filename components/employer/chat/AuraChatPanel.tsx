@@ -64,6 +64,17 @@ function Icon({ name, size = 16 }: { name: string; size?: number }) {
 export default function AuraChatPanel() {
   const [open, setOpen] = useState(false);
   const [wide, setWide] = useState(false);
+
+  // On narrow screens this panel becomes a full-bleed sheet that covers the
+  // live-activity dock in the opposite corner. Flag the state on <html> so the
+  // dock can step aside instead of sitting unreachable underneath — one
+  // attribute, no shared context between the two docks.
+  useEffect(() => {
+    document.documentElement.dataset.auraChatOpen = open ? "1" : "0";
+    return () => {
+      delete document.documentElement.dataset.auraChatOpen;
+    };
+  }, [open]);
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [showSessions, setShowSessions] = useState(false);

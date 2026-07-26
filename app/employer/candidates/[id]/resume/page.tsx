@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import ReportView from "@/components/ReportView";
 import { Loader } from "@/components/ui/loader";
 import {
@@ -16,6 +17,7 @@ export default function CandidateResumePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const jobIdParam = useSearchParams().get("job");
   const [detail, setDetail] = useState<CandidateDetail | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -51,7 +53,9 @@ export default function CandidateResumePage({
 
   const name = detail.full_name ?? detail.email ?? "Candidate";
   const row: CandidateRow | undefined =
-    detail.rows.find((r) => r.evaluation) ?? detail.rows[0];
+    (jobIdParam ? detail.rows.find((r) => r.job_id === jobIdParam) : undefined) ??
+    detail.rows.find((r) => r.evaluation) ??
+    detail.rows[0];
   const evaluation = row?.evaluation ?? null;
 
   if (!detail.resume_markdown)

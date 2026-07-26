@@ -237,7 +237,7 @@ export default function ShortlistsPage() {
                       <div>
                         <Link
                           className={styles.name}
-                          href={`/employer/candidates/${row.candidate_user_id}`}
+                          href={`/employer/candidates/${row.candidate_user_id}?job=${job.id}`}
                         >
                           {name}
                         </Link>
@@ -249,6 +249,23 @@ export default function ShortlistsPage() {
                           <span className={styles.stageDot} aria-hidden="true" />
                           {application.stage}
                         </span>
+                      </div>
+
+                      {/* Why they're on this list. Aura writes a per-candidate
+                          rationale when it shortlists; a human moving someone
+                          here by hand leaves none, so the cell reads as a dash
+                          rather than pretending to an explanation. */}
+                      <div className={styles.why}>
+                        {application.shortlist_reason ? (
+                          <>
+                            <span className={styles.whoAura}>Shortlisted by Aura</span>
+                            <p className={styles.whyText}>{application.shortlist_reason}</p>
+                          </>
+                        ) : (
+                          <span className={styles.whyNone} title="Shortlisted manually">
+                            —
+                          </span>
+                        )}
                       </div>
 
                       {/* Two tiers: the invitation this stage calls for sits

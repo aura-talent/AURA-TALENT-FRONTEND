@@ -190,7 +190,9 @@ export default function EmployerJobDetailPage({
                     </p>
                     <footer>
                       <span>{row.evaluation?.match_summary?.slice(0, 60) ?? row.job_title}</span>
-                      <Link href={`/employer/candidates/${row.candidate_user_id}`}>Review and reconnect →</Link>
+                      <Link href={`/employer/candidates/${row.candidate_user_id}?job=${row.job_id}`}>
+                        Review and reconnect →
+                      </Link>
                     </footer>
                   </div>
                 </article>

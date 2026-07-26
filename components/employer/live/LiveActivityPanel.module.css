@@ -1,0 +1,585 @@
+/**
+ * Live activity dock — the WATCH surface, deliberately mirroring Aura Chat's
+ * ASK surface in the opposite corner. Chat is where you ask a question; this is
+ * where you see the answer arrive on its own.
+ *
+ * Three rules held this together:
+ *
+ *  - The pulse is earned. The dot only animates when agents are actually
+ *    working; idle is a flat grey dot. A light that's always on tells you
+ *    nothing, so the moment it stops meaning something it stops moving.
+ *  - No aura glow. globals.css reserves the periwinkle/peach/mint signature for
+ *    score moments; a perpetually glowing dock would spend that currency on
+ *    ambient chrome. Liveness here is motion and timing, not colour.
+ *  - Closed still reports. The collapsed pill carries the dot, a word and a
+ *    count, so "is anything happening?" is answered without a click — which is
+ *    the whole reason the dock exists.
+ */
+
+/* Left offset tracks the employer sidebar, whose width steps at the same
+   breakpoints (see .employer-shell in globals.css: 260px, then 76px, then a
+   full-width top bar). */
+.pill,
+.panel {
+  --live-left: 1rem;
+}
+
+@media (min-width: 801px) {
+  .pill,
+  .panel {
+    --live-left: calc(76px + 1rem);
+  }
+}
+
+@media (min-width: 1101px) {
+  .pill,
+  .panel {
+    --live-left: calc(260px + 1.25rem);
+  }
+}
+
+/* ── collapsed pill ─────────────────────────────────────────────────────── */
+
+.pill {
+  position: fixed;
+  left: var(--live-left);
+  bottom: 1.5rem;
+  z-index: 59; /* under Aura chat's 60: chat is the active task, this is ambient */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--ink-12);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-lift);
+  font-family: var(--font-body), sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 0.2s ease;
+}
+
+.pill:hover {
+  transform: translateY(-2px);
+  border-color: var(--ink-30);
+}
+
+.pillLabel {
+  letter-spacing: -0.01em;
+}
+
+.pillCount {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.3rem;
+  border-radius: var(--r-pill);
+  background: var(--iris);
+  color: #fff;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.65rem;
+}
+
+.pillCountWaiting {
+  background: var(--score-fair);
+}
+
+.pillIdle {
+  color: var(--ink-55);
+}
+
+.chevron {
+  flex: none;
+  transition: transform 0.2s ease;
+}
+
+.chevronUp {
+  transform: rotate(180deg);
+}
+
+/* ── panel ──────────────────────────────────────────────────────────────── */
+
+.panel {
+  position: fixed;
+  left: var(--live-left);
+  bottom: 4.6rem;
+  z-index: 59;
+  display: flex;
+  flex-direction: column;
+  width: min(370px, calc(100vw - 2.5rem));
+  max-height: min(560px, calc(100vh - 10rem));
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--ink-12);
+  border-radius: var(--r-m);
+  box-shadow: var(--shadow-lift);
+}
+
+.panelIn {
+  animation: livePanelIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes livePanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 0.85rem 0.5rem;
+}
+
+.headTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  flex: 1;
+  font-family: var(--font-display), sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.iconBtn {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: var(--r-s);
+  background: none;
+  color: var(--ink-55);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.iconBtn:hover {
+  background: var(--ink-06);
+  color: var(--ink);
+}
+
+.spinning {
+  animation: liveSpin 0.9s linear infinite;
+}
+
+@keyframes liveSpin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+.meta {
+  margin: 0;
+  padding: 0 0.85rem 0.6rem;
+  color: var(--ink-55);
+  font-size: 0.7rem;
+}
+
+.metaTick {
+  font-family: var(--font-mono), monospace;
+}
+
+/* The metronome. Sweeps over one poll interval and restarts on every
+   successful poll — the cheapest possible proof the dock is still breathing. */
+.heartbeat {
+  position: relative;
+  flex: none;
+  height: 2px;
+  background: var(--ink-06);
+  overflow: hidden;
+}
+
+.heartbeat::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--iris-12), var(--iris));
+  transform-origin: left;
+  animation: liveSweep 15s linear forwards;
+}
+
+@keyframes liveSweep {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* ── the dot ────────────────────────────────────────────────────────────── */
+
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--iris);
+  box-shadow: 0 0 0 4px var(--iris-12);
+  animation: livePulse 1.4s ease-in-out infinite;
+}
+
+.dotWaiting {
+  background: var(--score-fair);
+  box-shadow: 0 0 0 4px rgba(185, 125, 20, 0.16);
+}
+
+.dotIdle {
+  background: var(--ink-30);
+  box-shadow: none;
+  animation: none;
+}
+
+@keyframes livePulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+/* ── job list ───────────────────────────────────────────────────────────── */
+
+.list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-12) transparent;
+}
+
+/* Phase is the organising idea: which bucket a role sits in answers more, at a
+   glance, than what any single agent is doing inside it. */
+.group + .group {
+  border-top: 1px solid var(--ink-06);
+}
+
+.groupHead {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.5rem 0.85rem 0.3rem;
+  color: var(--ink-55);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 1;
+}
+
+.groupCount {
+  margin-left: auto;
+  color: var(--ink-30);
+}
+
+.groupRows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jobRow + .jobRow {
+  border-top: 1px solid var(--ink-06);
+}
+
+.rowFlash {
+  animation: liveFlash 1.2s ease-out;
+}
+
+@keyframes liveFlash {
+  from {
+    background: var(--iris-08);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+.jobHead {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.45rem 0.85rem;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.jobHead:hover {
+  background: var(--ink-06);
+}
+
+.jobTitle {
+  display: block;
+  font-family: var(--font-display), sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phaseSwatch {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.jobBadges {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.waitingBadge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 0.28rem;
+  border-radius: var(--r-pill);
+  background: var(--score-fair);
+  color: #fff;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.62rem;
+  font-style: normal;
+}
+
+.pausedTag {
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--ink-12);
+  border-radius: var(--r-s);
+  color: var(--ink-55);
+  font-size: 0.6rem;
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── expanded body ──────────────────────────────────────────────────────── */
+
+.body[hidden] {
+  /* Required: the rule below would otherwise beat the UA's [hidden] style. */
+  display: none;
+}
+
+.body {
+  display: block;
+  padding: 0 0.85rem 0.75rem 1.6rem;
+}
+
+.sectionLabel {
+  margin: 0.55rem 0 0.35rem;
+  color: var(--ink-55);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.line {
+  display: grid;
+  grid-template-columns: 6px minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: start;
+}
+
+.lineDot {
+  width: 6px;
+  height: 6px;
+  margin-top: 0.32rem;
+  border-radius: 50%;
+}
+
+.lineLabel {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.lineText {
+  display: block;
+  color: var(--ink-72);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.waitingItem {
+  display: block;
+  padding: 0.35rem 0;
+  border-bottom: 1px dashed var(--ink-06);
+  font-size: 0.72rem;
+  color: var(--ink-72);
+}
+
+.waitingItem:last-of-type {
+  border-bottom: none;
+}
+
+.stamp {
+  display: block;
+  margin-top: 0.1rem;
+  color: var(--ink-30);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.62rem;
+}
+
+.jobLinks {
+  display: flex;
+  gap: 0.85rem;
+  margin-top: 0.6rem;
+}
+
+.jobLink {
+  color: var(--iris);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.jobLink:hover {
+  text-decoration: underline;
+}
+
+.hint {
+  margin: 0.3rem 0 0;
+  color: var(--ink-55);
+  font-size: 0.7rem;
+  line-height: 1.45;
+  font-style: italic;
+}
+
+/* ── empty + footer ─────────────────────────────────────────────────────── */
+
+.empty {
+  padding: 1.4rem 1.1rem;
+  text-align: center;
+}
+
+.emptyTitle {
+  margin: 0 0 0.3rem;
+  font-family: var(--font-display), sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.emptyBody {
+  margin: 0;
+  color: var(--ink-55);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.emptyBody a {
+  color: var(--iris);
+}
+
+.foot {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0.85rem;
+  border-top: 1px solid var(--ink-06);
+  color: var(--ink-30);
+  font-size: 0.65rem;
+}
+
+.errorNote {
+  color: var(--score-fair);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 800px) {
+  .panel {
+    max-height: min(60vh, calc(100vh - 12rem));
+  }
+}
+
+@media (max-width: 560px) {
+  .pill {
+    left: 1rem;
+    bottom: 1rem;
+  }
+  .panel {
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: 4.25rem;
+    width: auto;
+    max-height: 70vh;
+  }
+  /* Chat becomes a full-bleed sheet at this width and covers the dock
+     entirely; AuraChatPanel flags its open state on <html> so we can step
+     aside rather than sit unreachable underneath it. */
+  :global(html[data-aura-chat-open="1"]) .pill,
+  :global(html[data-aura-chat-open="1"]) .panel {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panelIn,
+  .dot,
+  .heartbeat::after,
+  .rowFlash,
+  .spinning {
+    animation: none;
+  }
+  .pill,
+  .chevron {
+    transition: none;
+  }
+  /* A static filled bar, not a blank strip — the poll still happened. */
+  .heartbeat::after {
+    transform: scaleX(1);
+  }
+}

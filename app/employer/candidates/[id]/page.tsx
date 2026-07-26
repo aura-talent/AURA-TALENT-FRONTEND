@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Loader } from "@/components/ui/loader";
 import {
   defaultApplicationStages,
@@ -40,6 +41,11 @@ export default function CandidateDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  // A candidate can sit on several of this employer's jobs, each with its own
+  // evaluation. Pages that link here from a job context pass ?job=<id> so the
+  // evaluation shown is the one for the job the employer came from — without
+  // it this page just picked whichever row happened to come back first.
+  const jobIdParam = useSearchParams().get("job");
   const [detail, setDetail] = useState<CandidateDetail | null>(null);
   const [notFound, setNotFound] = useState(false);
 
@@ -77,10 +83,16 @@ export default function CandidateDetailPage({
       </div>
     );
 
-  // Prefer the row with an application (the active pipeline context);
-  // fall back to the best-scored evaluation row.
+  // The job the employer navigated from wins outright. Otherwise prefer the
+  // row with an application (the active pipeline context), then fall back to
+  // the best-scored evaluation row.
   const row: CandidateRow | undefined =
-    detail.rows.find((r) => r.application) ?? detail.rows[0];
+    (jobIdParam ? detail.rows.find((r) => r.job_id === jobIdParam) : undefined) ??
+    detail.rows.find((r) => r.application) ??
+    detail.rows[0];
+  // Carry the job context into the resume/interview sub-pages so they resolve
+  // to the same job's evaluation rather than re-guessing.
+  const jobQuery = row?.job_id ? `?job=${row.job_id}` : "";
   const evaluation = row?.evaluation ?? null;
   const application = row?.application ?? null;
   const stages = row?.job_application_stages?.length
@@ -125,7 +137,7 @@ export default function CandidateDetailPage({
             {detail.resume_markdown ? (
               <Link
                 className="btn btn-ghost"
-                href={`/employer/candidates/${id}/resume`}
+                href={`/employer/candidates/${id}/resume${jobQuery}`}
               >
                 View resume
               </Link>
@@ -355,7 +367,7 @@ export default function CandidateDetailPage({
                     Feeds reputational score and the relevant scoring dimensions
                   </p>
                 </div>
-                <Link href={`/employer/candidates/${id}/interview`}>
+                <Link href={`/employer/candidates/${id}/interview${jobQuery}`}>
                   View interview evaluation →
                 </Link>
               </div>
